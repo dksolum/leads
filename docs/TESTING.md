@@ -1,7 +1,7 @@
 # Guia de Testes
 
 Este documento descreve as estratégias e ferramentas de teste para o projeto Consultoria Financeira Premium.
-
+ 
 ## 🧪 Estratégia de Testes
 
 ### Testes Unitários (Jest + React Testing Library)
