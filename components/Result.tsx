@@ -59,7 +59,7 @@ export const Result: React.FC<Props> = ({ answers }) => {
         if (strategyName && strategyEmail && strategyPhone) {
             await saveLead(strategyName, strategyEmail, strategyPhone, 'Strategy Session');
             // Redirect to Google Meet
-            window.open("https://meet.google.com/", "_blank");
+            window.open("https://calendar.app.google/Fh6dNbVXyvQEc9Pw5", "_blank");
         }
     };
 
