@@ -25,7 +25,7 @@ Este endpoint receberia os dados do lead capturados no formulário de "Conversa 
 {
   "status": "success",
   "message": "Lead capturado com sucesso",
-  "redirectUrl": "https://meet.google.com/..." // Opcional, se o backend controlar o redirecionamento
+  "redirectUrl": "https://calendar.app.google/Fh6dNbVXyvQEc9Pw5" // Opcional, se o backend controlar o redirecionamento
 }
 ```
 
