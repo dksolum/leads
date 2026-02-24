@@ -75,31 +75,31 @@ export const LandingPage: React.FC<Props> = ({ onStart, onAdminClick }) => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1, duration: 1 }}
-          className="flex items-center justify-center gap-6 pt-8 text-gray-600 text-sm"
+          className="flex flex-wrap items-center justify-center gap-4 md:gap-6 pt-8 text-gray-600 text-sm px-4"
         >
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 whitespace-nowrap">
             <div className="w-2 h-2 rounded-full bg-gold-500"></div>
             <span>Análise Gratuita</span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 whitespace-nowrap">
             <div className="w-2 h-2 rounded-full bg-gold-500"></div>
             <span>Confidencialidade Total</span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 whitespace-nowrap">
             <div className="w-2 h-2 rounded-full bg-gold-500"></div>
             <span>Foco em Resultado</span>
           </div>
         </motion.div>
       </div>
 
-      {/* Admin Link at the bottom */}
-      <div className="absolute bottom-6 right-6 z-20">
+      {/* Admin Link - Moved to top-right for better mobile visibility */}
+      <div className="absolute top-6 right-6 z-20">
         <button
           onClick={onAdminClick}
-          className="p-3 bg-dark-900 border border-dark-800 rounded-full text-gray-700 hover:text-gold-500 hover:border-gold-900/30 transition-all group lg:opacity-30 lg:hover:opacity-100"
+          className="p-2 md:p-3 bg-dark-900/50 hover:bg-dark-900 border border-dark-800 rounded-full text-gray-700 hover:text-gold-500 hover:border-gold-900/30 transition-all group opacity-20 hover:opacity-100"
           title="Área Administrativa"
         >
-          <Lock className="w-4 h-4" />
+          <Lock className="w-3 h-3 md:w-4 h-4" />
         </button>
       </div>
     </div>
