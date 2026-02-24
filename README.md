@@ -16,11 +16,12 @@ Este projeto é uma aplicação web interativa desenvolvida para captar leads qu
 
 ## 🛠️ Tecnologias Utilizadas
 
-- **React 18+** (Vite)
+- **React 19** (Vite)
 - **TypeScript**
-- **Tailwind CSS** (Estilização)
+- **Tailwind CSS**
 - **Framer Motion** (Animações)
 - **Lucide React** (Ícones)
+- **Supabase** (Banco de dados e Auth)
 
 ## 📂 Estrutura do Projeto
 
@@ -59,3 +60,11 @@ Este projeto é uma aplicação web interativa desenvolvida para captar leads qu
 - **Validação de Formulários:** Todos os campos de captura de lead são obrigatórios para garantir a qualidade dos dados.
 - **Redirecionamento Seguro:** Links externos (WhatsApp, Google Meet) são abertos em nova aba para evitar bloqueios de iframe e melhorar a experiência do usuário.
 - **Responsividade:** O layout se adapta perfeitamente a dispositivos móveis e desktops.
+
+## 🚀 Implantação na Vercel
+
+1. Importe o repositório na Vercel.
+2. Adicione as seguintes **Environment Variables**:
+   - `VITE_SUPABASE_URL`: Sua URL do projeto Supabase.
+   - `VITE_SUPABASE_ANON_KEY`: Sua Anon Key do Supabase.
+3. O arquivo `vercel.json` já está incluído para lidar com as rotas do dashboard.
