@@ -31,18 +31,28 @@ export const Result: React.FC<Props> = ({ answers }) => {
     const [directWhatsappNumber, setDirectWhatsappNumber] = useState('');
 
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [redirectionUrl, setRedirectionUrl] = useState<string | null>(null);
-    const [redirectionLabel, setRedirectionLabel] = useState('');
+    const [strategyRedirectionUrl, setStrategyRedirectionUrl] = useState<string | null>(null);
+    const [directRedirectionUrl, setDirectRedirectionUrl] = useState<string | null>(null);
 
-    // Auto-redirection effect
+    // Auto-redirection effect for Strategy Session
     React.useEffect(() => {
-        if (redirectionUrl) {
+        if (strategyRedirectionUrl) {
             const timer = setTimeout(() => {
-                window.open(redirectionUrl, "_blank");
-            }, 3000); // 3 seconds delay
+                window.open(strategyRedirectionUrl, "_blank");
+            }, 3000);
             return () => clearTimeout(timer);
         }
-    }, [redirectionUrl]);
+    }, [strategyRedirectionUrl]);
+
+    // Auto-redirection effect for Direct WhatsApp
+    React.useEffect(() => {
+        if (directRedirectionUrl) {
+            const timer = setTimeout(() => {
+                window.open(directRedirectionUrl, "_blank");
+            }, 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [directRedirectionUrl]);
 
     const saveLead = async (name: string, email: string, phone: string, actionType: string) => {
         setIsSubmitting(true);
@@ -71,8 +81,7 @@ export const Result: React.FC<Props> = ({ answers }) => {
         if (strategyName && strategyEmail && strategyPhone) {
             const success = await saveLead(strategyName, strategyEmail, strategyPhone, 'Strategy Session');
             if (success) {
-                setRedirectionLabel('Abrindo sua Agenda...');
-                setRedirectionUrl("https://calendar.app.google/Fh6dNbVXyvQEc9Pw5");
+                setStrategyRedirectionUrl("https://calendar.app.google/Fh6dNbVXyvQEc9Pw5");
             }
         }
     };
@@ -90,8 +99,7 @@ export const Result: React.FC<Props> = ({ answers }) => {
         if (directWhatsappName && directWhatsappEmail && directWhatsappNumber) {
             const success = await saveLead(directWhatsappName, directWhatsappEmail, directWhatsappNumber, 'WhatsApp Direct');
             if (success) {
-                setRedirectionLabel('Iniciando conversa no WhatsApp...');
-                setRedirectionUrl("https://wa.me/message/VFMAYP65ATMVL1");
+                setDirectRedirectionUrl("https://wa.me/message/VFMAYP65ATMVL1");
             }
         }
     };
@@ -148,7 +156,7 @@ export const Result: React.FC<Props> = ({ answers }) => {
 
                     {/* Main CTA area */}
                     <div className="space-y-6">
-                        {redirectionUrl ? (
+                        {strategyRedirectionUrl ? (
                             <motion.div
                                 initial={{ opacity: 0, scale: 0.95 }}
                                 animate={{ opacity: 1, scale: 1 }}
@@ -160,10 +168,10 @@ export const Result: React.FC<Props> = ({ answers }) => {
                                 <h4 className="text-2xl font-serif text-white mb-2">Quase lá!</h4>
                                 <p className="text-gray-400 mb-8">
                                     Seus dados foram salvos. Você será redirecionado para: <br />
-                                    <strong className="text-gold-400">{redirectionLabel}</strong>
+                                    <strong className="text-gold-400">Abrindo sua Agenda...</strong>
                                 </p>
                                 <button
-                                    onClick={() => window.open(redirectionUrl, "_blank")}
+                                    onClick={() => window.open(strategyRedirectionUrl, "_blank")}
                                     className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gold-500 hover:bg-gold-400 text-black font-bold rounded-lg transition-all"
                                 >
                                     Clique aqui caso não seja redirecionado
@@ -239,32 +247,132 @@ export const Result: React.FC<Props> = ({ answers }) => {
                             </>
                         )}
 
-                        {/* Direct WhatsApp Option (Yellow) - ALWAYS available below the primary option if not using its specific form */}
+                        {/* Direct WhatsApp Option (Yellow) */}
                         <div className="mt-6">
-                            {!showDirectWhatsappInput ? (
-                                <button
-                                    onClick={() => setShowDirectWhatsappInput(true)}
-                                    className="text-yellow-500 hover:text-yellow-400 text-sm font-medium underline underline-offset-4 transition-colors"
+                            {directRedirectionUrl ? (
+                                <motion.div
+                                    initial={{ opacity: 0, scale: 0.95 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    className="max-w-md mx-auto bg-dark-800 p-8 rounded-xl border border-yellow-500/30 shadow-xl text-center"
                                 >
-                                    Não consegui encontrar o melhor horário na agenda. Prefiro falar direto pelo WhatsApp.
+                                    <div className="w-12 h-12 bg-yellow-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                                        <Check className="w-6 h-6 text-yellow-500" />
+                                    </div>
+                                    <h4 className="text-xl font-serif text-white mb-2">Quase lá!</h4>
+                                    <p className="text-gray-400 text-sm mb-6">
+                                        Iniciando conversa no WhatsApp...
+                                    </p>
+                                    <button
+                                        onClick={() => window.open(directRedirectionUrl, "_blank")}
+                                        className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-yellow-600 hover:bg-yellow-500 text-white font-bold rounded-lg transition-all text-sm"
+                                    >
+                                        Clique aqui caso não seja redirecionado
+                                        <ArrowRight className="w-4 h-4" />
+                                    </button>
+                                </motion.div>
+                            ) : (
+                                <>
+                                    {!showDirectWhatsappInput ? (
+                                        <button
+                                            onClick={() => setShowDirectWhatsappInput(true)}
+                                            className="text-yellow-500 hover:text-yellow-400 text-sm font-medium underline underline-offset-4 transition-colors"
+                                        >
+                                            Não consegui encontrar o melhor horário na agenda. Prefiro falar direto pelo WhatsApp.
+                                        </button>
+                                    ) : (
+                                        <motion.form
+                                            initial={{ opacity: 0, height: 0 }}
+                                            animate={{ opacity: 1, height: 'auto' }}
+                                            onSubmit={handleDirectWhatsappSubmit}
+                                            className="max-w-md mx-auto mt-4 bg-dark-800 p-6 rounded-xl border border-yellow-500/30 shadow-xl"
+                                        >
+                                            <h4 className="text-lg font-serif text-white mb-4">Falar pelo WhatsApp</h4>
+                                            <div className="space-y-4 text-left">
+                                                <div>
+                                                    <label className="block text-sm text-gray-400 mb-1">Seu Nome</label>
+                                                    <input
+                                                        type="text"
+                                                        required
+                                                        value={directWhatsappName}
+                                                        onChange={(e) => setDirectWhatsappName(e.target.value)}
+                                                        className="w-full bg-dark-900 border border-dark-600 rounded p-3 text-white focus:border-yellow-500 outline-none"
+                                                        placeholder="Nome completo"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm text-gray-400 mb-1">Seu Email</label>
+                                                    <input
+                                                        type="email"
+                                                        required
+                                                        value={directWhatsappEmail}
+                                                        onChange={(e) => setDirectWhatsappEmail(e.target.value)}
+                                                        className="w-full bg-dark-900 border border-dark-600 rounded p-3 text-white focus:border-yellow-500 outline-none"
+                                                        placeholder="seu@email.com"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm text-gray-400 mb-1">Seu WhatsApp</label>
+                                                    <input
+                                                        type="tel"
+                                                        required
+                                                        value={directWhatsappNumber}
+                                                        onChange={(e) => setDirectWhatsappNumber(e.target.value)}
+                                                        className="w-full bg-dark-900 border border-dark-600 rounded p-3 text-white focus:border-yellow-500 outline-none"
+                                                        placeholder="(XX) 99999-9999"
+                                                    />
+                                                </div>
+                                                <button
+                                                    type="submit"
+                                                    disabled={isSubmitting}
+                                                    className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-yellow-600 hover:bg-yellow-500 text-white font-bold rounded-lg transition-colors mt-2 disabled:opacity-50"
+                                                >
+                                                    {isSubmitting ? (
+                                                        <Loader2 className="w-5 h-5 animate-spin" />
+                                                    ) : (
+                                                        <MessageCircle className="w-5 h-5" />
+                                                    )}
+                                                    {isSubmitting ? 'Enviando...' : 'Iniciar Conversa'}
+                                                </button>
+                                            </div>
+                                        </motion.form>
+                                    )}
+                                </>
+                            )}
+                        </div>
+
+                        {/* Fallback */}
+                        <div className="mt-8 border-t border-dark-800 pt-8">
+                            {!showWhatsappInput && !sentWhatsapp ? (
+                                <button
+                                    onClick={() => setShowWhatsappInput(true)}
+                                    className="text-red-400 hover:text-red-300 text-sm underline underline-offset-4 transition-colors"
+                                >
+                                    Prefiro que você entre em contato pelo WhatsApp
                                 </button>
+                            ) : sentWhatsapp ? (
+                                <div className="flex flex-col items-center gap-2 text-green-400">
+                                    <div className="w-10 h-10 bg-green-900/20 rounded-full flex items-center justify-center">
+                                        <Check className="w-5 h-5" />
+                                    </div>
+                                    <p>Recebido. Entrarei em contato em breve.</p>
+                                </div>
                             ) : (
                                 <motion.form
                                     initial={{ opacity: 0, height: 0 }}
                                     animate={{ opacity: 1, height: 'auto' }}
-                                    onSubmit={handleDirectWhatsappSubmit}
-                                    className="max-w-md mx-auto mt-4 bg-dark-800 p-6 rounded-xl border border-yellow-500/30 shadow-xl"
+                                    onSubmit={handleWhatsappSubmit}
+                                    className="max-w-md mx-auto bg-dark-800 p-6 rounded-xl border border-red-500/30 shadow-xl"
                                 >
-                                    <h4 className="text-lg font-serif text-white mb-4">Falar pelo WhatsApp</h4>
+                                    <h4 className="text-lg font-serif text-white mb-4">Solicitar Contato</h4>
                                     <div className="space-y-4 text-left">
                                         <div>
                                             <label className="block text-sm text-gray-400 mb-1">Seu Nome</label>
                                             <input
                                                 type="text"
                                                 required
-                                                value={directWhatsappName}
-                                                onChange={(e) => setDirectWhatsappName(e.target.value)}
-                                                className="w-full bg-dark-900 border border-dark-600 rounded p-3 text-white focus:border-yellow-500 outline-none"
+                                                value={whatsappName}
+                                                onChange={(e) => setWhatsappName(e.target.value)}
+                                                className="w-full bg-dark-900 border border-dark-600 rounded p-3 text-white focus:border-red-500 outline-none"
                                                 placeholder="Nome completo"
                                             />
                                         </div>
@@ -273,9 +381,9 @@ export const Result: React.FC<Props> = ({ answers }) => {
                                             <input
                                                 type="email"
                                                 required
-                                                value={directWhatsappEmail}
-                                                onChange={(e) => setDirectWhatsappEmail(e.target.value)}
-                                                className="w-full bg-dark-900 border border-dark-600 rounded p-3 text-white focus:border-yellow-500 outline-none"
+                                                value={whatsappEmail}
+                                                onChange={(e) => setWhatsappEmail(e.target.value)}
+                                                className="w-full bg-dark-900 border border-dark-600 rounded p-3 text-white focus:border-red-500 outline-none"
                                                 placeholder="seu@email.com"
                                             />
                                         </div>
@@ -284,113 +392,38 @@ export const Result: React.FC<Props> = ({ answers }) => {
                                             <input
                                                 type="tel"
                                                 required
-                                                value={directWhatsappNumber}
-                                                onChange={(e) => setDirectWhatsappNumber(e.target.value)}
-                                                className="w-full bg-dark-900 border border-dark-600 rounded p-3 text-white focus:border-yellow-500 outline-none"
+                                                value={whatsappNumber}
+                                                onChange={(e) => setWhatsappNumber(e.target.value)}
+                                                className="w-full bg-dark-900 border border-dark-600 rounded p-3 text-white focus:border-red-500 outline-none"
                                                 placeholder="(XX) 99999-9999"
                                             />
                                         </div>
                                         <button
                                             type="submit"
                                             disabled={isSubmitting}
-                                            className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-yellow-600 hover:bg-yellow-500 text-white font-bold rounded-lg transition-colors mt-2 disabled:opacity-50"
+                                            className="w-full bg-dark-700 hover:bg-dark-600 text-white p-3 rounded border border-dark-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                                         >
                                             {isSubmitting ? (
-                                                <Loader2 className="w-5 h-5 animate-spin" />
+                                                <>
+                                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                                    Enviando...
+                                                </>
                                             ) : (
-                                                <MessageCircle className="w-5 h-5" />
+                                                <>
+                                                    Enviar Solicitação
+                                                    <ArrowRight className="w-4 h-4" />
+                                                </>
                                             )}
-                                            {isSubmitting ? 'Enviando...' : 'Iniciar Conversa'}
                                         </button>
                                     </div>
                                 </motion.form>
                             )}
                         </div>
-                    </div>
 
-                    {/* Fallback */}
-                    <div className="mt-8 border-t border-dark-800 pt-8">
-                        {!showWhatsappInput && !sentWhatsapp ? (
-                            <button
-                                onClick={() => setShowWhatsappInput(true)}
-                                className="text-red-400 hover:text-red-300 text-sm underline underline-offset-4 transition-colors"
-                            >
-                                Prefiro que você entre em contato pelo WhatsApp
-                            </button>
-                        ) : sentWhatsapp ? (
-                            <div className="flex flex-col items-center gap-2 text-green-400">
-                                <div className="w-10 h-10 bg-green-900/20 rounded-full flex items-center justify-center">
-                                    <Check className="w-5 h-5" />
-                                </div>
-                                <p>Recebido. Entrarei em contato em breve.</p>
-                            </div>
-                        ) : (
-                            <motion.form
-                                initial={{ opacity: 0, height: 0 }}
-                                animate={{ opacity: 1, height: 'auto' }}
-                                onSubmit={handleWhatsappSubmit}
-                                className="max-w-md mx-auto bg-dark-800 p-6 rounded-xl border border-red-500/30 shadow-xl"
-                            >
-                                <h4 className="text-lg font-serif text-white mb-4">Solicitar Contato</h4>
-                                <div className="space-y-4 text-left">
-                                    <div>
-                                        <label className="block text-sm text-gray-400 mb-1">Seu Nome</label>
-                                        <input
-                                            type="text"
-                                            required
-                                            value={whatsappName}
-                                            onChange={(e) => setWhatsappName(e.target.value)}
-                                            className="w-full bg-dark-900 border border-dark-600 rounded p-3 text-white focus:border-red-500 outline-none"
-                                            placeholder="Nome completo"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm text-gray-400 mb-1">Seu Email</label>
-                                        <input
-                                            type="email"
-                                            required
-                                            value={whatsappEmail}
-                                            onChange={(e) => setWhatsappEmail(e.target.value)}
-                                            className="w-full bg-dark-900 border border-dark-600 rounded p-3 text-white focus:border-red-500 outline-none"
-                                            placeholder="seu@email.com"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm text-gray-400 mb-1">Seu WhatsApp</label>
-                                        <input
-                                            type="tel"
-                                            required
-                                            value={whatsappNumber}
-                                            onChange={(e) => setWhatsappNumber(e.target.value)}
-                                            className="w-full bg-dark-900 border border-dark-600 rounded p-3 text-white focus:border-red-500 outline-none"
-                                            placeholder="(XX) 99999-9999"
-                                        />
-                                    </div>
-                                    <button
-                                        type="submit"
-                                        disabled={isSubmitting}
-                                        className="w-full bg-dark-700 hover:bg-dark-600 text-white p-3 rounded border border-dark-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
-                                    >
-                                        {isSubmitting ? (
-                                            <>
-                                                <Loader2 className="w-4 h-4 animate-spin" />
-                                                Enviando...
-                                            </>
-                                        ) : (
-                                            <>
-                                                Enviar Solicitação
-                                                <ArrowRight className="w-4 h-4" />
-                                            </>
-                                        )}
-                                    </button>
-                                </div>
-                            </motion.form>
-                        )}
-                    </div>
-
-                    <div className="mt-12 flex items-center justify-center gap-2 text-dark-700 text-xs">
-                        <Lock className="w-3 h-3" />
-                        <span>Seus dados estão seguros e não serão compartilhados.</span>
+                        <div className="mt-8 flex items-center justify-center gap-2 text-dark-700 text-xs">
+                            <Lock className="w-3 h-3" />
+                            <span>Seus dados estão seguros e não serão compartilhados.</span>
+                        </div>
                     </div>
                 </motion.div>
             </div>
