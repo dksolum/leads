@@ -35,18 +35,16 @@ Contém a lógica de negócio pura, separada da interface do usuário.
 - **Tema Escuro:** A paleta de cores é baseada em tons escuros (`bg-dark-950`) com acentos dourados (`text-gold-500`) para transmitir sofisticação e exclusividade.
 - **Responsividade:** O layout é fluido e se adapta a diferentes tamanhos de tela.
 
-## 🔄 Fluxo de Dados
+## 🔄 Fluxo de Dados e Persistência
 
-1. **Início:** O usuário inicia o quiz.
-2. **Perguntas:** O usuário responde às perguntas sequencialmente.
-3. **Validação:** Cada resposta é validada antes de avançar.
-4. **Conclusão:** Ao finalizar o quiz, as respostas são passadas para o componente `Result`.
-5. **Cálculo:** O perfil é calculado e o relatório é gerado.
-6. **Captura:** O usuário preenche um formulário de contato (Nome, Email, WhatsApp).
-7. **Ação:** Os dados são enviados (simulado via `console.log`) e o usuário é redirecionado para a ação desejada (Google Meet ou WhatsApp).
+1. **Início e Respostas:** Processo padrão de quiz.
+2. **Cálculo:** Perfil determinado via `utils/logic.ts`.
+3. **Persistência (Supabase):** Ao submeter o formulário de captura no `Result.tsx`, os dados são enviados para a tabela `leads` no Supabase via `@supabase/supabase-js`.
+4. **Gestão (Painel Admin):** Administradores autenticados podem visualizar e editar o `status` dos leads via `AdminDashboard.tsx`.
 
-## 🚀 Otimizações
+## 🛡️ Segurança e Infraestrutura
 
-- **Lazy Loading:** Componentes pesados podem ser carregados sob demanda (futuro).
-- **Memoização:** Funções de cálculo podem ser memoizadas para evitar reprocessamento desnecessário.
-- **Acessibilidade:** Melhorias na acessibilidade (ARIA labels, foco) para garantir que todos os usuários possam utilizar a aplicação.
+- **Supabase Auth:** Autenticação gerenciada para o acesso administrativo.
+- **Variáveis de Ambiente:** Chaves do Supabase gerenciadas via `import.meta.env` para segurança no deploy (Vercel).
+- **SPA Routing:** Configurado via `vercel.json` para suportar rotas virtuais.
+- **GitHub:** Sincronização automática para CI/CD.
