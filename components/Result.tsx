@@ -171,10 +171,10 @@ export const Result: React.FC<Props> = ({ answers }) => {
                                     <div className="w-16 h-16 bg-gold-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
                                         <Check className="w-8 h-8 text-gold-500" />
                                     </div>
-                                    <h4 className="text-2xl font-serif text-white mb-2">Agenda Confirmada!</h4>
+                                    <h4 className="text-2xl font-serif text-white mb-2">Quase lá!</h4>
                                     <p className="text-gray-400 mb-8">
-                                        Seus dados foram salvos. Você será redirecionado para: <br />
-                                        <strong className="text-gold-400">Abrindo sua Agenda...</strong>
+                                        Você será redirecionado automaticamente. <br />
+                                        <strong className="text-gold-400">Abrindo a agenda...</strong>
                                     </p>
                                     <button
                                         onClick={() => window.open(strategyRedirectionUrl, "_blank")}
@@ -266,10 +266,13 @@ export const Result: React.FC<Props> = ({ answers }) => {
                                     <div className="w-12 h-12 bg-yellow-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
                                         <Check className="w-6 h-6 text-yellow-500" />
                                     </div>
-                                    <h4 className="text-xl font-serif text-white mb-2">Quase lá!</h4>
-                                    <p className="text-gray-400 text-sm mb-6">
-                                        Iniciando conversa no WhatsApp...
+                                    <h4 className="text-2xl font-serif text-white mb-2">Quase lá!</h4>
+
+                                    <p className="text-gray-400 mb-8">
+                                        Você será redirecionado automaticamente. <br />
+                                        <strong className="text-gold-400">Iniciando conversa no WhatsApp...</strong>
                                     </p>
+
                                     <button
                                         onClick={() => window.open(directRedirectionUrl, "_blank")}
                                         className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-yellow-600 hover:bg-yellow-500 text-white font-bold rounded-lg transition-all text-sm"
