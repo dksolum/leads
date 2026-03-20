@@ -161,12 +161,19 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
 
     const handleStatusUpdate = async (id: string, newStatus: Lead['status']) => {
         setUpdatingStatus(id);
-        const { error } = await supabase
+        const { data, error } = await supabase
             .from('leads')
             .update({ status: newStatus })
-            .eq('id', id);
+            .eq('id', id)
+            .select();
 
-        if (!error) {
+        if (error) {
+            console.error('Erro ao atualizar status no Supabase:', error);
+            alert(`Erro ao atualizar: ${error.message}`);
+        } else if (!data || data.length === 0) {
+            console.warn('Status não atualizado no Supabase. Possível problema de permissão (RLS).');
+            alert('Não foi possível atualizar o status no servidor. Verifique suas permissões.');
+        } else {
             setLeads(prev => prev.map(l => l.id === id ? { ...l, status: newStatus } : l));
             if (selectedLead?.id === id) {
                 setSelectedLead(prev => prev ? { ...prev, status: newStatus } : null);
