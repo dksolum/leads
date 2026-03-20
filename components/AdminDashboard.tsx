@@ -88,12 +88,12 @@ const OBJECTIONS_MAPPING: Record<string, { acolher: string, reenquadrar: string,
 };
 
 const PAYMENT_OPTIONS = [
-    { label: '1', description: 'Até 12x de R$ 51,40 no Cartão de Crédito', link: 'https://hotm.io/solum-consultoria' },
-    { label: '2', description: 'À vista por R$ 497', link: 'https://hotm.io/solum-consultoria' },
-    { label: '3', description: 'Até 2x de R$ 267,25 no Boleto Parcelado', link: 'https://hotm.io/solum-consultoria-parcelado' },
-    { label: '4', description: 'Entrada de R$ 147 + 1x de R$ 350', link: 'https://mpago.li/2PY7vuj' },
+    { label: '1', description: 'Até 12x de R$ 61,74 no Cartão de Crédito', link: 'https://hotm.io/solum-consultoria' },
+    { label: '2', description: 'À vista por R$ 597', link: 'https://hotm.io/solum-consultoria' },
+    { label: '3', description: 'Até 2x de R$ 314,22 no Boleto Parcelado', link: 'https://hotm.io/solum-consultoria-parcelado' },
+    { label: '4', description: 'Entrada de R$ 147 + 1x de R$ 450', link: 'https://mpago.li/2PY7vuj' },
     { label: '5', description: 'Boleto Parcelado (PARCELEX) - Última tentativa', link: 'https://hotm.io/solum-consultoria-parcelex' },
-    { label: '6', description: 'R$ 47 (GARANTIR A VAGA) + 1x de R$ 450 (NO DIA DO FECHAMENTO)', link: 'https://mpago.li/2gVs1Rb' },
+    { label: '6', description: 'R$ 47 (GARANTIR A VAGA) + 1x de R$ 550 (NO DIA DO FECHAMENTO)', link: 'https://mpago.li/2gVs1Rb' },
 ];
 
 const OBJECTIONS_LIST = Object.keys(OBJECTIONS_MAPPING);
