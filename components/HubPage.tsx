@@ -241,7 +241,7 @@ export const HubPage: React.FC<HubPageProps> = ({ navigate }) => {
 
             {/* WhatsApp */}
             <motion.a
-              href="https://wa.me/5500000000000"
+              href="https://wa.me/5565984633457"
               target="_blank"
               rel="noopener noreferrer"
               whileHover={{ scale: 1.05 }}
@@ -256,7 +256,7 @@ export const HubPage: React.FC<HubPageProps> = ({ navigate }) => {
 
             {/* YouTube */}
             <motion.a
-              href="https://youtube.com/@seu_canal"
+              href="https://youtube.com/@dksolum"
               target="_blank"
               rel="noopener noreferrer"
               whileHover={{ scale: 1.05 }}
@@ -271,7 +271,7 @@ export const HubPage: React.FC<HubPageProps> = ({ navigate }) => {
 
             {/* Instagram */}
             <motion.a
-              href="https://instagram.com/seu_perfil"
+              href="https://instagram.com/dksolum"
               target="_blank"
               rel="noopener noreferrer"
               whileHover={{ scale: 1.05 }}
@@ -286,7 +286,7 @@ export const HubPage: React.FC<HubPageProps> = ({ navigate }) => {
 
             {/* TikTok */}
             <motion.a
-              href="https://tiktok.com/@seu_tiktok"
+              href="https://tiktok.com/@dksolum"
               target="_blank"
               rel="noopener noreferrer"
               whileHover={{ scale: 1.05 }}
@@ -306,7 +306,7 @@ export const HubPage: React.FC<HubPageProps> = ({ navigate }) => {
 
       {/* Footer / Direitos Reservados */}
       <footer className="relative z-10 w-full py-6 text-center text-xs md:text-sm text-gray-600 border-t border-dark-900/60 bg-dark-950/80 backdrop-blur-md">
-        <p>© {new Date().getFullYear()} Diego Kloppel - Consultoria Financeira Premium. Todos os direitos reservados.</p>
+        <p>© {new Date().getFullYear()} Todos os direitos reservados.</p>
       </footer>
 
     </div>
