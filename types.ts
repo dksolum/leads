@@ -2,7 +2,7 @@ export type IncomeRange = 'Até 5 mil' | '5 a 6 mil' | '6 a 8 mil' | '8 a 10 mil
 
 export type FinancialState =
   | 'Desorganizada e preocupante'
-  | 'Sobrevivendo mês a mês'
+  | 'Vivendo dia após dia'
   | 'Estável mas sem crescimento'
   | 'Organizada mas quero evoluir'
   | 'Muito bem estruturada';
@@ -34,8 +34,31 @@ export interface UserAnswers {
   otherDependentsCount?: number;
   financialState: FinancialState | '';
   goals: FinancialGoals | '';
+  hasCreditCard?: 'Sim' | 'Não' | '';
+  creditCardIsProblem?: 'Sim' | 'Não' | '';
   futureOutlook: FutureOutlook | '';
+  dependsOnOthers?: 'Sim' | 'Não' | '';
+  dependsOnOthersReason?: string;
+  commitmentScale?: string;
   whatsapp?: string; // For the fallback
+  meeting?: MeetingAnswers;
+  formType?: 'personal' | 'business' | 'complete';
+}
+
+export interface MeetingAnswers {
+  monthlySavings?: string;      // Quanto consegue poupar por mês
+  financialPriority?: string;   // Prioridade financeira atual (Reserva, Investimentos, etc.)
+  biggestWaste?: string;        // Maior ralo/desperdício de dinheiro
+  hasReserve?: 'Sim' | 'Não' | ''; // Possui reserva de emergência
+  reserveMonths?: string;       // Meses de reserva se tiver
+  timeCommitment?: string;      // Tempo de dedicação semanal
+  matrixDecision?: 'blue' | 'red' | '';
+  initialSolutionSense?: 'Sim' | 'Não' | '';
+  investmentChoice?: 'Vista' | 'Parcelado' | 'Recusou' | '';
+  negotiationChoice?: 'Vista' | 'Parcelado' | 'Recusou' | '';
+  downsellChoice?: 'Vista' | 'Parcelado' | 'Recusou' | '';
+  notes?: string;
+  meetingDate?: string;
 }
 
 export interface Lead {
@@ -47,7 +70,7 @@ export interface Lead {
   profile: ProfileType;
   answers: UserAnswers;
   action_type: 'Strategy Session' | 'WhatsApp Direct' | 'WhatsApp Contact';
-  status: 'Verificar' | 'Agendado' | 'Consultoria' | 'Perdido';
+  status: 'Verificar' | 'Agendado' | 'Consultoria' | 'Downsell' | 'Perdido';
 }
 
 export type ProfileType =
@@ -59,7 +82,7 @@ export type ProfileType =
 export interface QuestionStep {
   id: number;
   question: string;
-  type: 'text' | 'radio' | 'checkbox' | 'textarea';
+  type: 'text' | 'radio' | 'checkbox' | 'textarea' | 'scale';
   options?: string[];
   field: keyof UserAnswers;
   note?: string;
@@ -69,6 +92,6 @@ export interface QuestionStep {
     question: string;
     placeholder?: string;
     note?: string;
-    inputType?: 'text' | 'textarea' | 'number';
+    inputType?: 'text' | 'textarea' | 'number' | 'radio';
   };
 }

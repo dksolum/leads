@@ -62,7 +62,10 @@ export const Result: React.FC<Props> = ({ answers }) => {
                 email,
                 phone,
                 profile,
-                answers,
+                answers: {
+                    ...answers,
+                    formType: 'personal'
+                },
                 action_type: actionType
             });
             if (error) throw error;

@@ -34,7 +34,7 @@ const questions: QuestionStep[] = [
     id: 3,
     question: "Qual sua faixa de renda mensal?",
     type: 'radio',
-    options: ['Até 5 mil', '5 a 6 mil', '6 a 8 mil', '8 a 10 mil', 'Acima de 10 mil'],
+    options: ['Até 10 mil reais', 'De 10 a 12 mil reais', 'De 12 a 14 mil reais', 'De 14 a 18 mil reais', 'Acima de 18 mil reais'],
     field: 'incomeRange'
   },
   {
@@ -75,7 +75,7 @@ const questions: QuestionStep[] = [
     id: 8,
     question: "Como você acredita que está sua vida financeira hoje?",
     type: 'radio',
-    options: ['Desorganizada e preocupante', 'Sobrevivendo mês a mês', 'Estável mas sem crescimento', 'Organizada mas quero evoluir', 'Muito bem estruturada'],
+    options: ['Desorganizada e preocupante', 'Vivendo dia após dia', 'Estável mas sem crescimento', 'Organizada mas quero evoluir', 'Muito bem estruturada'],
     field: 'financialState'
   },
   {
@@ -87,10 +87,42 @@ const questions: QuestionStep[] = [
   },
   {
     id: 10,
+    question: "Você possui cartão de crédito?",
+    type: 'radio',
+    options: ['Sim', 'Não'],
+    field: 'hasCreditCard',
+    conditional: {
+      triggerValue: 'Sim',
+      field: 'creditCardIsProblem',
+      question: "Hoje o cartão de crédito está sendo um problema financeiro?",
+      inputType: 'radio'
+    }
+  },
+  {
+    id: 11,
     question: "Se nada mudar agora, como imagina sua vida financeira daqui a 6 meses?",
     type: 'radio',
     options: ['Pior do que hoje', 'Igual ao que está', 'Um pouco melhor', 'Muito melhor', 'Não faço ideia'],
     field: 'futureOutlook'
+  },
+  {
+    id: 12,
+    question: "Você depende de outra pessoa para tomar uma decisão?",
+    type: 'radio',
+    options: ['Sim', 'Não'],
+    field: 'dependsOnOthers',
+    conditional: {
+      triggerValue: 'Sim',
+      field: 'dependsOnOthersReason',
+      question: "Provavelmente a pessoa de quem você depende é uma pessoa importante para as decisões de mudança na sua vida. Porém, se essa pessoa falar NÃO para algo, você desiste de investir em você?",
+      inputType: 'radio'
+    }
+  },
+  {
+    id: 13,
+    question: "O quanto você está comprometido com sua evolução financeira de 0 a 10?",
+    type: 'scale',
+    field: 'commitmentScale'
   }
 ];
 
@@ -108,7 +140,12 @@ export const Quiz: React.FC<Props> = ({ onComplete }) => {
     otherDependentsCount: undefined,
     financialState: '',
     goals: '',
+    hasCreditCard: '',
+    creditCardIsProblem: '',
     futureOutlook: '',
+    dependsOnOthers: '',
+    dependsOnOthersReason: '',
+    commitmentScale: '',
   });
   const [error, setError] = useState('');
 
@@ -124,10 +161,10 @@ export const Quiz: React.FC<Props> = ({ onComplete }) => {
   const handleNext = () => {
     // Validation
     const val = answers[currentQ.field];
-    
+
     // Check main field
     if (
-      (!val) || 
+      (!val) ||
       (Array.isArray(val) && val.length === 0)
     ) {
       setError('Por favor, preencha este campo para continuar.');
@@ -163,13 +200,13 @@ export const Quiz: React.FC<Props> = ({ onComplete }) => {
     const triggersConditional = currentQ.conditional && value === currentQ.conditional.triggerValue;
 
     if (!triggersConditional) {
-        setTimeout(() => {
-            if (step < questions.length - 1) {
-                setStep(prev => prev + 1);
-            } else {
-                onComplete({ ...answers, [currentQ.field]: value });
-            }
-        }, 350);
+      setTimeout(() => {
+        if (step < questions.length - 1) {
+          setStep(prev => prev + 1);
+        } else {
+          onComplete({ ...answers, [currentQ.field]: value });
+        }
+      }, 350);
     }
   };
 
@@ -177,10 +214,10 @@ export const Quiz: React.FC<Props> = ({ onComplete }) => {
     if (currentQ.conditional) {
       let finalValue: string | number = value;
       if (currentQ.conditional.inputType === 'number') {
-          finalValue = value === '' ? 0 : parseInt(value, 10);
-          if (isNaN(finalValue as number)) finalValue = 0;
+        finalValue = value === '' ? 0 : parseInt(value, 10);
+        if (isNaN(finalValue as number)) finalValue = 0;
       }
-      
+
       setAnswers(prev => ({ ...prev, [currentQ.conditional!.field]: finalValue }));
       if (error) setError('');
     }
@@ -190,7 +227,7 @@ export const Quiz: React.FC<Props> = ({ onComplete }) => {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Enter' && currentQ.type !== 'textarea') {
-         handleNext();
+        handleNext();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -201,9 +238,6 @@ export const Quiz: React.FC<Props> = ({ onComplete }) => {
     <div className="min-h-screen flex flex-col items-center justify-center p-6 max-w-2xl mx-auto">
       <div className="w-full mb-8">
         <ProgressBar current={step} total={questions.length} />
-        <p className="text-gray-500 text-sm font-medium tracking-widest uppercase">
-          PERGUNTA {step + 1} DE {questions.length}
-        </p>
       </div>
 
       <AnimatePresence mode="wait">
@@ -251,11 +285,10 @@ export const Quiz: React.FC<Props> = ({ onComplete }) => {
                 {currentQ.options?.map((opt) => (
                   <label
                     key={opt}
-                    className={`flex items-center p-4 rounded-lg border cursor-pointer transition-all group ${
-                      answers[currentQ.field] === opt
-                        ? 'bg-gold-500/10 border-gold-500 text-white'
-                        : 'bg-dark-800 border-dark-600 text-gray-400 hover:border-gold-500/50'
-                    }`}
+                    className={`flex items-center p-4 rounded-lg border cursor-pointer transition-all group ${answers[currentQ.field] === opt
+                      ? 'bg-gold-500/10 border-gold-500 text-white'
+                      : 'bg-dark-800 border-dark-600 text-gray-400 hover:border-gold-500/50'
+                      }`}
                   >
                     <input
                       type="radio"
@@ -265,10 +298,9 @@ export const Quiz: React.FC<Props> = ({ onComplete }) => {
                       onChange={() => handleOptionSelect(opt)}
                       className="hidden"
                     />
-                    <div className={`w-5 h-5 rounded-full border mr-4 flex items-center justify-center ${
-                        answers[currentQ.field] === opt ? 'border-gold-500' : 'border-gray-500'
-                    }`}>
-                        {answers[currentQ.field] === opt && <div className="w-3 h-3 bg-gold-500 rounded-full" />}
+                    <div className={`w-5 h-5 rounded-full border mr-4 flex items-center justify-center ${answers[currentQ.field] === opt ? 'border-gold-500' : 'border-gray-500'
+                      }`}>
+                      {answers[currentQ.field] === opt && <div className="w-3 h-3 bg-gold-500 rounded-full" />}
                     </div>
                     <span className="text-lg">{opt}</span>
                   </label>
@@ -284,22 +316,38 @@ export const Quiz: React.FC<Props> = ({ onComplete }) => {
                     <label className="block text-lg text-white mb-2 font-serif">
                       {currentQ.conditional.question}
                     </label>
-                    
-                    {currentQ.conditional.inputType === 'number' ? (
-                        <input
-                            type="number"
-                            className="w-full bg-dark-800 border-2 border-dark-600 focus:border-gold-500 rounded-lg text-white p-4 text-lg outline-none transition-colors"
-                            placeholder={currentQ.conditional.placeholder}
-                            value={answers[currentQ.conditional.field] as string || ''}
-                            onChange={(e) => handleConditionalChange(e.target.value)}
-                        />
+
+                    {currentQ.conditional.inputType === 'radio' ? (
+                      <div className="flex gap-4 mt-2">
+                        {['Sim', 'Não'].map((opt) => (
+                          <button
+                            key={opt}
+                            type="button"
+                            onClick={() => handleConditionalChange(opt)}
+                            className={`flex-1 py-3 px-4 rounded-lg border text-center font-semibold transition-all ${answers[currentQ.conditional.field] === opt
+                              ? 'bg-gold-500/10 border-gold-500 text-white shadow-[0_0_15px_rgba(245,158,11,0.2)]'
+                              : 'bg-dark-800 border-dark-600 text-gray-400 hover:border-gold-500/50'
+                              }`}
+                          >
+                            {opt}
+                          </button>
+                        ))}
+                      </div>
+                    ) : currentQ.conditional.inputType === 'number' ? (
+                      <input
+                        type="number"
+                        className="w-full bg-dark-800 border-2 border-dark-600 focus:border-gold-500 rounded-lg text-white p-4 text-lg outline-none transition-colors"
+                        placeholder={currentQ.conditional.placeholder}
+                        value={answers[currentQ.conditional.field] as string || ''}
+                        onChange={(e) => handleConditionalChange(e.target.value)}
+                      />
                     ) : (
-                        <textarea
-                            className="w-full bg-dark-800 border-2 border-dark-600 focus:border-gold-500 rounded-lg text-white p-4 text-lg outline-none transition-colors min-h-[100px]"
-                            placeholder={currentQ.conditional.placeholder}
-                            value={answers[currentQ.conditional.field] as string || ''}
-                            onChange={(e) => handleConditionalChange(e.target.value)}
-                        />
+                      <textarea
+                        className="w-full bg-dark-800 border-2 border-dark-600 focus:border-gold-500 rounded-lg text-white p-4 text-lg outline-none transition-colors min-h-[100px]"
+                        placeholder={currentQ.conditional.placeholder}
+                        value={answers[currentQ.conditional.field] as string || ''}
+                        onChange={(e) => handleConditionalChange(e.target.value)}
+                      />
                     )}
 
                     {currentQ.conditional.note && (
@@ -307,6 +355,30 @@ export const Quiz: React.FC<Props> = ({ onComplete }) => {
                     )}
                   </motion.div>
                 )}
+              </div>
+            )}
+
+            {currentQ.type === 'scale' && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-11 gap-1 md:gap-2">
+                  {Array.from({ length: 11 }, (_, i) => i).map((num) => (
+                    <button
+                      key={num}
+                      type="button"
+                      onClick={() => handleOptionSelect(String(num))}
+                      className={`h-12 w-full rounded-lg border text-center font-bold text-sm md:text-base flex items-center justify-center transition-all ${answers[currentQ.field] === String(num)
+                        ? 'bg-gold-500 text-dark-950 border-gold-500 shadow-[0_0_15px_rgba(245,158,11,0.3)]'
+                        : 'bg-dark-800 border-dark-600 text-gray-400 hover:border-gold-500/50 hover:text-white'
+                        }`}
+                    >
+                      {num}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex justify-between text-xs text-gray-500 font-sans tracking-wide uppercase px-1">
+                  <span>0 - Sem comprometimento</span>
+                  <span>10 - Totalmente comprometido</span>
+                </div>
               </div>
             )}
           </div>
@@ -323,12 +395,12 @@ export const Quiz: React.FC<Props> = ({ onComplete }) => {
 
           <div className="mt-8 flex justify-between items-center">
             {step > 0 ? (
-                <button
-                    onClick={handleBack}
-                    className="text-gray-500 hover:text-white transition-colors text-sm underline underline-offset-4"
-                >
-                    Voltar
-                </button>
+              <button
+                onClick={handleBack}
+                className="text-gray-500 hover:text-white transition-colors text-sm underline underline-offset-4"
+              >
+                Voltar
+              </button>
             ) : <div />}
 
             <button

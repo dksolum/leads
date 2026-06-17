@@ -1,15 +1,26 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { ArrowRight, DollarSign, Lock } from 'lucide-react';
+import { ArrowRight, DollarSign, Lock, ArrowLeft } from 'lucide-react';
 
 interface Props {
   onStart: () => void;
   onAdminClick: () => void;
+  onBack: () => void;
 }
 
-export const LandingPage: React.FC<Props> = ({ onStart, onAdminClick }) => {
+export const LandingPage: React.FC<Props> = ({ onStart, onAdminClick, onBack }) => {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center max-w-4xl mx-auto relative overflow-hidden">
+      {/* Botão de Voltar para o Portal */}
+      <div className="absolute top-6 left-6 z-20">
+        <button
+          onClick={onBack}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-dark-900/50 hover:bg-dark-900 border border-dark-800 rounded-xl text-xs font-semibold text-gray-400 hover:text-white transition-all shadow-md backdrop-blur-sm group"
+        >
+          <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform" />
+          Voltar ao Portal
+        </button>
+      </div>
       {/* Background Decor */}
       <div className="absolute top-0 left-0 w-full h-full pointer-events-none opacity-20 z-0">
         <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-gold-600 rounded-full blur-[128px]"></div>
@@ -37,7 +48,7 @@ export const LandingPage: React.FC<Props> = ({ onStart, onAdminClick }) => {
           className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gold-500/10 border border-gold-500/20 text-gold-400 text-sm font-medium tracking-wide uppercase"
         >
           <DollarSign className="w-4 h-4" />
-          Diagnóstico Financeiro Exclusivo
+          Diagnóstico Financeiro Personalizado
         </motion.div>
 
         <motion.h1
@@ -55,7 +66,7 @@ export const LandingPage: React.FC<Props> = ({ onStart, onAdminClick }) => {
           transition={{ duration: 0.8, delay: 0.4 }}
           className="text-lg md:text-xl text-gray-400 max-w-2xl mx-auto leading-relaxed"
         >
-          Responda a perguntas estratégicas, receba um pré-diagnóstico personalizado da sua saúde financeira e desbloqueie uma sessão de orientação gratuita.
+          Responda poucas perguntas, receba um pré-diagnóstico da sua saúde financeira e desbloqueie uma sessão de orientação gratuita.
         </motion.p>
 
         <motion.button
@@ -67,7 +78,7 @@ export const LandingPage: React.FC<Props> = ({ onStart, onAdminClick }) => {
           whileTap={{ scale: 0.95 }}
           className="group relative inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-gold-600 to-gold-500 rounded-lg text-dark-950 font-bold text-lg shadow-[0_0_20px_rgba(245,158,11,0.3)] hover:shadow-[0_0_30px_rgba(245,158,11,0.5)] transition-all"
         >
-          Quero meu diagnóstico financeiro
+          Quero um diagnóstico financeiro
           <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
         </motion.button>
 
@@ -83,7 +94,7 @@ export const LandingPage: React.FC<Props> = ({ onStart, onAdminClick }) => {
           </div>
           <div className="flex items-center gap-2 whitespace-nowrap">
             <div className="w-2 h-2 rounded-full bg-gold-500"></div>
-            <span>Confidencialidade Total</span>
+            <span>Confidencialidade</span>
           </div>
           <div className="flex items-center gap-2 whitespace-nowrap">
             <div className="w-2 h-2 rounded-full bg-gold-500"></div>

@@ -4,7 +4,7 @@ export const calculateProfile = (answers: UserAnswers): ProfileType => {
   const { financialState, goals } = answers;
 
   // Logic Matrix
-  if (financialState === 'Desorganizada e preocupante' || financialState === 'Sobrevivendo mês a mês') {
+  if (financialState === 'Desorganizada e preocupante' || financialState === 'Vivendo dia após dia') {
     return 'Desorganização Estrutural';
   }
 
@@ -32,38 +32,38 @@ export const calculateProfile = (answers: UserAnswers): ProfileType => {
 
 export const generateReportText = (answers: UserAnswers, profile: ProfileType): string => {
   const { profession, mainProblem, spouse, children, otherDependents, otherDependentsCount } = answers;
-  
+
   const hasSpouse = spouse === 'Cônjuge';
   const hasChildren = children !== 'Não possuo filhos' && children !== '';
   const hasOther = otherDependents === 'Possuo outros dependentes';
 
   const hasDependents = hasSpouse || hasChildren || hasOther;
   let dependentText = "Mesmo que você sinta que suas finanças são apenas suas,";
-  
+
   if (hasDependents) {
     const parts = [];
     if (hasSpouse) parts.push('Cônjuge');
     if (hasChildren) parts.push(children);
-    
+
     const depList = parts.join(', ');
     const count = otherDependentsCount || 0;
     const others = hasOther ? ` e mais ${count} ${count === 1 ? 'dependente' : 'dependentes'}` : '';
-    
+
     let combined = depList;
     if (depList && others) {
-        combined = `${depList}${others}`;
+      combined = `${depList}${others}`;
     } else if (others) {
-        // If only others, remove " e mais " prefix if it feels weird, or keep it?
-        // "Considerando sua responsabilidade familiar ( e mais 2 dependentes)..." -> weird.
-        // "Considerando sua responsabilidade familiar (2 dependentes)..." -> better.
-        combined = `${count} ${count === 1 ? 'dependente' : 'dependentes'}`;
+      // If only others, remove " e mais " prefix if it feels weird, or keep it?
+      // "Considerando sua responsabilidade familiar ( e mais 2 dependentes)..." -> weird.
+      // "Considerando sua responsabilidade familiar (2 dependentes)..." -> better.
+      combined = `${count} ${count === 1 ? 'dependente' : 'dependentes'}`;
     }
 
     dependentText = `Considerando sua responsabilidade familiar (${combined}), a necessidade de segurança é multiplicada.`;
   }
 
   let intro = `Na sua realidade como <span class="text-gold-400 font-semibold">${profession}</span>, é comum que a rotina absorva o tempo de gestão estratégica.`;
-  
+
   // Specific tweaks based on profession keywords (simple heuristic)
   const profLower = profession.toLowerCase();
   if (profLower.includes('médic') || profLower.includes('advogad') || profLower.includes('engenheir') || profLower.includes('ti') || profLower.includes('dev')) {
@@ -73,7 +73,7 @@ export const generateReportText = (answers: UserAnswers, profile: ProfileType): 
   }
 
   let problemAddress = `Você mencionou que <span class="italic text-white">"${mainProblem}"</span> é seu maior desafio hoje.`;
-  
+
   let profileExplanation = "";
 
   switch (profile) {

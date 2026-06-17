@@ -7,7 +7,11 @@ interface Props {
 }
 
 export const ProgressBar: React.FC<Props> = ({ current, total }) => {
-  const progress = Math.min(((current + 1) / total) * 100, 100);
+  // Começa em 60% e progride até 100% nas últimas perguntas para dar sensação de proximidade do fim
+  const startProgress = 60;
+  const progress = total > 1 
+    ? Math.min(startProgress + (current / (total - 1)) * (100 - startProgress), 100) 
+    : 100;
 
   return (
     <div className="w-full h-1 bg-dark-800 rounded-full mb-8 overflow-hidden">
