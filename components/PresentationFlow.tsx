@@ -17,7 +17,7 @@ interface PresentationProps {
 }
 
 // Imagem padrão de fundo fixa para a capa fornecida pelo usuário
-const DIAGNOSTICO_BG = '/images/diagnostico.png';
+const DIAGNOSTICO_BG = '/images/diagnostico.webp';
 
 export const PresentationFlow: React.FC<PresentationProps> = ({ lead, onClose, onUpdateLead }) => {
   // Estado para controlar o slide atual

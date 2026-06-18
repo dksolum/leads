@@ -79,7 +79,7 @@ export const HubPage: React.FC<HubPageProps> = ({ navigate }) => {
 
               {/* Imagem do Perfil com Máscara Radial para dissolver no topo, base e laterais */}
               <img
-                src="/images/profile.png"
+                src="/images/profile.webp"
                 alt="Diego Kloppel - Educador Financeiro"
                 className="w-full h-full object-contain object-top relative z-10 select-none pointer-events-none"
                 style={{
@@ -107,7 +107,7 @@ export const HubPage: React.FC<HubPageProps> = ({ navigate }) => {
             {/* Imagem de Fundo (Plano de Fundo do Card) */}
             <div className="absolute inset-0 w-full h-full z-0 overflow-hidden">
               <img
-                src="/images/card_personal.png"
+                src="/images/card_personal.webp"
                 alt="Background Finanças Pessoais"
                 className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700 opacity-20 group-hover:opacity-30"
               />
@@ -141,7 +141,7 @@ export const HubPage: React.FC<HubPageProps> = ({ navigate }) => {
             {/* Imagem de Fundo (Plano de Fundo do Card) */}
             <div className="absolute inset-0 w-full h-full z-0 overflow-hidden">
               <img
-                src="/images/card_business.png"
+                src="/images/card_business.webp"
                 alt="Background Finanças Empresariais"
                 className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700 opacity-20 group-hover:opacity-30"
               />
@@ -174,7 +174,7 @@ export const HubPage: React.FC<HubPageProps> = ({ navigate }) => {
             {/* Imagem de Fundo (Plano de Fundo do Card) */}
             <div className="absolute inset-0 w-full h-full z-0 overflow-hidden">
               <img
-                src="/images/card_complete.png"
+                src="/images/card_complete.webp"
                 alt="Background Finanças Completas"
                 className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700 opacity-20 group-hover:opacity-30"
               />
@@ -207,7 +207,7 @@ export const HubPage: React.FC<HubPageProps> = ({ navigate }) => {
             {/* Imagem de Fundo (Plano de Fundo do Card) */}
             <div className="absolute inset-0 w-full h-full z-0 overflow-hidden">
               <img
-                src="/images/card_solum.png"
+                src="/images/card_solum.webp"
                 alt="Background Solum Financeiro"
                 className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700 opacity-20 group-hover:opacity-30"
               />

@@ -35,7 +35,7 @@ export const LandingPage: React.FC<Props> = ({ onStart, onAdminClick, onBack }) 
           className="flex justify-center mb-4"
         >
           <img
-            src="/images/logo.png"
+            src="/images/logo.webp"
             alt="Consultoria Financeira Premium Logo"
             className="h-20 md:h-28 object-contain filter drop-shadow-[0_0_15px_rgba(245,158,11,0.3)]"
           />
