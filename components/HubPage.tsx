@@ -10,11 +10,14 @@ export const HubPage: React.FC<HubPageProps> = ({ navigate }) => {
   return (
     <div className="min-h-screen bg-dark-950 text-slate-200 selection:bg-gold-500/30 selection:text-gold-200 flex flex-col justify-between overflow-x-hidden relative">
 
-      {/* Decorações de Fundo (Glows Premium) */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-full pointer-events-none opacity-25 z-0 overflow-hidden">
-        <div className="absolute -top-40 left-1/4 w-[500px] h-[500px] bg-gold-600 rounded-full blur-[160px] opacity-30"></div>
-        <div className="absolute top-1/3 right-1/4 w-[400px] h-[400px] bg-red-900 rounded-full blur-[140px] opacity-10"></div>
-        <div className="absolute bottom-10 left-1/3 w-[600px] h-[600px] bg-dark-800 rounded-full blur-[180px] border border-gold-900/10 opacity-40"></div>
+      {/* Decorações de Fundo (Glows Premium - ocultados no celular para evitar contraste com a foto e otimizar performance) */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-full pointer-events-none opacity-25 z-0" style={{ transform: 'translate3d(0,0,0)' }}>
+        {/* Glow Dourado: posicionado no extremo canto superior esquerdo, iluminando o título (apenas PC) */}
+        <div className="hidden md:block absolute -top-60 -left-40 w-[600px] h-[600px] bg-gold-600 rounded-full blur-[180px] opacity-15" style={{ transform: 'translate3d(0,0,0)', willChange: 'filter' }}></div>
+        {/* Glow Avermelhado: posicionado no meio esquerdo, atrás do início das soluções (apenas PC) */}
+        <div className="hidden md:block absolute top-[40%] -left-60 w-[500px] h-[500px] bg-red-900 rounded-full blur-[160px] opacity-10" style={{ transform: 'translate3d(0,0,0)', willChange: 'filter' }}></div>
+        {/* Glow Ouro Escuro: posicionado no canto inferior direito, bem longe da foto de perfil superior (apenas PC) */}
+        <div className="hidden md:block absolute -bottom-40 -right-40 w-[600px] h-[600px] bg-gold-900 rounded-full blur-[200px] opacity-20" style={{ transform: 'translate3d(0,0,0)', willChange: 'filter' }}></div>
       </div>
 
       {/* Conteúdo Principal */}
@@ -74,18 +77,11 @@ export const HubPage: React.FC<HubPageProps> = ({ navigate }) => {
               transition={{ duration: 0.8, type: 'spring' }}
               className="relative w-64 h-64 md:w-80 md:h-80 lg:w-[360px] lg:h-[360px] flex items-center justify-center"
             >
-              {/* Sombreamento escuro profundo e difuso em todas as direções */}
-              <div className="absolute w-[85%] h-[85%] bg-black rounded-full blur-[45px] opacity-95 z-0"></div>
-
-              {/* Imagem do Perfil com Máscara Radial para dissolver no topo, base e laterais */}
+              {/* Imagem do Perfil direta (sem máscara de gradiente síncrona, pois o usuário tratará a imagem nativamente) */}
               <img
                 src="/images/profile.webp"
                 alt="Diego Kloppel - Educador Financeiro"
                 className="w-full h-full object-contain object-top relative z-10 select-none pointer-events-none"
-                style={{
-                  maskImage: 'radial-gradient(circle, rgba(0,0,0,1) 25%, rgba(0,0,0,0) 70%)',
-                  WebkitMaskImage: 'radial-gradient(circle, rgba(0,0,0,1) 25%, rgba(0,0,0,0) 70%)'
-                }}
                 onError={(e) => {
                   e.currentTarget.src = 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=400';
                 }}

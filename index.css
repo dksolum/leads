@@ -10,11 +10,11 @@
   
   --color-dark-800: #1e1e1e;
   --color-dark-900: #121212;
-  --color-dark-950: #0a0a0a;
+  --color-dark-950: #000000;
 }
 
 body {
-  background-color: #0a0a0a;
+  background-color: #000000;
   color: #f3f4f6;
 }
 

@@ -12,7 +12,7 @@ export const LandingPage: React.FC<Props> = ({ onStart, onAdminClick, onBack }) 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center max-w-4xl mx-auto relative overflow-hidden">
       {/* Botão de Voltar para o Portal */}
-      <div className="absolute top-6 left-6 z-20">
+      <div className="absolute top-6 left-6 z-20 max-md:relative max-md:top-0 max-md:left-0 max-md:w-full max-md:flex max-md:justify-start max-md:mb-3">
         <button
           onClick={onBack}
           className="inline-flex items-center gap-2 px-4 py-2 bg-dark-900/50 hover:bg-dark-900 border border-dark-800 rounded-xl text-xs font-semibold text-gray-400 hover:text-white transition-all shadow-md backdrop-blur-sm group"
@@ -27,7 +27,7 @@ export const LandingPage: React.FC<Props> = ({ onStart, onAdminClick, onBack }) 
         <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-dark-800 rounded-full blur-[128px] border border-gold-900/20"></div>
       </div>
 
-      <div className="relative z-10 space-y-8">
+      <div className="relative z-10 space-y-6 md:space-y-8 w-full flex flex-col items-center">
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -86,7 +86,7 @@ export const LandingPage: React.FC<Props> = ({ onStart, onAdminClick, onBack }) 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1, duration: 1 }}
-          className="flex flex-wrap items-center justify-center gap-4 md:gap-6 pt-8 text-gray-600 text-sm px-4"
+          className="flex flex-wrap items-center justify-center gap-4 md:gap-6 pt-3 md:pt-8 text-gray-600 text-sm px-4"
         >
           <div className="flex items-center gap-2 whitespace-nowrap">
             <div className="w-2 h-2 rounded-full bg-gold-500"></div>
@@ -107,7 +107,7 @@ export const LandingPage: React.FC<Props> = ({ onStart, onAdminClick, onBack }) 
       <div className="absolute top-6 right-6 z-20">
         <button
           onClick={onAdminClick}
-          className="p-2 md:p-3 bg-dark-900/50 hover:bg-dark-900 border border-dark-800 rounded-full text-gray-700 hover:text-gold-500 hover:border-gold-900/30 transition-all group opacity-20 hover:opacity-100"
+          className="p-2 md:p-3 bg-dark-900/50 hover:bg-dark-900 border border-dark-850 rounded-full text-gray-700 hover:text-gold-500 hover:border-gold-900/30 transition-all group opacity-20 hover:opacity-100"
           title="Área Administrativa"
         >
           <Lock className="w-3 h-3 md:w-4 h-4" />
