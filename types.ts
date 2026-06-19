@@ -59,6 +59,35 @@ export interface MeetingAnswers {
   downsellChoice?: 'Vista' | 'Parcelado' | 'Recusou' | '';
   notes?: string;
   meetingDate?: string;
+
+  // Novas perguntas de Coleta de Informações 1
+  gastaMaisDoQueDeveria?: 'Sim' | 'Não' | '';
+  comOQueGastaMais?: string;
+  consegueGuardarDinheiro?: 'Sim' | 'Não' | '';
+  guardaMensalmente?: 'Sim' | 'Não' | '';
+  quantoGuardaMensalmente?: string;
+  quantoConseguiuGuardar?: string;
+  oQueImpedeDeGuardar?: string;
+  quantoTemDeReserva?: string;
+  problemaAlemDoPrincipal?: 'Sim' | 'Não' | '';
+  quaisOutrosProblemas?: string;
+  possuiDividas?: 'Sim' | 'Não' | '';
+  dificuldadeLidarDividas?: 'Sim' | 'Não' | '';
+  quaisDificuldadesDividas?: string;
+  possuiMetas?: 'Sim' | 'Não' | '';
+  quaisTresMetas?: string;
+  porqueMetasImportantes?: string;
+
+  // Novas perguntas de Coleta Emocional 2
+  oQueFaltaParaDez?: string;
+  vidaDaquiSeisMeses?: string;
+  seisMesesAssustaOuConforta?: 'Assusta' | 'Conforta' | '';
+  animacaoResolverMetas?: string; // Nota de 0 a 10
+  rotinaPoucoTempo?: 'Sim' | 'Não' | '';
+
+  // Finalidade do dinheiro guardado
+  guardadoTemFinalidade?: 'Sim' | 'Não' | '';
+  guardadoQualFinalidade?: string;
 }
 
 export interface Lead {

@@ -17,7 +17,11 @@ import {
     Copy,
     CheckCircle2,
     ArrowLeft,
-    Sparkles
+    Sparkles,
+    X,
+    AlertCircle,
+    Calendar,
+    Target
 } from 'lucide-react';
 import { PresentationFlow } from './PresentationFlow';
 
@@ -124,6 +128,9 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
     const [activePresentationLead, setActivePresentationLead] = useState<Lead | null>(null);
     const [selectedFormType, setSelectedFormType] = useState<'all' | 'personal' | 'business' | 'complete'>('all');
     const [selectedStatusTab, setSelectedStatusTab] = useState<'all' | Lead['status']>('all');
+    const [leadToDelete, setLeadToDelete] = useState<Lead | null>(null);
+    const [showPresentationAnswersModal, setShowPresentationAnswersModal] = useState(false);
+    const [activeAnswersTab, setActiveAnswersTab] = useState<'diagnostico' | 'metas' | 'emocional' | 'fechamento'>('diagnostico');
 
     const handleCopyLink = async (link: string, idx: number) => {
         try {
@@ -164,14 +171,21 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
         setSelectedObjection(null);
     }, [selectedLead?.id]);
 
-    const handleDelete = async (id: string) => {
-        if (window.confirm('Tem certeza que deseja excluir este lead?')) {
-            const { error } = await supabase.from('leads').delete().eq('id', id);
-            if (!error) {
-                setLeads(prev => prev.filter(l => l.id !== id));
-                if (selectedLead?.id === id) setSelectedLead(null);
+    const handleDelete = (lead: Lead) => {
+        setLeadToDelete(lead);
+    };
+
+    const confirmDelete = async () => {
+        if (!leadToDelete) return;
+        const { error } = await supabase.from('leads').delete().eq('id', leadToDelete.id);
+        if (!error) {
+            setLeads(prev => prev.filter(l => l.id !== leadToDelete.id));
+            if (selectedLead?.id === leadToDelete.id) {
+                setSelectedLead(null);
+                setShowTechnicalDetails(false);
             }
         }
+        setLeadToDelete(null);
     };
 
     const handleStatusUpdate = async (id: string, newStatus: Lead['status']) => {
@@ -452,7 +466,7 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                                                     </td>
                                                     <td className="px-6 py-4 text-right">
                                                         <button
-                                                            onClick={(e) => { e.stopPropagation(); handleDelete(lead.id); }}
+                                                            onClick={(e) => { e.stopPropagation(); handleDelete(lead); }}
                                                             className="p-2 text-gray-600 hover:text-red-400 transition-colors"
                                                         >
                                                             <Trash2 className="w-4 h-4" />
@@ -642,14 +656,22 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                                     </div>
                                 </div>
 
-                                {/* Botão de Toggle para Exibir/Ocultar os Detalhes Técnicos */}
-                                <div className="pt-8 border-t border-dark-800 flex justify-center">
+                                {/* Botões de Ação: Detalhes Técnicos e Respostas da Apresentação */}
+                                <div className="pt-8 border-t border-dark-800 flex flex-wrap justify-center gap-4">
                                     <button
                                         type="button"
                                         onClick={() => setShowTechnicalDetails(!showTechnicalDetails)}
                                         className="inline-flex items-center gap-2.5 px-8 py-3.5 rounded-xl border border-gold-500/20 hover:border-gold-500/40 bg-gold-500/5 hover:bg-gold-500/10 text-gold-400 hover:text-gold-300 transition-all font-bold text-xs md:text-sm tracking-widest uppercase shadow-lg shadow-black/20"
                                     >
                                         {showTechnicalDetails ? 'Ocultar Detalhes Técnicos' : 'Mostrar Detalhes Técnicos'}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPresentationAnswersModal(true)}
+                                        className="inline-flex items-center gap-2.5 px-8 py-3.5 rounded-xl bg-gradient-to-r from-gold-600 via-amber-500 to-gold-500 text-dark-950 hover:from-gold-500 hover:to-amber-400 hover:scale-[1.02] active:scale-[0.98] transition-all font-bold text-xs md:text-sm tracking-widest uppercase shadow-lg shadow-gold-500/20 border border-gold-400/20"
+                                    >
+                                        <Target className="w-4 h-4 text-dark-950" />
+                                        Ver Respostas da Apresentação
                                     </button>
                                 </div>
 
@@ -800,6 +822,359 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                     )}
                 </AnimatePresence>
             </main>
+
+            {/* Modal de Confirmação de Exclusão */}
+            <AnimatePresence>
+                {leadToDelete && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                        {/* Backdrop */}
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setLeadToDelete(null)}
+                            className="absolute inset-0 bg-black/75 backdrop-blur-sm"
+                        />
+                        
+                        {/* Card do Modal */}
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            transition={{ type: 'spring', duration: 0.4 }}
+                            className="bg-dark-900 border border-dark-800 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl relative z-10 p-6 space-y-6"
+                        >
+                            <div className="flex items-center gap-4 text-red-500">
+                                <div className="w-12 h-12 bg-red-500/10 rounded-full flex items-center justify-center border border-red-500/20">
+                                    <Trash2 className="w-6 h-6" />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-serif text-white font-bold">Excluir Lead</h3>
+                                    <p className="text-xs text-red-400 font-semibold tracking-wider uppercase">Confirmação de Ação Permanente</p>
+                                </div>
+                            </div>
+                            
+                            <div className="text-sm text-gray-300 leading-relaxed font-light">
+                                Tem certeza de que deseja excluir o lead <strong className="text-white font-semibold">{leadToDelete.name}</strong>? 
+                                Esta ação irá apagar todos os registros do lead, incluindo respostas de formulários e da apresentação.
+                                <span className="block mt-2 font-medium text-red-400/90">Esta alteração é irreversível.</span>
+                            </div>
+                            
+                            <div className="flex justify-end gap-3 pt-2">
+                                <button
+                                    onClick={() => setLeadToDelete(null)}
+                                    className="px-5 py-2.5 bg-dark-800 hover:bg-dark-750 text-gray-400 hover:text-white rounded-xl transition-all border border-dark-700 text-sm font-bold uppercase tracking-wider"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={confirmDelete}
+                                    className="px-5 py-2.5 bg-red-600 hover:bg-red-500 text-white rounded-xl transition-all shadow-lg shadow-red-600/20 hover:scale-[1.02] active:scale-[0.98] text-sm font-bold uppercase tracking-wider"
+                                >
+                                    Excluir Permanente
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Modal de Respostas da Apresentação */}
+            <AnimatePresence>
+                {showPresentationAnswersModal && selectedLead && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                        {/* Backdrop */}
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setShowPresentationAnswersModal(false)}
+                            className="absolute inset-0 bg-black/75 backdrop-blur-sm"
+                        />
+                        
+                        {/* Card do Modal */}
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            transition={{ type: 'spring', duration: 0.4 }}
+                            className="bg-dark-900 border border-dark-800 rounded-2xl w-full max-w-4xl max-h-[85vh] overflow-hidden shadow-2xl relative z-10 flex flex-col"
+                        >
+                            {/* Header */}
+                            <div className="p-6 border-b border-dark-800 flex items-center justify-between shrink-0">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-gold-500/10 rounded-full flex items-center justify-center text-gold-500 border border-gold-500/20">
+                                        <Target className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-lg font-serif text-white font-bold">Respostas da Apresentação</h3>
+                                        <p className="text-xs text-gray-500 font-semibold tracking-wider uppercase">Lead: {selectedLead.name}</p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setShowPresentationAnswersModal(false)}
+                                    className="p-2 hover:bg-dark-800 rounded-lg text-gray-400 hover:text-white transition-colors"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+                            
+                            {/* Body (Scrollable) */}
+                            <div className="p-6 overflow-y-auto flex-grow space-y-6">
+                                {!selectedLead.answers?.meeting || 
+                                 !Object.keys(selectedLead.answers.meeting).some(
+                                     key => selectedLead.answers.meeting![key as keyof typeof selectedLead.answers.meeting] !== undefined && 
+                                            selectedLead.answers.meeting![key as keyof typeof selectedLead.answers.meeting] !== ''
+                                 ) ? (
+                                    /* Caso Não Tenha Respostas */
+                                    <div className="text-center py-16 px-4">
+                                        <AlertCircle className="w-16 h-16 text-gold-500/70 mx-auto mb-4 animate-pulse" />
+                                        <h3 className="text-lg font-serif text-white font-bold mb-2">Apresentação Não Realizada</h3>
+                                        <p className="text-sm text-gray-400 max-w-md mx-auto leading-relaxed">
+                                            Ainda não existem informações desta parte porque não foi feita a apresentação que tem no sistema para o lead <strong className="text-slate-300 font-semibold">{selectedLead.name}</strong>.
+                                        </p>
+                                    </div>
+                                ) : (
+                                    /* Caso Tenha Respostas (Abas Internas) */
+                                    <div className="space-y-6">
+                                        {/* Abas */}
+                                        <div className="flex border-b border-dark-800 scrollbar-none overflow-x-auto gap-2">
+                                            {[
+                                                { id: 'diagnostico', label: 'Diagnóstico & Dívidas' },
+                                                { id: 'metas', label: 'Metas & Hábitos' },
+                                                { id: 'emocional', label: 'Emocional & Tempo' },
+                                                { id: 'fechamento', label: 'Fechamento & Notas' }
+                                            ].map((tab) => (
+                                                <button
+                                                    key={tab.id}
+                                                    onClick={() => setActiveAnswersTab(tab.id as any)}
+                                                    className={`px-4 py-3 border-b-2 text-xs md:text-sm font-semibold transition-all whitespace-nowrap ${
+                                                        activeAnswersTab === tab.id
+                                                            ? 'border-gold-500 text-gold-400'
+                                                            : 'border-transparent text-gray-500 hover:text-gray-400'
+                                                    }`}
+                                                >
+                                                    {tab.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                        
+                                        {/* Conteúdo da Aba Diagnóstico */}
+                                        {activeAnswersTab === 'diagnostico' && selectedLead.answers.meeting && (
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1">
+                                                    <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Gasta mais do que deveria?</p>
+                                                    <p className="text-sm text-white font-medium">{selectedLead.answers.meeting.gastaMaisDoQueDeveria || 'Não respondido'}</p>
+                                                </div>
+                                                
+                                                <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1">
+                                                    <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Com o que gasta mais?</p>
+                                                    <p className="text-sm text-white font-medium">{selectedLead.answers.meeting.comOQueGastaMais || 'Não respondido'}</p>
+                                                </div>
+                                                
+                                                <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1">
+                                                    <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Consegue guardar dinheiro?</p>
+                                                    <p className="text-sm text-white font-medium">{selectedLead.answers.meeting.consegueGuardarDinheiro || 'Não respondido'}</p>
+                                                </div>
+                                                
+                                                <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1">
+                                                    <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Guarda mensalmente?</p>
+                                                    <p className="text-sm text-white font-medium">{selectedLead.answers.meeting.guardaMensalmente || 'Não respondido'}</p>
+                                                </div>
+                                                
+                                                <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1">
+                                                    <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Quanto guarda mensalmente?</p>
+                                                    <p className="text-sm text-white font-medium">{selectedLead.answers.meeting.quantoGuardaMensalmente || 'Não respondido'}</p>
+                                                </div>
+                                                
+                                                <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1">
+                                                    <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Quanto conseguiu guardar?</p>
+                                                    <p className="text-sm text-white font-medium">{selectedLead.answers.meeting.quantoConseguiuGuardar || 'Não respondido'}</p>
+                                                </div>
+                                                
+                                                <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1">
+                                                    <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">O que impede de guardar?</p>
+                                                    <p className="text-sm text-white font-medium">{selectedLead.answers.meeting.oQueImpedeDeGuardar || 'Não respondido'}</p>
+                                                </div>
+                                                
+                                                <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1">
+                                                    <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Quanto tem de reserva de emergência?</p>
+                                                    <p className="text-sm text-white font-medium">{selectedLead.answers.meeting.quantoTemDeReserva || 'Não respondido'}</p>
+                                                </div>
+                                                
+                                                <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1">
+                                                    <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Possui dívidas?</p>
+                                                    <p className="text-sm text-white font-medium">{selectedLead.answers.meeting.possuiDividas || 'Não respondido'}</p>
+                                                </div>
+                                                
+                                                <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1">
+                                                    <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Dificuldade para lidar com as dívidas?</p>
+                                                    <p className="text-sm text-white font-medium">{selectedLead.answers.meeting.dificuldadeLidarDividas || 'Não respondido'}</p>
+                                                </div>
+                                                
+                                                <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1 md:col-span-2">
+                                                    <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Quais são as dificuldades com dívidas?</p>
+                                                    <p className="text-sm text-white font-medium">{selectedLead.answers.meeting.quaisDificuldadesDividas || 'Nenhuma informada ou sem dívidas'}</p>
+                                                </div>
+                                            </div>
+                                        )}
+                                        
+                                        {/* Conteúdo da Aba Metas */}
+                                        {activeAnswersTab === 'metas' && selectedLead.answers.meeting && (
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1">
+                                                    <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Economia Mensal Média</p>
+                                                    <p className="text-sm text-white font-medium">{selectedLead.answers.meeting.monthlySavings || 'Não respondido'}</p>
+                                                </div>
+                                                
+                                                <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1">
+                                                    <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Prioridade Financeira Atual</p>
+                                                    <p className="text-sm text-white font-medium">{selectedLead.answers.meeting.financialPriority || 'Não respondido'}</p>
+                                                </div>
+                                                
+                                                <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1">
+                                                    <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Maior Desperdício / Ralo</p>
+                                                    <p className="text-sm text-white font-medium">{selectedLead.answers.meeting.biggestWaste || 'Não respondido'}</p>
+                                                </div>
+                                                
+                                                <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1">
+                                                    <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Tem reserva?</p>
+                                                    <p className="text-sm text-white font-medium">
+                                                        {selectedLead.answers.meeting.hasReserve || 'Não respondido'}
+                                                        {selectedLead.answers.meeting.reserveMonths && ` (${selectedLead.answers.meeting.reserveMonths} meses)`}
+                                                    </p>
+                                                </div>
+                                                
+                                                <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1">
+                                                    <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Possui Metas definidas?</p>
+                                                    <p className="text-sm text-white font-medium">{selectedLead.answers.meeting.possuiMetas || 'Não respondido'}</p>
+                                                </div>
+                                                
+                                                <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1">
+                                                    <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Tem outro problema além do principal?</p>
+                                                    <p className="text-sm text-white font-medium">
+                                                        {selectedLead.answers.meeting.problemaAlemDoPrincipal || 'Não respondido'}
+                                                        {selectedLead.answers.meeting.quaisOutrosProblemas && ` - ${selectedLead.answers.meeting.quaisOutrosProblemas}`}
+                                                    </p>
+                                                </div>
+                                                
+                                                <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1 md:col-span-2">
+                                                    <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Quais são as três metas principais?</p>
+                                                    <p className="text-sm text-white font-medium leading-relaxed">{selectedLead.answers.meeting.quaisTresMetas || 'Não respondido'}</p>
+                                                </div>
+                                                
+                                                <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1 md:col-span-2">
+                                                    <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider font-bold">Por que essas metas são importantes?</p>
+                                                    <p className="text-sm text-white font-medium leading-relaxed">{selectedLead.answers.meeting.porqueMetasImportantes || 'Não respondido'}</p>
+                                                </div>
+                                            </div>
+                                        )}
+                                        
+                                        {/* Conteúdo da Aba Emocional */}
+                                        {activeAnswersTab === 'emocional' && selectedLead.answers.meeting && (
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1">
+                                                    <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Nota de Animação para resolver metas</p>
+                                                    <p className="text-sm text-white font-medium">{selectedLead.answers.meeting.animacaoResolverMetas || 'Não respondido'} / 10</p>
+                                                </div>
+                                                
+                                                <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1">
+                                                    <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">O que falta para nota 10?</p>
+                                                    <p className="text-sm text-white font-medium">{selectedLead.answers.meeting.oQueFaltaParaDez || 'Não respondido'}</p>
+                                                </div>
+                                                
+                                                <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1">
+                                                    <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Como estará a vida financeira daqui a 6 meses?</p>
+                                                    <p className="text-sm text-white font-medium">{selectedLead.answers.meeting.vidaDaquiSeisMeses || 'Não respondido'}</p>
+                                                </div>
+                                                
+                                                <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1">
+                                                    <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">A perspectiva de 6 meses assusta ou conforta?</p>
+                                                    <p className="text-sm text-white font-medium">{selectedLead.answers.meeting.seisMesesAssustaOuConforta || 'Não respondido'}</p>
+                                                </div>
+                                                
+                                                <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1">
+                                                    <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Tempo de dedicação semanal (horas)</p>
+                                                    <p className="text-sm text-white font-medium">{selectedLead.answers.meeting.timeCommitment || 'Não respondido'}</p>
+                                                </div>
+                                                
+                                                <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1">
+                                                    <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Se a rotina tem pouco tempo, aceita 10-15m/dia?</p>
+                                                    <p className="text-sm text-white font-medium">{selectedLead.answers.meeting.rotinaPoucoTempo || 'Não respondido'}</p>
+                                                </div>
+                                            </div>
+                                        )}
+                                        
+                                        {/* Conteúdo da Aba Fechamento */}
+                                        {activeAnswersTab === 'fechamento' && selectedLead.answers.meeting && (
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1">
+                                                    <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Decisão da Matriz (Cor)</p>
+                                                    <p className="text-sm text-white font-medium">
+                                                        {selectedLead.answers.meeting.matrixDecision === 'blue' && 'Azul (Razão/Segurança)'}
+                                                        {selectedLead.answers.meeting.matrixDecision === 'red' && 'Vermelho (Ação/Ganho)'}
+                                                        {!selectedLead.answers.meeting.matrixDecision && 'Não respondido'}
+                                                    </p>
+                                                </div>
+                                                
+                                                <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1">
+                                                    <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">A solução inicial fez sentido?</p>
+                                                    <p className="text-sm text-white font-medium">{selectedLead.answers.meeting.initialSolutionSense || 'Não respondido'}</p>
+                                                </div>
+                                                
+                                                <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1">
+                                                    <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Finalidade do dinheiro guardado</p>
+                                                    <p className="text-sm text-white font-medium">
+                                                        {selectedLead.answers.meeting.guardadoTemFinalidade || 'Não respondido'}
+                                                        {selectedLead.answers.meeting.guardadoQualFinalidade && ` - ${selectedLead.answers.meeting.guardadoQualFinalidade}`}
+                                                    </p>
+                                                </div>
+                                                
+                                                <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1">
+                                                    <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Data da Reunião / Registro</p>
+                                                    <p className="text-sm text-white font-medium">
+                                                        {selectedLead.answers.meeting.meetingDate ? new Date(selectedLead.answers.meeting.meetingDate).toLocaleString('pt-BR') : 'Não registrada'}
+                                                    </p>
+                                                </div>
+                                                
+                                                <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1">
+                                                    <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Escolha de Investimento (Oferta Principal)</p>
+                                                    <p className="text-sm text-white font-medium">{selectedLead.answers.meeting.investmentChoice || 'Nenhuma selecionada'}</p>
+                                                </div>
+                                                
+                                                <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1">
+                                                    <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider font-bold">Escolha na Negociação</p>
+                                                    <p className="text-sm text-white font-medium">{selectedLead.answers.meeting.negotiationChoice || 'Nenhuma selecionada'}</p>
+                                                </div>
+                                                
+                                                <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1 md:col-span-2">
+                                                    <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider font-bold">Escolha no Downsell</p>
+                                                    <p className="text-sm text-white font-medium">{selectedLead.answers.meeting.downsellChoice || 'Nenhuma selecionada'}</p>
+                                                </div>
+                                                
+                                                <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1 md:col-span-2">
+                                                    <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider font-bold">Observações Adicionais do Consultor</p>
+                                                    <p className="text-sm text-white font-light whitespace-pre-wrap leading-relaxed">{selectedLead.answers.meeting.notes || 'Sem observações adicionais.'}</p>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                            
+                            {/* Footer */}
+                            <div className="p-6 border-t border-dark-800 flex justify-end shrink-0">
+                                <button
+                                    onClick={() => setShowPresentationAnswersModal(false)}
+                                    className="px-6 py-2.5 bg-dark-800 hover:bg-dark-750 text-gray-300 hover:text-white rounded-xl transition-all border border-dark-700 text-xs font-bold uppercase tracking-widest"
+                                >
+                                    Fechar
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
 
             {activePresentationLead && (
                 <PresentationFlow

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  X, ChevronLeft, ChevronRight, Sparkles, Check, 
+import {
+  X, ChevronLeft, ChevronRight, Sparkles, Check,
   HelpCircle, AlertCircle, Image as ImageIcon, Save,
   Users, Award, TrendingUp, ShieldCheck, Play, ArrowRight,
   TrendingDown, CheckCircle2, RefreshCw, HeartHandshake, Brain,
@@ -21,13 +21,14 @@ const DIAGNOSTICO_BG = '/images/diagnostico.webp';
 
 export const PresentationFlow: React.FC<PresentationProps> = ({ lead, onClose, onUpdateLead }) => {
   // Estado para controlar o slide atual
-  type SlideId = 
+  type SlideId =
     | 'intro'
     | 'do_que_se_trata'
     | 'objetivo_conversa'
     | 'institucional'
     | 'confirmacao_dados'
     | 'coleta_informacoes'
+    | 'coleta_informacoes_2'
     | 'adequacao'
     | 'provas_sociais'
     | 'como_ajuda'
@@ -42,9 +43,24 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, onClose, o
     | 'proximos_passos_downsell'
     | 'agradecimento_final';
 
+  const containerRef = React.useRef<HTMLDivElement>(null);
+
+  const scrollToTop = () => {
+    if (containerRef.current) {
+      containerRef.current.scrollTop = 0;
+    }
+  };
+
   const [currentSlide, setCurrentSlide] = useState<SlideId>('intro');
   const [slideHistory, setSlideHistory] = useState<SlideId[]>([]);
   const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [showExitModal, setShowExitModal] = useState<boolean>(false);
+
+  // Controle de sub-passos na coleta de dados parte 1
+  const [coletaStep, setColetaStep] = useState<number>(1);
+
+  // Controle de sub-passos na decisão matrix
+  const [matrixStep, setMatrixStep] = useState<number>(1);
 
   // Estados dos novos dados de reunião coletados interativamente
   const [meetingAnswers, setMeetingAnswers] = useState<MeetingAnswers>({
@@ -60,7 +76,76 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, onClose, o
     negotiationChoice: lead.answers.meeting?.negotiationChoice || '',
     downsellChoice: lead.answers.meeting?.downsellChoice || '',
     notes: lead.answers.meeting?.notes || '',
+
+    // Novos campos adicionados
+    gastaMaisDoQueDeveria: lead.answers.meeting?.gastaMaisDoQueDeveria || '',
+    comOQueGastaMais: lead.answers.meeting?.comOQueGastaMais || '',
+    consegueGuardarDinheiro: lead.answers.meeting?.consegueGuardarDinheiro || '',
+    guardaMensalmente: lead.answers.meeting?.guardaMensalmente || '',
+    quantoGuardaMensalmente: lead.answers.meeting?.quantoGuardaMensalmente || '',
+    quantoConseguiuGuardar: lead.answers.meeting?.quantoConseguiuGuardar || '',
+    oQueImpedeDeGuardar: lead.answers.meeting?.oQueImpedeDeGuardar || '',
+    quantoTemDeReserva: lead.answers.meeting?.quantoTemDeReserva || '',
+    problemaAlemDoPrincipal: lead.answers.meeting?.problemaAlemDoPrincipal || '',
+    quaisOutrosProblemas: lead.answers.meeting?.quaisOutrosProblemas || '',
+    possuiDividas: lead.answers.meeting?.possuiDividas || '',
+    dificuldadeLidarDividas: lead.answers.meeting?.dificuldadeLidarDividas || '',
+    quaisDificuldadesDividas: lead.answers.meeting?.quaisDificuldadesDividas || '',
+    possuiMetas: lead.answers.meeting?.possuiMetas || '',
+    quaisTresMetas: lead.answers.meeting?.quaisTresMetas || '',
+    porqueMetasImportantes: lead.answers.meeting?.porqueMetasImportantes || '',
+    oQueFaltaParaDez: lead.answers.meeting?.oQueFaltaParaDez || '',
+    vidaDaquiSeisMeses: lead.answers.meeting?.vidaDaquiSeisMeses || '',
+    seisMesesAssustaOuConforta: lead.answers.meeting?.seisMesesAssustaOuConforta || '',
+    animacaoResolverMetas: lead.answers.meeting?.animacaoResolverMetas || '',
+    rotinaPoucoTempo: lead.answers.meeting?.rotinaPoucoTempo || '',
+
+    // Finalidade do dinheiro guardado
+    guardadoTemFinalidade: lead.answers.meeting?.guardadoTemFinalidade || '',
+    guardadoQualFinalidade: lead.answers.meeting?.guardadoQualFinalidade || '',
   });
+
+  // Função para formatar input para moeda brasileira (R$ 0,00) em tempo real
+  const handleCurrencyChange = (field: keyof MeetingAnswers, rawValue: string) => {
+    // Remove tudo o que não é dígito
+    const digits = rawValue.replace(/\D/g, '');
+    if (!digits) {
+      setMeetingAnswers(prev => ({ ...prev, [field]: '' }));
+      return;
+    }
+
+    // Converte para valor numérico
+    const cents = parseInt(digits, 10);
+    const formatted = (cents / 100).toLocaleString('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+
+    setMeetingAnswers(prev => ({
+      ...prev,
+      [field]: formatted
+    }));
+  };
+
+  const handleColetaNext = () => {
+    if (coletaStep < 6) {
+      setColetaStep(prev => prev + 1);
+      scrollToTop();
+    } else {
+      handleSaveAndNavigate('coleta_informacoes_2');
+    }
+  };
+
+  const handleColetaBack = () => {
+    if (coletaStep > 1) {
+      setColetaStep(prev => prev - 1);
+      scrollToTop();
+    } else {
+      navigateBack();
+    }
+  };
 
   // Salvar automaticamente as respostas locais sempre que houver mudanças nos dados de inputs
   const handleInputChange = (field: keyof MeetingAnswers, value: any) => {
@@ -106,7 +191,10 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, onClose, o
   const navigateTo = (nextSlide: SlideId) => {
     setSlideHistory(prev => [...prev, currentSlide]);
     setCurrentSlide(nextSlide);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    scrollToTop();
+    if (nextSlide === 'decisao_matrix') {
+      setMatrixStep(1);
+    }
   };
 
   const navigateBack = () => {
@@ -114,7 +202,10 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, onClose, o
       const previous = slideHistory[slideHistory.length - 1];
       setSlideHistory(prev => prev.slice(0, -1));
       setCurrentSlide(previous);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      scrollToTop();
+      if (previous === 'decisao_matrix') {
+        setMatrixStep(1);
+      }
     }
   };
 
@@ -151,6 +242,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, onClose, o
       'institucional',
       'confirmacao_dados',
       'coleta_informacoes',
+      'coleta_informacoes_2',
       'adequacao',
       'provas_sociais',
       'como_ajuda',
@@ -162,7 +254,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, onClose, o
       'proximos_passos',
       'agradecimento_final'
     ];
-    
+
     const index = slideOrder.indexOf(currentSlide);
     if (index === -1) {
       // Se for condicional/ramificação (ex: condicao_especial, downsell) calcula próximo do preço
@@ -175,8 +267,8 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, onClose, o
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-dark-950 text-slate-100 flex flex-col overflow-y-auto">
-      
+    <div ref={containerRef} className="fixed inset-0 z-50 bg-dark-950 text-slate-100 flex flex-col overflow-y-auto">
+
       {/* Header Fixo com Controles */}
       <header className="sticky top-0 z-30 bg-dark-900/95 backdrop-blur-md border-b border-dark-800 px-6 py-4 flex flex-col justify-between relative">
         <div className="flex items-center justify-between w-full">
@@ -200,11 +292,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, onClose, o
             )}
 
             <button
-              onClick={() => {
-                if (window.confirm('Deseja realmente encerrar a apresentação e retornar ao painel?')) {
-                  onClose();
-                }
-              }}
+              onClick={() => setShowExitModal(true)}
               className="p-2 bg-dark-800 hover:bg-red-500/20 text-gray-400 hover:text-red-400 rounded-lg transition-colors border border-dark-700"
               title="Fechar apresentação"
             >
@@ -215,15 +303,15 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, onClose, o
 
         {/* Barra de Progresso Sutil Horizontal no topo (grudada abaixo do header) */}
         <div className="absolute bottom-0 left-0 right-0 w-full h-[3px] bg-dark-950 overflow-hidden">
-          <div 
+          <div
             className="h-full bg-gradient-to-r from-gold-600 via-amber-500 to-gold-400 transition-all duration-500 ease-out"
             style={{ width: `${getProgressPercent()}%` }}
           ></div>
         </div>
       </header>
 
-      {/* Container Principal da Apresentação (Aumentado a largura máxima para max-w-7xl ou 90vw para usar mais espaço da tela) */}
-      <main className="flex-1 max-w-[90vw] xl:max-w-[1300px] w-full mx-auto p-4 md:p-8 flex flex-col justify-center my-6">
+      {/* Container Principal da Apresentação (Capa cheia na introdução e centralizado com largura máxima nas demais telas) */}
+      <main className={currentSlide === 'intro' ? "flex-1 w-full flex flex-col justify-center overflow-hidden" : "flex-1 max-w-[90vw] xl:max-w-[1300px] w-full mx-auto p-4 md:p-8 flex flex-col justify-center my-6"}>
         <AnimatePresence mode="wait">
           <motion.div
             key={currentSlide}
@@ -234,17 +322,17 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, onClose, o
             transition={{ duration: 0.35, ease: 'easeOut' }}
             className="w-full"
           >
-            
+
             {/* TELA 1: INTRODUÇÃO / CAPA */}
             {currentSlide === 'intro' && (
-              <div 
-                className="relative min-h-[75vh] md:min-h-[78vh] rounded-3xl overflow-hidden flex flex-col justify-between p-8 md:p-16 border border-dark-800 bg-cover bg-center shadow-2xl shadow-gold-500/5 transition-all duration-700"
+              <div
+                className="relative w-full min-h-[calc(100vh-145px)] flex flex-col justify-between p-8 md:p-20 bg-cover bg-center transition-all duration-700"
                 style={{ backgroundImage: `linear-gradient(rgba(9, 9, 11, 0.45), rgba(9, 9, 11, 0.95)), url(${DIAGNOSTICO_BG})` }}
               >
                 <div className="space-y-5 max-w-3xl mt-12 md:mt-20">
                   <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-gold-500/10 text-gold-400 border border-gold-500/20 rounded-full text-xs font-bold uppercase tracking-wider">
                     <Sparkles className="w-3.5 h-3.5 animate-pulse text-gold-500" />
-                    Apresentação de Alto Padrão
+                    Apresentação Personalizada
                   </div>
                   <h1 className="font-serif font-extrabold text-5xl md:text-7xl lg:text-8xl text-white tracking-tight drop-shadow-lg leading-none">
                     Consultoria <br />
@@ -279,7 +367,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, onClose, o
                   <h3 className="text-xs font-bold uppercase tracking-widest text-gold-500 font-mono">Conceito</h3>
                   <h1 className="font-serif font-bold text-3xl md:text-5xl lg:text-6xl text-white">Do que se trata a Consultoria?</h1>
                   <p className="text-gray-400 text-sm md:text-base max-w-2xl mx-auto font-light leading-relaxed">
-                    Mais do que relatórios e planilhas de investimentos, a consultoria é focada em construir uma nova visão de prosperidade.
+                    Mais do que relatórios ou planilhas, a consultoria é focada em construir uma nova visão de prosperidade.
                   </p>
                 </div>
 
@@ -324,7 +412,52 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, onClose, o
                   </div>
                 </div>
 
-                <div className="flex justify-end pt-4">
+                {/* Seção: O que a Consultoria NÃO é apenas */}
+                <div className="border-t border-dark-800/60 pt-8 mt-8 space-y-6">
+                  <h3 className="text-xs font-bold uppercase tracking-widest text-red-500 font-mono text-center">
+                    E o que a Consultoria NÃO é apenas:
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
+                    {/* Card Não 1 */}
+                    <div className="bg-dark-900/40 backdrop-blur-sm border border-red-500/10 p-6 md:p-8 rounded-3xl space-y-4 shadow-lg group hover:border-red-500/20 transition-all">
+                      <div className="w-12 h-12 bg-red-500/10 rounded-xl flex items-center justify-center border border-red-500/20 text-red-500 group-hover:scale-110 transition-transform">
+                        <X className="w-5 h-5" />
+                      </div>
+                      <div className="space-y-2">
+                        <h3 className="text-lg font-bold text-white">Apenas Investimentos</h3>
+                        <p className="text-gray-450 text-sm font-light leading-relaxed">
+                          Não é um serviço de recomendação cega de ações ou fundos. Focamos primeiro em estruturar sua base financeira e sua real capacidade de poupar.
+                        </p>
+                      </div>
+                    </div>
+                    {/* Card Não 2 */}
+                    <div className="bg-dark-900/40 backdrop-blur-sm border border-red-500/10 p-6 md:p-8 rounded-3xl space-y-4 shadow-lg group hover:border-red-500/20 transition-all">
+                      <div className="w-12 h-12 bg-red-500/10 rounded-xl flex items-center justify-center border border-red-500/20 text-red-500 group-hover:scale-110 transition-transform">
+                        <X className="w-5 h-5" />
+                      </div>
+                      <div className="space-y-2">
+                        <h3 className="text-lg font-bold text-white">Pagar Dívidas sem Método</h3>
+                        <p className="text-gray-450 text-sm font-light leading-relaxed">
+                          Não é só renegociar parcelas. É um plano estratégico para mudar sua relação com o consumo e cartões, blindando seu patrimônio para nunca mais voltar a dever.
+                        </p>
+                      </div>
+                    </div>
+                    {/* Card Não 3 */}
+                    <div className="bg-dark-900/40 backdrop-blur-sm border border-red-500/10 p-6 md:p-8 rounded-3xl space-y-4 shadow-lg group hover:border-red-500/20 transition-all">
+                      <div className="w-12 h-12 bg-red-500/10 rounded-xl flex items-center justify-center border border-red-500/20 text-red-500 group-hover:scale-110 transition-transform">
+                        <X className="w-5 h-5" />
+                      </div>
+                      <div className="space-y-2">
+                        <h3 className="text-lg font-bold text-white">Organização Sem Propósito</h3>
+                        <p className="text-gray-450 text-sm font-light leading-relaxed">
+                          Não é preencher planilhas complexas que você abandona na primeira semana. Construímos um sistema prático e diário voltado às suas metas e sonhos.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-6">
                   <button
                     onClick={() => navigateTo('objetivo_conversa')}
                     className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-gold-600 to-amber-500 hover:from-gold-500 hover:to-amber-400 text-dark-950 font-black rounded-xl shadow-lg transition-all duration-300 uppercase tracking-widest text-xs flex items-center justify-center gap-2"
@@ -348,7 +481,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, onClose, o
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 pt-4 items-center">
-                  
+
                   {/* Lado Esquerdo - Mensagem Principal */}
                   <div className="lg:col-span-7 space-y-6">
                     <div className="space-y-4 text-gray-300 font-light text-sm md:text-base leading-relaxed">
@@ -440,9 +573,9 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, onClose, o
                     <div className="w-12 h-12 bg-gold-500/10 rounded-xl flex items-center justify-center border border-gold-500/20 text-gold-500 group-hover:scale-110 transition-transform">
                       <Users className="w-5 h-5" />
                     </div>
-                    <h3 className="text-lg font-bold text-white">1. Alinhamento de Visão</h3>
+                    <h3 className="text-lg font-bold text-white">1. Confirmação e Aprofundamento</h3>
                     <p className="text-gray-400 text-sm font-light leading-relaxed">
-                      Entender os seus objetivos prioritários de vida e mapear o que realmente importa para você e sua família no curto e longo prazo.
+                      Confirmar as informações que você já nos passou e detalhar os pontos cruciais do seu momento financeiro para uma análise sem lacunas.
                     </p>
                   </div>
 
@@ -450,9 +583,9 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, onClose, o
                     <div className="w-12 h-12 bg-gold-500/10 rounded-xl flex items-center justify-center border border-gold-500/20 text-gold-500 group-hover:scale-110 transition-transform">
                       <Award className="w-5 h-5" />
                     </div>
-                    <h3 className="text-lg font-bold text-white">2. Diagnóstico Técnico</h3>
+                    <h3 className="text-lg font-bold text-white">2. Como Posso Ajudar</h3>
                     <p className="text-gray-400 text-sm font-light leading-relaxed">
-                      Confirmar e aprofundar os seus dados financeiros de maneira ética e segura para termos a real dimensão dos desafios e oportunidades.
+                      Apresentar as soluções estruturadas para o seu perfil e demonstrar como o método de consultoria elimina seus gargalos de forma prática.
                     </p>
                   </div>
 
@@ -460,9 +593,9 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, onClose, o
                     <div className="w-12 h-12 bg-gold-500/10 rounded-xl flex items-center justify-center border border-gold-500/20 text-gold-500 group-hover:scale-110 transition-transform">
                       <TrendingUp className="w-5 h-5" />
                     </div>
-                    <h3 className="text-lg font-bold text-white">3. Plano de Decisão</h3>
+                    <h3 className="text-lg font-bold text-white">3. O Que Pode Ser Feito</h3>
                     <p className="text-gray-400 text-sm font-light leading-relaxed">
-                      Apresentar as ferramentas e o método de acompanhamento estruturado para decidir o melhor caminho a seguir na sua organização.
+                      Explicar em detalhes o funcionamento da nossa consultoria de acompanhamento contínuo e definir os passos para iniciarmos o seu processo.
                     </p>
                   </div>
                 </div>
@@ -552,158 +685,777 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, onClose, o
               </div>
             )}
 
-            {/* SLIDE 6: COLETA DE NOVAS INFORMAÇÕES (INTERATIVO) */}
+            {/* SLIDE 6: COLETA DE NOVAS INFORMAÇÕES (PARTE 1) */}
             {currentSlide === 'coleta_informacoes' && (
               <div className="space-y-8">
                 <div className="text-center space-y-3">
                   <h3 className="text-xs font-bold uppercase tracking-widest text-gold-500 font-mono">Aprofundamento</h3>
-                  <h1 className="font-serif font-bold text-3xl md:text-5xl text-white">Coleta de Informações Estratégicas</h1>
+                  <h1 className="font-serif font-bold text-3xl md:text-5xl text-white">Coleta de Informações</h1>
                   <p className="text-gray-400 text-sm md:text-base max-w-xl mx-auto font-light">
-                    O consultor deve preencher as respostas adicionais em conjunto com o cliente durante a conversa. Elas serão salvas no banco de dados.
+                    Diagnóstico Técnico: responda as perguntas abaixo em conjunto com o cliente durante a conversa.
+                  </p>
+                </div>
+
+                {/* Barra de Progresso Interna da Coleta */}
+                <div className="flex items-center justify-between mb-8 max-w-md mx-auto">
+                  {[1, 2, 3, 4, 5, 6].map((step) => (
+                    <div key={step} className="flex items-center">
+                      <div
+                        className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${coletaStep === step
+                          ? 'bg-gold-500 text-dark-950 ring-4 ring-gold-500/20 shadow-lg scale-110 font-black'
+                          : coletaStep > step
+                            ? 'bg-gold-500/20 text-gold-400 border border-gold-500/30'
+                            : 'bg-dark-950 border border-dark-800 text-gray-500'
+                          }`}
+                      >
+                        {step}
+                      </div>
+                      {step < 6 && (
+                        <div
+                          className={`h-[2px] w-8 md:w-12 transition-all duration-300 ${coletaStep > step ? 'bg-gold-500/40' : 'bg-dark-800'
+                            }`}
+                        ></div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="bg-dark-900 border border-dark-800 rounded-3xl p-6 md:p-8 space-y-6 shadow-xl">
+
+                  {/* PASSO 1: Gastos */}
+                  {coletaStep === 1 && (
+                    <div className="space-y-6">
+                      <div className="space-y-2">
+                        <label className="text-sm font-bold uppercase tracking-widest text-gray-300 flex items-center gap-2">
+                          <span className="w-1.5 h-1.5 rounded-full bg-gold-500 animate-pulse"></span>
+                          1. Você acredita que gasta mais do que deveria?
+                        </label>
+                        <div className="grid grid-cols-2 gap-4">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleInputChange('gastaMaisDoQueDeveria', 'Sim');
+                            }}
+                            className={`py-4 rounded-xl border text-sm font-bold transition-all hover:scale-[1.02] ${meetingAnswers.gastaMaisDoQueDeveria === 'Sim'
+                              ? 'bg-gold-500/10 text-gold-400 border-gold-500/40 shadow-lg shadow-gold-500/5'
+                              : 'bg-dark-950 border-dark-800 text-gray-500 hover:border-dark-700 hover:text-gray-400'
+                              }`}
+                          >
+                            Sim
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleInputChange('gastaMaisDoQueDeveria', 'Não');
+                              handleInputChange('comOQueGastaMais', '');
+                            }}
+                            className={`py-4 rounded-xl border text-sm font-bold transition-all hover:scale-[1.02] ${meetingAnswers.gastaMaisDoQueDeveria === 'Não'
+                              ? 'bg-gold-500/10 text-gold-400 border-gold-500/40 shadow-lg shadow-gold-500/5'
+                              : 'bg-dark-950 border-dark-800 text-gray-500 hover:border-dark-700 hover:text-gray-400'
+                              }`}
+                          >
+                            Não
+                          </button>
+                        </div>
+                      </div>
+
+                      {meetingAnswers.gastaMaisDoQueDeveria === 'Sim' && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="space-y-2"
+                        >
+                          <label className="text-xs font-bold uppercase tracking-widest text-gold-500">
+                            Com o que você gasta mais?
+                          </label>
+                          <textarea
+                            placeholder="Ex: Delivery, saídas aos finais de semana, compras supérfluas, parcelas de cartão..."
+                            rows={3}
+                            value={meetingAnswers.comOQueGastaMais}
+                            onChange={(e) => handleInputChange('comOQueGastaMais', e.target.value)}
+                            className="w-full bg-dark-950 border border-gold-500/20 hover:border-gold-500/40 focus:border-gold-500 rounded-xl p-4 text-white text-sm outline-none transition-all resize-none"
+                          />
+                        </motion.div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* PASSO 2: Guardar Dinheiro */}
+                  {coletaStep === 2 && (
+                    <div className="space-y-6">
+                      <div className="space-y-2">
+                        <label className="text-sm font-bold uppercase tracking-widest text-gray-300 flex items-center gap-2">
+                          <span className="w-1.5 h-1.5 rounded-full bg-gold-500 animate-pulse"></span>
+                          2. Você consegue guardar dinheiro atualmente?
+                        </label>
+                        <div className="grid grid-cols-2 gap-4">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleInputChange('consegueGuardarDinheiro', 'Sim');
+                              handleInputChange('oQueImpedeDeGuardar', '');
+                            }}
+                            className={`py-4 rounded-xl border text-sm font-bold transition-all hover:scale-[1.02] ${meetingAnswers.consegueGuardarDinheiro === 'Sim'
+                              ? 'bg-gold-500/10 text-gold-400 border-gold-500/40 shadow-lg shadow-gold-500/5'
+                              : 'bg-dark-950 border-dark-800 text-gray-500 hover:border-dark-700 hover:text-gray-400'
+                              }`}
+                          >
+                            Sim
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleInputChange('consegueGuardarDinheiro', 'Não');
+                              handleInputChange('guardaMensalmente', '');
+                              handleInputChange('quantoGuardaMensalmente', '');
+                              handleInputChange('quantoConseguiuGuardar', '');
+                            }}
+                            className={`py-4 rounded-xl border text-sm font-bold transition-all hover:scale-[1.02] ${meetingAnswers.consegueGuardarDinheiro === 'Não'
+                              ? 'bg-gold-500/10 text-gold-400 border-gold-500/40 shadow-lg shadow-gold-500/5'
+                              : 'bg-dark-950 border-dark-800 text-gray-500 hover:border-dark-700 hover:text-gray-400'
+                              }`}
+                          >
+                            Não
+                          </button>
+                        </div>
+                      </div>
+
+                      {meetingAnswers.consegueGuardarDinheiro === 'Sim' && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="space-y-4 border-t border-dark-800/60 pt-4"
+                        >
+                          <div className="space-y-2">
+                            <label className="text-xs font-bold uppercase tracking-widest text-gold-500">
+                              Você guarda dinheiro mensalmente (todos os meses)?
+                            </label>
+                            <div className="grid grid-cols-2 gap-4">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  handleInputChange('guardaMensalmente', 'Sim');
+                                }}
+                                className={`py-3 rounded-xl border text-xs font-bold transition-all ${meetingAnswers.guardaMensalmente === 'Sim'
+                                  ? 'bg-gold-500/15 text-gold-400 border-gold-500/30 shadow-sm'
+                                  : 'bg-dark-950 border-dark-800 text-gray-500 hover:text-gray-400'
+                                  }`}
+                              >
+                                Sim, mensalmente
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  handleInputChange('guardaMensalmente', 'Não');
+                                  handleInputChange('quantoGuardaMensalmente', '');
+                                }}
+                                className={`py-3 rounded-xl border text-xs font-bold transition-all ${meetingAnswers.guardaMensalmente === 'Não'
+                                  ? 'bg-gold-500/15 text-gold-400 border-gold-500/30 shadow-sm'
+                                  : 'bg-dark-950 border-dark-800 text-gray-500 hover:text-gray-400'
+                                  }`}
+                              >
+                                Não, esporadicamente
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Se for mensalmente: abre quanto poupa por mês E quanto já guardou acumulado */}
+                          {meetingAnswers.guardaMensalmente === 'Sim' && (
+                            <motion.div
+                              initial={{ opacity: 0, y: -5 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              className="space-y-4"
+                            >
+                              <div className="space-y-2">
+                                <label className="text-xs font-bold uppercase tracking-widest text-gold-500">
+                                  Quanto você consegue guardar mensalmente (R$)?
+                                </label>
+                                <input
+                                  type="text"
+                                  placeholder="R$ 0,00"
+                                  value={meetingAnswers.quantoGuardaMensalmente}
+                                  onChange={(e) => handleCurrencyChange('quantoGuardaMensalmente', e.target.value)}
+                                  className="w-full bg-dark-950 border border-gold-500/20 hover:border-gold-500/40 focus:border-gold-500 rounded-xl p-4 text-white text-sm outline-none transition-all font-mono font-bold"
+                                />
+                              </div>
+
+                              <div className="space-y-2">
+                                <label className="text-xs font-bold uppercase tracking-widest text-gold-500">
+                                  Quanto já conseguiu guardar acumulado até hoje (R$)?
+                                </label>
+                                <input
+                                  type="text"
+                                  placeholder="R$ 0,00"
+                                  value={meetingAnswers.quantoConseguiuGuardar}
+                                  onChange={(e) => handleCurrencyChange('quantoConseguiuGuardar', e.target.value)}
+                                  className="w-full bg-dark-950 border border-gold-500/20 hover:border-gold-500/40 focus:border-gold-500 rounded-xl p-4 text-white text-sm outline-none transition-all font-mono font-bold"
+                                />
+                              </div>
+                            </motion.div>
+                          )}
+
+                          {/* Se for esporadicamente: abre apenas o quanto já conseguiu guardar acumulado */}
+                          {meetingAnswers.guardaMensalmente === 'Não' && (
+                            <motion.div
+                              initial={{ opacity: 0, y: -5 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              className="space-y-2"
+                            >
+                              <label className="text-xs font-bold uppercase tracking-widest text-gold-500">
+                                Quanto já conseguiu guardar acumulado até hoje (R$)?
+                              </label>
+                              <input
+                                type="text"
+                                placeholder="R$ 0,00"
+                                value={meetingAnswers.quantoConseguiuGuardar}
+                                onChange={(e) => handleCurrencyChange('quantoConseguiuGuardar', e.target.value)}
+                                className="w-full bg-dark-950 border border-gold-500/20 hover:border-gold-500/40 focus:border-gold-500 rounded-xl p-4 text-white text-sm outline-none transition-all font-mono font-bold"
+                              />
+                            </motion.div>
+                          )}
+
+                          {/* Pergunta de Finalidade se escolheu Sim/Não de mensalmente */}
+                          {(meetingAnswers.guardaMensalmente === 'Sim' || meetingAnswers.guardaMensalmente === 'Não') && (
+                            <motion.div
+                              initial={{ opacity: 0, y: -5 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              className="space-y-4 border-t border-dark-800/40 pt-4"
+                            >
+                              <div className="space-y-2">
+                                <label className="text-xs font-bold uppercase tracking-widest text-gold-500">
+                                  Esse dinheiro que você guardou/guarda tem alguma finalidade específica?
+                                </label>
+                                <div className="grid grid-cols-2 gap-4">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleInputChange('guardadoTemFinalidade', 'Sim')}
+                                    className={`py-3 rounded-xl border text-xs font-bold transition-all ${meetingAnswers.guardadoTemFinalidade === 'Sim'
+                                      ? 'bg-gold-500/15 text-gold-400 border-gold-500/30'
+                                      : 'bg-dark-950 border-dark-800 text-gray-500 hover:text-gray-400'
+                                      }`}
+                                  >
+                                    Sim
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      handleInputChange('guardadoTemFinalidade', 'Não');
+                                      handleInputChange('guardadoQualFinalidade', '');
+                                    }}
+                                    className={`py-3 rounded-xl border text-xs font-bold transition-all ${meetingAnswers.guardadoTemFinalidade === 'Não'
+                                      ? 'bg-gold-500/15 text-gold-400 border-gold-500/30'
+                                      : 'bg-dark-950 border-dark-800 text-gray-500 hover:text-gray-400'
+                                      }`}
+                                  >
+                                    Não
+                                  </button>
+                                </div>
+                              </div>
+
+                              {meetingAnswers.guardadoTemFinalidade === 'Sim' && (
+                                <motion.div
+                                  initial={{ opacity: 0, y: -5 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  className="space-y-2"
+                                >
+                                  <label className="text-xs font-bold uppercase tracking-widest text-gold-500">
+                                    Qual finalidade? (que não seja para reserva de emergência)
+                                  </label>
+                                  <input
+                                    type="text"
+                                    placeholder="Ex: Troca de carro, compra de imóvel, viagem de férias..."
+                                    value={meetingAnswers.guardadoQualFinalidade}
+                                    onChange={(e) => handleInputChange('guardadoQualFinalidade', e.target.value)}
+                                    className="w-full bg-dark-950 border border-gold-500/20 hover:border-gold-500/40 focus:border-gold-500 rounded-xl p-4 text-white text-sm outline-none transition-all"
+                                  />
+                                </motion.div>
+                              )}
+                            </motion.div>
+                          )}
+                        </motion.div>
+                      )}
+
+                      {meetingAnswers.consegueGuardarDinheiro === 'Não' && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="space-y-2"
+                        >
+                          <label className="text-xs font-bold uppercase tracking-widest text-gold-500">
+                            O que mais te impede de guardar dinheiro atualmente?
+                          </label>
+                          <textarea
+                            placeholder="Ex: Custo de vida muito alto, dívidas com juros altos, falta de planejamento, compras por impulso..."
+                            rows={3}
+                            value={meetingAnswers.oQueImpedeDeGuardar}
+                            onChange={(e) => handleInputChange('oQueImpedeDeGuardar', e.target.value)}
+                            className="w-full bg-dark-950 border border-gold-500/20 hover:border-gold-500/40 focus:border-gold-500 rounded-xl p-4 text-white text-sm outline-none transition-all resize-none"
+                          />
+                        </motion.div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* PASSO 3: Reserva Financeira */}
+                  {coletaStep === 3 && (
+                    <div className="space-y-6">
+                      <div className="space-y-2">
+                        <label className="text-sm font-bold uppercase tracking-widest text-gray-300 flex items-center gap-2">
+                          <span className="w-1.5 h-1.5 rounded-full bg-gold-500 animate-pulse"></span>
+                          3. Quanto você tem de reserva financeira hoje (R$)?
+                        </label>
+                        <p className="text-xs text-gray-500 font-light leading-relaxed">
+                          Considere o valor total disponível em poupança, investimentos de liquidez diária ou dinheiro em conta para emergências.
+                        </p>
+                        <input
+                          type="text"
+                          placeholder="R$ 0,00"
+                          value={meetingAnswers.quantoTemDeReserva}
+                          onChange={(e) => handleCurrencyChange('quantoTemDeReserva', e.target.value)}
+                          className="w-full bg-dark-950 border border-dark-800 hover:border-dark-700 focus:border-gold-500 rounded-xl p-4 text-white text-sm outline-none transition-all font-mono font-bold"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* PASSO 4: Problema Além do Principal */}
+                  {coletaStep === 4 && (
+                    <div className="space-y-6">
+                      <div className="space-y-2">
+                        <label className="text-sm font-bold uppercase tracking-widest text-gray-300 flex items-center gap-2">
+                          <span className="w-1.5 h-1.5 rounded-full bg-gold-500 animate-pulse"></span>
+                          4. Além do seu desafio principal, você sente que tem algum outro problema financeiro?
+                        </label>
+                        <div className="grid grid-cols-2 gap-4">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleInputChange('problemaAlemDoPrincipal', 'Sim');
+                            }}
+                            className={`py-4 rounded-xl border text-sm font-bold transition-all hover:scale-[1.02] ${meetingAnswers.problemaAlemDoPrincipal === 'Sim'
+                              ? 'bg-gold-500/10 text-gold-400 border-gold-500/40 shadow-lg shadow-gold-500/5'
+                              : 'bg-dark-950 border-dark-800 text-gray-500 hover:border-dark-700 hover:text-gray-400'
+                              }`}
+                          >
+                            Sim
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleInputChange('problemaAlemDoPrincipal', 'Não');
+                              handleInputChange('quaisOutrosProblemas', '');
+                            }}
+                            className={`py-4 rounded-xl border text-sm font-bold transition-all hover:scale-[1.02] ${meetingAnswers.problemaAlemDoPrincipal === 'Não'
+                              ? 'bg-gold-500/10 text-gold-400 border-gold-500/40 shadow-lg shadow-gold-500/5'
+                              : 'bg-dark-950 border-dark-800 text-gray-500 hover:border-dark-700 hover:text-gray-400'
+                              }`}
+                          >
+                            Não
+                          </button>
+                        </div>
+                      </div>
+
+                      {meetingAnswers.problemaAlemDoPrincipal === 'Sim' && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="space-y-2"
+                        >
+                          <label className="text-xs font-bold uppercase tracking-widest text-gold-500">
+                            Quais seriam esses outros problemas?
+                          </label>
+                          <textarea
+                            placeholder="Ex: Desentendimento com parceiro(a), dificuldade em faturar mais na empresa, medo constante do futuro..."
+                            rows={3}
+                            value={meetingAnswers.quaisOutrosProblemas}
+                            onChange={(e) => handleInputChange('quaisOutrosProblemas', e.target.value)}
+                            className="w-full bg-dark-950 border border-gold-500/20 hover:border-gold-500/40 focus:border-gold-500 rounded-xl p-4 text-white text-sm outline-none transition-all resize-none"
+                          />
+                        </motion.div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* PASSO 5: Dívidas */}
+                  {coletaStep === 5 && (
+                    <div className="space-y-6">
+                      <div className="space-y-2">
+                        <label className="text-sm font-bold uppercase tracking-widest text-gray-300 flex items-center gap-2">
+                          <span className="w-1.5 h-1.5 rounded-full bg-gold-500 animate-pulse"></span>
+                          5. Você possui dívidas atualmente?
+                        </label>
+                        <div className="grid grid-cols-2 gap-4">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleInputChange('possuiDividas', 'Sim');
+                            }}
+                            className={`py-4 rounded-xl border text-sm font-bold transition-all hover:scale-[1.02] ${meetingAnswers.possuiDividas === 'Sim'
+                              ? 'bg-gold-500/10 text-gold-400 border-gold-500/40 shadow-lg shadow-gold-500/5'
+                              : 'bg-dark-950 border-dark-800 text-gray-500 hover:border-dark-700 hover:text-gray-400'
+                              }`}
+                          >
+                            Sim
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleInputChange('possuiDividas', 'Não');
+                              handleInputChange('dificuldadeLidarDividas', '');
+                              handleInputChange('quaisDificuldadesDividas', '');
+                            }}
+                            className={`py-4 rounded-xl border text-sm font-bold transition-all hover:scale-[1.02] ${meetingAnswers.possuiDividas === 'Não'
+                              ? 'bg-gold-500/10 text-gold-400 border-gold-500/40 shadow-lg shadow-gold-500/5'
+                              : 'bg-dark-950 border-dark-800 text-gray-500 hover:border-dark-700 hover:text-gray-400'
+                              }`}
+                          >
+                            Não
+                          </button>
+                        </div>
+                      </div>
+
+                      {meetingAnswers.possuiDividas === 'Sim' && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="space-y-4 border-t border-dark-800/60 pt-4"
+                        >
+                          <div className="space-y-2">
+                            <label className="text-xs font-bold uppercase tracking-widest text-gold-500">
+                              Você possui dificuldade para lidar com essas dívidas?
+                            </label>
+                            <div className="grid grid-cols-2 gap-4">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  handleInputChange('dificuldadeLidarDividas', 'Sim');
+                                }}
+                                className={`py-3 rounded-xl border text-xs font-bold transition-all ${meetingAnswers.dificuldadeLidarDividas === 'Sim'
+                                  ? 'bg-gold-500/15 text-gold-400 border-gold-500/30'
+                                  : 'bg-dark-950 border-dark-800 text-gray-550'
+                                  }`}
+                              >
+                                Sim, é difícil
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  handleInputChange('dificuldadeLidarDividas', 'Não');
+                                  handleInputChange('quaisDificuldadesDividas', '');
+                                }}
+                                className={`py-3 rounded-xl border text-xs font-bold transition-all ${meetingAnswers.dificuldadeLidarDividas === 'Não'
+                                  ? 'bg-gold-500/15 text-gold-400 border-gold-500/30'
+                                  : 'bg-dark-950 border-dark-800 text-gray-550'
+                                  }`}
+                              >
+                                Não, sob controle
+                              </button>
+                            </div>
+                          </div>
+
+                          {meetingAnswers.dificuldadeLidarDividas === 'Sim' && (
+                            <motion.div
+                              initial={{ opacity: 0, y: -5 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              className="space-y-2"
+                            >
+                              <label className="text-xs font-bold uppercase tracking-widest text-gold-500">
+                                Quais são as principais dificuldades com as dívidas?
+                              </label>
+                              <textarea
+                                placeholder="Ex: Juros abusivos, parcelas que consomem toda a renda, ligações de cobrança..."
+                                rows={3}
+                                value={meetingAnswers.quaisDificuldadesDividas}
+                                onChange={(e) => handleInputChange('quaisDificuldadesDividas', e.target.value)}
+                                className="w-full bg-dark-950 border border-gold-500/20 hover:border-gold-500/40 focus:border-gold-500 rounded-xl p-4 text-white text-sm outline-none transition-all resize-none"
+                              />
+                            </motion.div>
+                          )}
+                        </motion.div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* PASSO 6: Metas */}
+                  {coletaStep === 6 && (
+                    <div className="space-y-6">
+                      <div className="space-y-2">
+                        <label className="text-sm font-bold uppercase tracking-widest text-gray-300 flex items-center gap-2">
+                          <span className="w-1.5 h-1.5 rounded-full bg-gold-500 animate-pulse"></span>
+                          6. Você possui metas claras que deseja alcançar nos próximos meses ou anos?
+                        </label>
+                        <div className="grid grid-cols-2 gap-4">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleInputChange('possuiMetas', 'Sim');
+                            }}
+                            className={`py-4 rounded-xl border text-sm font-bold transition-all hover:scale-[1.02] ${meetingAnswers.possuiMetas === 'Sim'
+                              ? 'bg-gold-500/10 text-gold-400 border-gold-500/40 shadow-lg shadow-gold-500/5'
+                              : 'bg-dark-950 border-dark-800 text-gray-550 hover:border-dark-700'
+                              }`}
+                          >
+                            Sim
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleInputChange('possuiMetas', 'Não');
+                              handleInputChange('quaisTresMetas', '');
+                              handleInputChange('porqueMetasImportantes', '');
+                            }}
+                            className={`py-4 rounded-xl border text-sm font-bold transition-all hover:scale-[1.02] ${meetingAnswers.possuiMetas === 'Não'
+                              ? 'bg-gold-500/10 text-gold-400 border-gold-500/40 shadow-lg shadow-gold-500/5'
+                              : 'bg-dark-950 border-dark-800 text-gray-550 hover:border-dark-700'
+                              }`}
+                          >
+                            Não
+                          </button>
+                        </div>
+                      </div>
+
+                      {meetingAnswers.possuiMetas === 'Sim' && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="space-y-4 border-t border-dark-800/60 pt-4"
+                        >
+                          <div className="space-y-2">
+                            <label className="text-xs font-bold uppercase tracking-widest text-gold-500">
+                              Quais são as suas 3 principais metas?
+                            </label>
+                            <textarea
+                              placeholder="Ex: 1. Comprar apartamento; 2. Fazer viagem internacional; 3. Ter R$ 100k investidos..."
+                              rows={3}
+                              value={meetingAnswers.quaisTresMetas}
+                              onChange={(e) => handleInputChange('quaisTresMetas', e.target.value)}
+                              className="w-full bg-dark-950 border border-gold-500/20 hover:border-gold-500/40 focus:border-gold-500 rounded-xl p-4 text-white text-sm outline-none transition-all resize-none"
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <label className="text-xs font-bold uppercase tracking-widest text-gold-500">
+                              Por que essas metas são tão importantes para você?
+                            </label>
+                            <textarea
+                              placeholder="Descreva a importância e o impacto de realizá-las na sua qualidade de vida familiar..."
+                              rows={3}
+                              value={meetingAnswers.porqueMetasImportantes}
+                              onChange={(e) => handleInputChange('porqueMetasImportantes', e.target.value)}
+                              className="w-full bg-dark-950 border border-gold-500/20 hover:border-gold-500/40 focus:border-gold-500 rounded-xl p-4 text-white text-sm outline-none transition-all resize-none"
+                            />
+                          </div>
+                        </motion.div>
+                      )}
+                    </div>
+                  )}
+
+                </div>
+
+                <div className="flex justify-between items-center pt-4">
+                  <button
+                    onClick={handleColetaBack}
+                    className="px-6 py-3 bg-dark-850 hover:bg-dark-800 border border-dark-800 text-gray-300 rounded-xl text-xs font-bold uppercase tracking-widest transition-all"
+                  >
+                    Voltar
+                  </button>
+                  <button
+                    onClick={handleColetaNext}
+                    className="px-8 py-4 bg-gradient-to-r from-gold-600 to-amber-500 hover:from-gold-500 hover:to-amber-400 text-dark-950 font-black rounded-xl shadow-lg transition-all duration-300 uppercase tracking-widest text-xs flex items-center justify-center gap-2"
+                  >
+                    {coletaStep === 6 ? 'Ir para Parte 2' : 'Próxima Pergunta'}
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* SLIDE 6.2: COLETA DE DADOS - PARTE 2 */}
+            {currentSlide === 'coleta_informacoes_2' && (
+              <div className="space-y-8">
+                <div className="text-center space-y-3">
+                  <h3 className="text-xs font-bold uppercase tracking-widest text-gold-500 font-mono">Aprofundamento</h3>
+                  <h1 className="font-serif font-bold text-3xl md:text-5xl text-white">Coleta de Informações - Parte 2</h1>
+                  <p className="text-gray-400 text-sm md:text-base max-w-xl mx-auto font-light">
+                    Mapeamento de ânimo, perspectiva e rotina para alinhamento estratégico.
                   </p>
                 </div>
 
                 <div className="bg-dark-900 border border-dark-800 rounded-3xl p-6 md:p-8 space-y-6 shadow-xl">
-                  
-                  {/* Pergunta 1: Maior Ralo Financeiro */}
-                  <div className="space-y-2">
+
+                  {/* 1. Comprometimento inicial menor que 10 */}
+                  {(() => {
+                    const commitmentVal = lead.answers.commitmentScale ? parseInt(lead.answers.commitmentScale.replace(/\D/g, ''), 10) : 0;
+                    if (commitmentVal > 0 && commitmentVal < 10) {
+                      return (
+                        <div className="space-y-3 p-5 bg-gold-500/5 border border-gold-500/10 rounded-2xl">
+                          <label className="text-xs font-bold uppercase tracking-widest text-gold-400 flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 rounded-full bg-gold-500 animate-pulse"></span>
+                            O seu comprometimento inicial foi avaliado como {lead.answers.commitmentScale}/10. O que falta para ser 10?
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="Ex: Falta de tempo no dia a dia, medo do método ser complexo..."
+                            value={meetingAnswers.oQueFaltaParaDez}
+                            onChange={(e) => handleInputChange('oQueFaltaParaDez', e.target.value)}
+                            className="w-full bg-dark-950 border border-dark-800 hover:border-dark-700 focus:border-gold-500 rounded-xl p-4 text-white text-sm outline-none transition-all"
+                          />
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
+
+                  {/* 2. Perspectiva de Futuro (Filtrada do Diagnóstico Inicial) */}
+                  <div className="space-y-4 border-t border-dark-800/60 pt-4 first:border-0 first:pt-0">
+                    <div className="p-5 bg-dark-950 border border-dark-850 rounded-2xl space-y-3">
+                      <label className="text-xs font-bold uppercase tracking-widest text-gold-500 flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-gold-500"></span>
+                        Perspectiva de Futuro (Resgatada do Diagnóstico)
+                      </label>
+                      <p className="text-sm text-gray-300 font-light">
+                        Você declarou no formulário de perfil que vê a sua realidade financeira daqui a 6 meses (se nada mudar no seu comportamento atual) como:
+                      </p>
+                      <div className="inline-block px-4 py-2 bg-gold-500/10 border border-gold-500/25 rounded-xl text-gold-400 text-sm font-bold">
+                        {lead.answers.futureOutlook || 'Igual ao que está'}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold uppercase tracking-widest text-gold-500">
+                        Esta projeção de futuro te assusta ou te conforta?
+                      </label>
+                      <div className="grid grid-cols-2 gap-4">
+                        <button
+                          type="button"
+                          onClick={() => handleInputChange('seisMesesAssustaOuConforta', 'Assusta')}
+                          className={`py-3.5 rounded-xl border text-sm font-bold transition-all ${meetingAnswers.seisMesesAssustaOuConforta === 'Assusta'
+                            ? 'bg-red-500/10 text-red-400 border-red-500/40 shadow-lg'
+                            : 'bg-dark-950 border-dark-800 text-gray-550 hover:text-gray-400'
+                            }`}
+                        >
+                          😨 Me Assusta
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleInputChange('seisMesesAssustaOuConforta', 'Conforta')}
+                          className={`py-3.5 rounded-xl border text-sm font-bold transition-all ${meetingAnswers.seisMesesAssustaOuConforta === 'Conforta'
+                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/40 shadow-lg'
+                            : 'bg-dark-950 border-dark-800 text-gray-550 hover:text-gray-400'
+                            }`}
+                        >
+                          😌 Me Conforta
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 3. Escala interativa de ânimo (0 a 10) */}
+                  <div className="space-y-3 border-t border-dark-800/60 pt-6">
                     <label className="text-xs font-bold uppercase tracking-widest text-gray-400 flex items-center gap-2">
                       <span className="w-1.5 h-1.5 rounded-full bg-gold-500"></span>
-                      1. Qual é o seu maior ralo financeiro hoje (desperdício)?
+                      Imagina daqui a 1 ano, você conseguindo resolver os problemas financeiros que tem e alcançando as suas metas, o quanto isso te deixa animado?
                     </label>
-                    <input
-                      type="text"
-                      placeholder="Ex: Assinaturas não usadas, saídas excessivas, falta de limite no cartão..."
-                      value={meetingAnswers.biggestWaste}
-                      onChange={(e) => handleInputChange('biggestWaste', e.target.value)}
-                      className="w-full bg-dark-950 border border-dark-800 hover:border-dark-700 focus:border-gold-500 rounded-xl p-4 text-white text-sm outline-none transition-all"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Pergunta 2: Capacidade de Poupança */}
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold uppercase tracking-widest text-gray-400 flex items-center gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-gold-500"></span>
-                        2. Quanto consegue poupar de forma consistente hoje?
-                      </label>
-                      <select
-                        value={meetingAnswers.monthlySavings}
-                        onChange={(e) => handleInputChange('monthlySavings', e.target.value)}
-                        className="w-full bg-dark-950 border border-dark-800 hover:border-dark-700 focus:border-gold-500 rounded-xl p-4 text-white text-sm outline-none transition-all cursor-pointer font-medium"
-                      >
-                        <option value="">Selecione...</option>
-                        <option value="Nada / Fico no zero a zero">Nada / Fico no zero a zero</option>
-                        <option value="Menos de R$ 300 por mês">Menos de R$ 300 por mês</option>
-                        <option value="R$ 300 a R$ 1.000 por mês">R$ 300 a R$ 1.000 por mês</option>
-                        <option value="R$ 1.000 a R$ 3.000 por mês">R$ 1.000 a R$ 3.000 por mês</option>
-                        <option value="Acima de R$ 3.000 por mês">Acima de R$ 3.000 por mês</option>
-                      </select>
-                    </div>
-
-                    {/* Pergunta 3: Prioridade Financeira */}
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold uppercase tracking-widest text-gray-400 flex items-center gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-gold-500"></span>
-                        3. Qual é o seu objetivo financeiro prioritário?
-                      </label>
-                      <select
-                        value={meetingAnswers.financialPriority}
-                        onChange={(e) => handleInputChange('financialPriority', e.target.value)}
-                        className="w-full bg-dark-950 border border-dark-800 hover:border-dark-700 focus:border-gold-500 rounded-xl p-4 text-white text-sm outline-none transition-all cursor-pointer font-medium"
-                      >
-                        <option value="">Selecione...</option>
-                        <option value="Montar Reserva de Emergência">Montar Reserva de Emergência</option>
-                        <option value="Sair das Dívidas / Organização Básica">Sair das Dívidas / Organização Básica</option>
-                        <option value="Começar a Investir Inteligente">Começar a Investir Inteligente</option>
-                        <option value="Acelerar Patrimônio e Liberdade">Acelerar Patrimônio e Liberdade</option>
-                        <option value="Planejamento de Aposentadoria / Sucessão">Planejamento de Aposentadoria / Sucessão</option>
-                      </select>
+                    <div className="flex flex-wrap gap-2 justify-between pt-2">
+                      {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
+                        <button
+                          key={num}
+                          type="button"
+                          onClick={() => handleInputChange('animacaoResolverMetas', String(num))}
+                          className={`w-10 h-10 md:w-12 md:h-12 rounded-full border flex items-center justify-center font-bold text-sm transition-all hover:scale-110 ${meetingAnswers.animacaoResolverMetas === String(num)
+                            ? 'bg-gradient-to-br from-gold-500 to-amber-500 text-dark-950 border-gold-400 ring-4 ring-gold-500/20 shadow-md font-black'
+                            : 'bg-dark-950 border-dark-800 text-gray-400 hover:border-dark-700 hover:text-white'
+                            }`}
+                        >
+                          {num}
+                        </button>
+                      ))}
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-dark-800/60 pt-6">
-                    {/* Pergunta 4: Reserva de Emergência */}
+                  {/* 4. Rotina com pouco tempo */}
+                  <div className="space-y-4 border-t border-dark-800/60 pt-6">
                     <div className="space-y-2">
                       <label className="text-xs font-bold uppercase tracking-widest text-gray-400 flex items-center gap-2">
                         <span className="w-1.5 h-1.5 rounded-full bg-gold-500"></span>
-                        4. Possui reserva financeira de emergência?
+                        Sua rotina hoje é muito corrida e você sente que tem pouco tempo?
                       </label>
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-2 gap-4">
                         <button
                           type="button"
-                          onClick={() => handleInputChange('hasReserve', 'Sim')}
-                          className={`py-3.5 rounded-xl border text-sm font-bold transition-all ${meetingAnswers.hasReserve === 'Sim'
-                            ? 'bg-gold-500/10 text-gold-400 border-gold-500/40 shadow-md'
-                            : 'bg-dark-950 border-dark-800 text-gray-500 hover:border-dark-755 hover:text-gray-400'
-                          }`}
+                          onClick={() => handleInputChange('rotinaPoucoTempo', 'Sim')}
+                          className={`py-3.5 rounded-xl border text-sm font-bold transition-all ${meetingAnswers.rotinaPoucoTempo === 'Sim'
+                            ? 'bg-gold-500/10 text-gold-400 border-gold-500/40 shadow-lg'
+                            : 'bg-dark-950 border-dark-800 text-gray-500 hover:text-gray-400'
+                            }`}
                         >
-                          Sim
+                          Sim, é muito corrida
                         </button>
                         <button
                           type="button"
-                          onClick={() => {
-                            handleInputChange('hasReserve', 'Não');
-                            handleInputChange('reserveMonths', '');
-                          }}
-                          className={`py-3.5 rounded-xl border text-sm font-bold transition-all ${meetingAnswers.hasReserve === 'Não'
-                            ? 'bg-gold-500/10 text-gold-400 border-gold-500/40 shadow-md'
-                            : 'bg-dark-950 border-dark-800 text-gray-500 hover:border-dark-755 hover:text-gray-400'
-                          }`}
+                          onClick={() => handleInputChange('rotinaPoucoTempo', 'Não')}
+                          className={`py-3.5 rounded-xl border text-sm font-bold transition-all ${meetingAnswers.rotinaPoucoTempo === 'Não'
+                            ? 'bg-gold-500/10 text-gold-400 border-gold-500/40 shadow-lg'
+                            : 'bg-dark-950 border-dark-800 text-gray-550 hover:text-gray-400'
+                            }`}
                         >
-                          Não
+                          Não, tenho tempo normal
                         </button>
                       </div>
                     </div>
 
-                    {/* Pergunta 4.1: Condicional de meses da reserva */}
-                    {meetingAnswers.hasReserve === 'Sim' && (
-                      <div className="space-y-2">
-                        <label className="text-xs font-bold uppercase tracking-widest text-gold-500 flex items-center gap-2">
-                          <span className="w-1.5 h-1.5 rounded-full bg-gold-500"></span>
-                          Quantos meses do seu custo de vida ela cobre?
-                        </label>
-                        <select
-                          value={meetingAnswers.reserveMonths}
-                          onChange={(e) => handleInputChange('reserveMonths', e.target.value)}
-                          className="w-full bg-dark-950 border border-gold-500/30 text-white rounded-xl p-4 text-sm outline-none focus:border-gold-500 transition-all cursor-pointer font-medium"
-                        >
-                          <option value="">Selecione...</option>
-                          <option value="Menos de 1 mês">Menos de 1 mês</option>
-                          <option value="1 a 3 meses">1 a 3 meses</option>
-                          <option value="3 a 6 meses">3 a 6 meses</option>
-                          <option value="Mais de 6 meses">Mais de 6 meses</option>
-                        </select>
-                      </div>
+                    {/* Card Premium de Desconstrução de Tempo (Se Sim) */}
+                    {meetingAnswers.rotinaPoucoTempo === 'Sim' && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="bg-gradient-to-br from-gold-500/10 to-amber-500/5 border border-gold-500/20 rounded-2xl p-5 md:p-6 space-y-3"
+                      >
+                        <div className="flex items-center gap-2 text-gold-500 font-bold text-sm">
+                          <Sparkle className="w-4 h-4 fill-current animate-spin-slow" />
+                          A Consultoria cabe na sua rotina corrida
+                        </div>
+                        <p className="text-xs text-gray-300 font-light leading-relaxed">
+                          Nosso método é direto ao ponto e focado em alta eficiência. Você precisará de apenas **1 a 2 reuniões mensais** e pequenas tarefas práticas de **15 minutos por semana**. Nós fazemos todo o trabalho pesado de consolidação e análise para que você dedique seu tempo apenas às decisões estratégicas de crescimento.
+                        </p>
+                      </motion.div>
+                    )}
+
+                    {/* Card Premium de Desconstrução de Tempo (Se Não) */}
+                    {meetingAnswers.rotinaPoucoTempo === 'Não' && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="bg-gradient-to-br from-emerald-500/10 to-teal-500/5 border border-emerald-500/20 rounded-2xl p-5 md:p-6 space-y-3"
+                      >
+                        <div className="flex items-center gap-2 text-emerald-400 font-bold text-sm">
+                          <Sparkles className="w-4 h-4 text-emerald-400 fill-current animate-pulse" />
+                          Excelente! O processo acelerará seus resultados
+                        </div>
+                        <p className="text-xs text-gray-300 font-light leading-relaxed">
+                          Como você tem disponibilidade de tempo, o processo de consultoria será ainda mais dinâmico e integrado. Conseguiremos focar na consolidação de metas com maior rapidez, sem que isso interfira ou atrapalhe a rotina que você já tem estabelecida.
+                        </p>
+                      </motion.div>
                     )}
                   </div>
 
-                  {/* Pergunta 5: Comprometimento Semanal */}
-                  <div className="space-y-2 border-t border-dark-800/60 pt-6">
-                    <label className="text-xs font-bold uppercase tracking-widest text-gray-400 flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-gold-500"></span>
-                      5. Quantas horas semanais você está disposto a dedicar ao seu planejamento financeiro?
-                    </label>
-                    <select
-                      value={meetingAnswers.timeCommitment}
-                      onChange={(e) => handleInputChange('timeCommitment', e.target.value)}
-                      className="w-full bg-dark-950 border border-dark-800 hover:border-dark-700 focus:border-gold-500 rounded-xl p-4 text-white text-sm outline-none transition-all cursor-pointer font-medium"
-                    >
-                      <option value="">Selecione...</option>
-                      <option value="Menos de 1 hora por semana">Menos de 1 hora por semana</option>
-                      <option value="1 a 2 horas por semana (Ideal e Recomendado)">1 a 2 horas por semana (Ideal e Recomendado)</option>
-                      <option value="2 a 4 horas por semana">2 a 4 horas por semana</option>
-                      <option value="Mais de 4 horas por semana">Mais de 4 horas por semana</option>
-                    </select>
-                  </div>
                 </div>
 
-                <div className="flex justify-end">
+                <div className="flex justify-between pt-4">
+                  <button
+                    onClick={() => {
+                      navigateTo('coleta_informacoes');
+                      setColetaStep(6);
+                    }}
+                    className="px-6 py-3 bg-dark-850 hover:bg-dark-800 border border-dark-800 text-gray-300 rounded-xl text-xs font-bold uppercase tracking-widest transition-all"
+                  >
+                    Voltar para Parte 1
+                  </button>
                   <button
                     onClick={() => handleSaveAndNavigate('adequacao')}
                     className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-gold-600 to-amber-500 hover:from-gold-500 hover:to-amber-400 text-dark-950 font-black rounded-xl shadow-lg transition-all duration-300 uppercase tracking-widest text-xs flex items-center justify-center gap-2"
                   >
-                    Salvar e Continuar
+                    Avançar para Adequação
                     <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
@@ -721,57 +1473,101 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, onClose, o
                   </p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4">
-                  
-                  {/* Para quem serve */}
-                  <div className="bg-dark-900 border border-gold-500/10 p-6 md:p-8 rounded-3xl space-y-4 shadow-lg relative overflow-hidden">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 pt-4">
+
+                  {/* Para quem serve (4 Cards) */}
+                  <div className="lg:col-span-7 bg-dark-900 border border-gold-500/10 p-6 md:p-8 rounded-3xl space-y-6 shadow-lg relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-24 h-24 bg-gold-500/5 rounded-full filter blur-2xl"></div>
                     <h3 className="text-lg font-bold text-gold-400 flex items-center gap-2">
-                      <Check className="w-5 h-5" />
-                      Para quem a Consultoria é perfeita:
+                      <Check className="w-5 h-5 text-gold-500 animate-pulse" />
+                      A Consultoria é perfeita para você se:
                     </h3>
-                    <ul className="space-y-3 text-sm text-gray-300 font-light">
-                      <li className="flex items-start gap-2">
-                        <span className="text-gold-500 font-bold shrink-0 mt-0.5">•</span>
-                        Profissionais liberais e CLT com boa renda que sentem que o dinheiro sumiu no final do mês.
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <span className="text-gold-500 font-bold shrink-0 mt-0.5">•</span>
-                        Pessoas que desejam construir uma reserva de emergência e começar a investir sem perder tempo.
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <span className="text-gold-500 font-bold shrink-0 mt-0.5">•</span>
-                        Famílias que buscam alinhar os planos do casal e dar segurança estruturada aos filhos.
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <span className="text-gold-500 font-bold shrink-0 mt-0.5">•</span>
-                        Quem valoriza tempo e quer um método passo a passo com suporte profissional diário.
-                      </li>
-                    </ul>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {/* Card 1 */}
+                      <div className="bg-dark-950 border border-dark-800/80 p-4 rounded-2xl flex gap-3 hover:border-gold-500/20 transition-all group">
+                        <div className="w-8 h-8 rounded-lg bg-gold-500/10 flex items-center justify-center text-gold-500 shrink-0 mt-0.5 group-hover:scale-110 transition-transform">
+                          <HelpCircle className="w-4 h-4" />
+                        </div>
+                        <p className="text-xs text-gray-300 font-light leading-relaxed">
+                          Você tem dúvidas do quanto gasta por mês e para onde está indo seu dinheiro.
+                        </p>
+                      </div>
+
+                      {/* Card 2 */}
+                      <div className="bg-dark-950 border border-dark-800/80 p-4 rounded-2xl flex gap-3 hover:border-gold-500/20 transition-all group">
+                        <div className="w-8 h-8 rounded-lg bg-gold-500/10 flex items-center justify-center text-gold-500 shrink-0 mt-0.5 group-hover:scale-110 transition-transform">
+                          <Target className="w-4 h-4" />
+                        </div>
+                        <p className="text-xs text-gray-300 font-light leading-relaxed">
+                          Você sente que não estão bem definidos seus objetivos de vida com prazos e valores.
+                        </p>
+                      </div>
+
+                      {/* Card 3 */}
+                      <div className="bg-dark-950 border border-dark-800/80 p-4 rounded-2xl flex gap-3 hover:border-gold-500/20 transition-all group">
+                        <div className="w-8 h-8 rounded-lg bg-gold-500/10 flex items-center justify-center text-gold-500 shrink-0 mt-0.5 group-hover:scale-110 transition-transform">
+                          <TrendingDown className="w-4 h-4" />
+                        </div>
+                        <p className="text-xs text-gray-300 font-light leading-relaxed">
+                          Você possui dívidas que estão pesando seu orçamento ou deixando seu gastos durante o mês muito altos.
+                        </p>
+                      </div>
+
+                      {/* Card 4 */}
+                      <div className="bg-dark-950 border border-dark-800/80 p-4 rounded-2xl flex gap-3 hover:border-gold-500/20 transition-all group">
+                        <div className="w-8 h-8 rounded-lg bg-gold-500/10 flex items-center justify-center text-gold-500 shrink-0 mt-0.5 group-hover:scale-110 transition-transform">
+                          <TrendingUp className="w-4 h-4" />
+                        </div>
+                        <p className="text-xs text-gray-300 font-light leading-relaxed">
+                          Você já investe ou gostaria de começar a investir, mas tem medo de fazer algo errado e perder dinheiro.
+                        </p>
+                      </div>
+                    </div>
                   </div>
 
-                  {/* Problemas que resolve */}
-                  <div className="bg-dark-900 border border-dark-800 p-6 md:p-8 rounded-3xl space-y-4 shadow-lg">
+                  {/* Problemas que resolve (Gargalos) */}
+                  <div className="lg:col-span-5 bg-dark-900 border border-dark-800 p-6 md:p-8 rounded-3xl space-y-6 shadow-lg">
                     <h3 className="text-lg font-bold text-white flex items-center gap-2">
                       <AlertCircle className="w-5 h-5 text-gray-500" />
                       Principais gargalos que eliminamos:
                     </h3>
-                    <ul className="space-y-3 text-sm text-gray-300 font-light">
-                      <li className="flex items-start gap-2">
-                        <span className="text-gray-600 font-bold shrink-0 mt-0.5">•</span>
-                        <strong>Desorganização Invisível</strong>: Falta de rastreabilidade de gastos e limites no cartão de crédito.
+                    <ul className="space-y-4 text-sm text-gray-300 font-light">
+                      <li className="flex items-start gap-3">
+                        <span className="text-gold-500 font-bold shrink-0 mt-0.5">•</span>
+                        <div>
+                          <strong className="block text-white text-sm font-semibold">Desorganização Invisível</strong>
+                          <span className="text-gray-400 text-xs font-light block mt-0.5">
+                            Falta de rastreabilidade de gastos e limites no cartão de crédito.
+                          </span>
+                        </div>
                       </li>
-                      <li className="flex items-start gap-2">
-                        <span className="text-gray-600 font-bold shrink-0 mt-0.5">•</span>
-                        <strong>Insegurança Futura</strong>: Ausência de uma reserva sólida para imprevistos de saúde ou trabalho.
+                      <li className="flex items-start gap-3">
+                        <span className="text-gold-500 font-bold shrink-0 mt-0.5">•</span>
+                        <div>
+                          <strong className="block text-white text-sm font-semibold">Insegurança Futura</strong>
+                          <span className="text-gray-400 text-xs font-light block mt-0.5">
+                            Ausência de uma reserva sólida para imprevistos de saúde ou trabalho.
+                          </span>
+                        </div>
                       </li>
-                      <li className="flex items-start gap-2">
-                        <span className="text-gray-600 font-bold shrink-0 mt-0.5">•</span>
-                        <strong>Paralisia de Análise</strong>: Não saber qual investimento escolher para as metas prioritárias.
+                      <li className="flex items-start gap-3">
+                        <span className="text-gold-500 font-bold shrink-0 mt-0.5">•</span>
+                        <div>
+                          <strong className="block text-white text-sm font-semibold">Paralisia de Análise</strong>
+                          <span className="text-gray-400 text-xs font-light block mt-0.5">
+                            Não saber qual investimento escolher para as metas prioritárias.
+                          </span>
+                        </div>
                       </li>
-                      <li className="flex items-start gap-2">
-                        <span className="text-gray-600 font-bold shrink-0 mt-0.5">•</span>
-                        <strong>Procrastinação Financeira</strong>: Adiar a organização por falta de cobrança positiva e suporte.
+                      <li className="flex items-start gap-3">
+                        <span className="text-gold-500 font-bold shrink-0 mt-0.5">•</span>
+                        <div>
+                          <strong className="block text-white text-sm font-semibold">Procrastinação Financeira</strong>
+                          <span className="text-gray-400 text-xs font-light block mt-0.5">
+                            Adiar a organização por falta de cobrança positiva e suporte.
+                          </span>
+                        </div>
                       </li>
                     </ul>
                   </div>
@@ -872,56 +1668,110 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, onClose, o
                   <h3 className="text-xs font-bold uppercase tracking-widest text-gold-500 font-mono">O Processo</h3>
                   <h1 className="font-serif font-bold text-3xl md:text-5xl text-white">Como a Consultoria gera valor prático?</h1>
                   <p className="text-gray-400 text-sm md:text-base max-w-xl mx-auto font-light">
-                    O nosso trabalho é estruturado em fases integradas para que a organização financeira ocorra com naturalidade e consistência.
+                    O nosso trabalho é estruturado para garantir que a organização e o crescimento ocorram com método e segurança.
                   </p>
                 </div>
 
-                <div className="space-y-6 pt-4 max-w-4xl mx-auto">
-                  <div className="flex items-start gap-4 p-5 bg-dark-900 border border-dark-800 rounded-2xl">
-                    <span className="w-8 h-8 rounded-full bg-gold-500/10 text-gold-500 font-extrabold text-sm flex items-center justify-center shrink-0 border border-gold-500/20">
-                      1
-                    </span>
-                    <div className="space-y-1">
-                      <h4 className="text-base font-bold text-white">Diagnóstico e Bloqueio de Gargalos</h4>
-                      <p className="text-xs text-gray-400 font-light leading-relaxed">
-                        Mapeamos todas as despesas invisíveis e ralo de cartões para recuperar de 10% a 20% do seu orçamento mensal na primeira semana sem alterar o seu padrão de vida.
-                      </p>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-4">
+                  {/* Tópico 1: O que iremos fazer? */}
+                  <div className="bg-dark-900 border border-dark-800 p-6 md:p-8 rounded-3xl space-y-6 shadow-lg relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-gold-500/5 rounded-full filter blur-2xl"></div>
+                    <h3 className="text-lg font-bold text-gold-400 flex items-center gap-2 border-b border-dark-800/60 pb-3">
+                      <Sparkles className="w-5 h-5 text-gold-500" />
+                      O que iremos fazer?
+                    </h3>
+                    <div className="space-y-4">
+                      <div className="flex gap-4 items-start bg-dark-950 p-4 rounded-xl border border-dark-800/60 hover:border-gold-500/20 transition-all group">
+                        <span className="w-8 h-8 rounded-lg bg-gold-500/10 text-gold-500 flex items-center justify-center font-bold text-xs shrink-0 group-hover:scale-110 transition-transform">1</span>
+                        <div>
+                          <h4 className="text-sm font-bold text-white">Diagnóstico e Bloqueio de Gargalos</h4>
+                          <p className="text-xs text-gray-400 font-light mt-1 leading-relaxed">
+                            Mapeamos todas as despesas invisíveis e ralos do cartão para recuperar capacidade financeira na primeira semana sem alterar o seu padrão de vida.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex gap-4 items-start bg-dark-950 p-4 rounded-xl border border-dark-800/60 hover:border-gold-500/20 transition-all group">
+                        <span className="w-8 h-8 rounded-lg bg-gold-500/10 text-gold-500 flex items-center justify-center font-bold text-xs shrink-0 group-hover:scale-110 transition-transform">2</span>
+                        <div>
+                          <h4 className="text-sm font-bold text-white">Autorregulação e Orçamento Inteligente</h4>
+                          <p className="text-xs text-gray-400 font-light mt-1 leading-relaxed">
+                            Desenhamos as regras de distribuição e contas separadas adaptadas com base nos seus objetivos com prazos e valores concretos.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex gap-4 items-start bg-dark-950 p-4 rounded-xl border border-dark-800/60 hover:border-gold-500/20 transition-all group">
+                        <span className="w-8 h-8 rounded-lg bg-gold-500/10 text-gold-500 flex items-center justify-center font-bold text-xs shrink-0 group-hover:scale-110 transition-transform">3</span>
+                        <div>
+                          <h4 className="text-sm font-bold text-white">Recomendação de Portfólio Seguro</h4>
+                          <p className="text-xs text-gray-400 font-light mt-1 leading-relaxed">
+                            Direcionamos você para os investimentos corretos de reserva de emergência e metas de curto/médio prazo, garantindo que não perca dinheiro.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex gap-4 items-start bg-dark-950 p-4 rounded-xl border border-dark-800/60 hover:border-gold-500/20 transition-all group">
+                        <span className="w-8 h-8 rounded-lg bg-gold-500/10 text-gold-500 flex items-center justify-center font-bold text-xs shrink-0 group-hover:scale-110 transition-transform">4</span>
+                        <div>
+                          <h4 className="text-sm font-bold text-white">Acompanhamento e Suporte de Rotina</h4>
+                          <p className="text-xs text-gray-400 font-light mt-1 leading-relaxed">
+                            Prestamos suporte diário via WhatsApp para tomadas de decisão rápidas e sessões de alinhamento focadas em acompanhamento.
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="flex items-start gap-4 p-5 bg-dark-900 border border-dark-800 rounded-2xl">
-                    <span className="w-8 h-8 rounded-full bg-gold-500/10 text-gold-500 font-extrabold text-sm flex items-center justify-center shrink-0 border border-gold-500/20">
-                      2
-                    </span>
-                    <div className="space-y-1">
-                      <h4 className="text-base font-bold text-white">Autorregulação e Orçamento Inteligente</h4>
-                      <p className="text-xs text-gray-400 font-light leading-relaxed">
-                        Desenhamos regras de alocação de acordo com suas metas. Criamos contas distintas e automatizamos processos para que você gaste com tranquilidade e poupe com segurança.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-4 p-5 bg-dark-900 border border-dark-800 rounded-2xl">
-                    <span className="w-8 h-8 rounded-full bg-gold-500/10 text-gold-500 font-extrabold text-sm flex items-center justify-center shrink-0 border border-gold-500/20">
-                      3
-                    </span>
-                    <div className="space-y-1">
-                      <h4 className="text-base font-bold text-white">Recomendação de Portfólio Personalizado</h4>
-                      <p className="text-xs text-gray-400 font-light leading-relaxed">
-                        Direcionamos você para os investimentos ideais para sua reserva de emergência e metas de curto/médio prazo. Chega de dúvidas sobre Tesouro Direto, CDBs ou fundos.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-4 p-5 bg-dark-900 border border-dark-800 rounded-2xl">
-                    <span className="w-8 h-8 rounded-full bg-gold-500/10 text-gold-500 font-extrabold text-sm flex items-center justify-center shrink-0 border border-gold-500/20">
-                      4
-                    </span>
-                    <div className="space-y-1">
-                      <h4 className="text-base font-bold text-white">Acompanhamento e Suporte de Rotina</h4>
-                      <p className="text-xs text-gray-400 font-light leading-relaxed">
-                        Temos reuniões quinzenais para ajustes finos e suporte direto no WhatsApp para tirar dúvidas de decisões imediatas (ex: comprar à vista ou parcelado, avaliar propostas de seguros).
-                      </p>
+                  {/* Tópico 2: Por que iremos fazer? */}
+                  <div className="bg-dark-900 border border-dark-800 p-6 md:p-8 rounded-3xl space-y-6 shadow-lg relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full filter blur-2xl"></div>
+                    <h3 className="text-lg font-bold text-white flex items-center gap-2 border-b border-dark-800/60 pb-3">
+                      <Target className="w-5 h-5 text-gray-400" />
+                      Por que iremos fazer?
+                    </h3>
+                    <div className="space-y-4">
+                      <div className="flex gap-4 items-start bg-dark-950 p-4 rounded-xl border border-dark-800/60 hover:border-emerald-500/20 transition-all group">
+                        <span className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                          <Check className="w-4 h-4" />
+                        </span>
+                        <div>
+                          <h4 className="text-sm font-bold text-white font-serif">Eliminar Ansiedade e Incerteza</h4>
+                          <p className="text-xs text-gray-400 font-light mt-1 leading-relaxed">
+                            Para que você saiba exatamente para onde vai seu dinheiro e tenha total clareza do quanto está gastando e poupando mensalmente.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex gap-4 items-start bg-dark-950 p-4 rounded-xl border border-dark-800/60 hover:border-emerald-500/20 transition-all group">
+                        <span className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                          <Check className="w-4 h-4" />
+                        </span>
+                        <div>
+                          <h4 className="text-sm font-bold text-white font-serif">Clareza no Propósito de Vida</h4>
+                          <p className="text-xs text-gray-400 font-light mt-1 leading-relaxed">
+                            Para dar prazos e metas claras aos seus maiores objetivos (reserva, imóveis, viagens), criando um plano sustentável para realizá-los.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex gap-4 items-start bg-dark-950 p-4 rounded-xl border border-dark-800/60 hover:border-emerald-500/20 transition-all group">
+                        <span className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                          <Check className="w-4 h-4" />
+                        </span>
+                        <div>
+                          <h4 className="text-sm font-bold text-white font-serif">Paz e Segurança Patrimonial</h4>
+                          <p className="text-xs text-gray-400 font-light mt-1 leading-relaxed">
+                            Para reestruturar dívidas de forma inteligente, diminuindo o peso mensal das obrigações e blindando você contra escolhas erradas.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex gap-4 items-start bg-dark-950 p-4 rounded-xl border border-dark-800/60 hover:border-emerald-500/20 transition-all group">
+                        <span className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                          <Check className="w-4 h-4" />
+                        </span>
+                        <div>
+                          <h4 className="text-sm font-bold text-white font-serif">Liberdade para Investir com Confiança</h4>
+                          <p className="text-xs text-gray-400 font-light mt-1 leading-relaxed">
+                            Para que você comece a rentabilizar seu dinheiro com segurança, sabendo que as escolhas estão validadas e protegendo seu capital.
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -949,54 +1799,95 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, onClose, o
                   </p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
-                  <div className="p-6 bg-dark-900 border border-dark-800 rounded-3xl flex items-start gap-4">
-                    <span className="p-3 bg-gold-500/10 text-gold-500 rounded-xl border border-gold-500/20 shadow-inner">
-                      <Check className="w-5 h-5" />
-                    </span>
-                    <div className="space-y-1">
-                      <h4 className="font-bold text-white">4 Sessões Individuais Online</h4>
-                      <p className="text-xs text-gray-400 font-light leading-relaxed">
-                        Encontros individuais focados em implementar o plano, analisar o orçamento atual e sugerir soluções rápidas para otimizar os seus ganhos.
-                      </p>
+                {/* O serviço principal */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-gold-400 flex items-center gap-2">
+                    <Award className="w-4 h-4 text-gold-500" />
+                    O serviço principal
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="p-6 bg-gradient-to-br from-gold-500/10 to-transparent border border-gold-500/20 hover:border-gold-500/35 rounded-3xl flex items-start gap-4 transition-all shadow-lg group">
+                      <span className="p-3 bg-gold-500/15 text-gold-400 rounded-2xl border border-gold-500/20 shadow-inner group-hover:scale-110 transition-transform">
+                        <Users className="w-6 h-6" />
+                      </span>
+                      <div className="space-y-1">
+                        <h4 className="font-bold text-white text-base">Sessão de 1h 30min</h4>
+                        <p className="text-xs text-gray-400 font-light leading-relaxed">
+                          Encontro individual e online focado em abrir sua realidade financeira, identificar seus gargalos e traçar a rota do seu plano de ação.
+                        </p>
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="p-6 bg-dark-900 border border-dark-800 rounded-3xl flex items-start gap-4">
-                    <span className="p-3 bg-gold-500/10 text-gold-500 rounded-xl border border-gold-500/20 shadow-inner">
-                      <Check className="w-5 h-5" />
-                    </span>
-                    <div className="space-y-1">
-                      <h4 className="font-bold text-white">Suporte Diário via WhatsApp</h4>
-                      <p className="text-xs text-gray-400 font-light leading-relaxed">
-                        Canal direto com o seu consultor para validar dúvidas, envio de alertas de contas e auxílio na tomada de decisão financeira rápida do dia a dia.
-                      </p>
+                    <div className="p-6 bg-gradient-to-br from-gold-500/10 to-transparent border border-gold-500/20 hover:border-gold-500/35 rounded-3xl flex items-start gap-4 transition-all shadow-lg group">
+                      <span className="p-3 bg-gold-500/15 text-gold-400 rounded-2xl border border-gold-500/20 shadow-inner group-hover:scale-110 transition-transform">
+                        <HeartHandshake className="w-6 h-6" />
+                      </span>
+                      <div className="space-y-1">
+                        <h4 className="font-bold text-white text-base">Acompanhamento de 30 dias</h4>
+                        <p className="text-xs text-gray-400 font-light leading-relaxed">
+                          Apoio contínuo e diário por WhatsApp para tirar dúvidas de rotina, além de um retorno exclusivo para analisar os resultados e o que ainda precisa ser verificado.
+                        </p>
+                      </div>
                     </div>
                   </div>
+                </div>
 
-                  <div className="p-6 bg-dark-900 border border-dark-800 rounded-3xl flex items-start gap-4">
-                    <span className="p-3 bg-gold-500/10 text-gold-500 rounded-xl border border-gold-500/20 shadow-inner">
-                      <Check className="w-5 h-5" />
-                    </span>
-                    <div className="space-y-1">
-                      <h4 className="font-bold text-white">Planilhas e Dashboards de Bordo</h4>
-                      <p className="text-xs text-gray-400 font-light leading-relaxed">
-                        Ferramentas limpas e automatizadas criadas sob medida para o controle de fluxo de caixa sem a complexidade de sistemas robustos e demorados.
-                      </p>
+                {/* Os bônus desse slide */}
+                <div className="space-y-4 pt-4">
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-gray-400 flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-gold-500" />
+                    Os bônus inclusos
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="p-6 bg-dark-900 border border-dark-800 hover:border-gold-500/10 rounded-3xl flex flex-col justify-between shadow-md group transition-all">
+                      <div className="space-y-4">
+                        <span className="p-3 bg-dark-950 text-gold-500 rounded-2xl border border-dark-800/80 inline-flex group-hover:scale-110 transition-transform">
+                          <Compass className="w-5 h-5" />
+                        </span>
+                        <div className="space-y-1">
+                          <h4 className="font-bold text-white text-sm">Ferramenta de controle financeiro</h4>
+                          <p className="text-xs text-gray-450 font-light leading-relaxed">
+                            Acesso durante todo o acompanhamento da consultoria para registro e gerenciamento prático da sua vida financeira.
+                          </p>
+                        </div>
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="p-6 bg-dark-900 border border-dark-800 rounded-3xl flex items-start gap-4">
-                    <span className="p-3 bg-gold-500/10 text-gold-500 rounded-xl border border-gold-500/20 shadow-inner">
-                      <Check className="w-5 h-5" />
-                    </span>
-                    <div className="space-y-1">
-                      <h4 className="font-bold text-white">Relatório de Recomendações</h4>
-                      <p className="text-xs text-gray-400 font-light leading-relaxed">
-                        Documento oficial contendo o diagnóstico de gargalos, plano estratégico de metas e carteira recomendada para a sua segurança de investimentos.
-                      </p>
+                    <div className="p-6 bg-dark-900 border border-dark-800 hover:border-gold-500/10 rounded-3xl flex flex-col justify-between shadow-md group transition-all">
+                      <div className="space-y-4">
+                        <span className="p-3 bg-dark-950 text-gold-500 rounded-2xl border border-dark-800/80 inline-flex group-hover:scale-110 transition-transform">
+                          <Target className="w-5 h-5" />
+                        </span>
+                        <div className="space-y-1">
+                          <h4 className="font-bold text-white text-sm">Diagnóstico Financeiro Personalizado</h4>
+                          <p className="text-xs text-gray-450 font-light leading-relaxed">
+                            Mapeamento detalhado de dívidas existentes, levantamento preciso de Custo de Vida e a relação Tempo x Valor do seu trabalho.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-6 bg-dark-900 border border-dark-800 hover:border-gold-500/10 rounded-3xl flex flex-col justify-between shadow-md group transition-all">
+                      <div className="space-y-4">
+                        <span className="p-3 bg-dark-950 text-gold-500 rounded-2xl border border-dark-800/80 inline-flex group-hover:scale-110 transition-transform">
+                          <TrendingDown className="w-5 h-5" />
+                        </span>
+                        <div className="space-y-1">
+                          <h4 className="font-bold text-white text-sm">Análise das despesas</h4>
+                          <p className="text-xs text-gray-450 font-light leading-relaxed">
+                            Varredura das contas com ações práticas sugeridas para a redução imediata de gastos desnecessários que drenam seu orçamento.
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   </div>
+                </div>
+
+                {/* Destaque de Rodapé */}
+                <div className="pt-6 border-t border-dark-800/60 text-center">
+                  <p className="text-sm text-gold-450 font-serif italic max-w-2xl mx-auto leading-relaxed">
+                    "É uma estrutura de entrega robusta, que poucas empresas conseguem entregar algo que seja parecido."
+                  </p>
                 </div>
 
                 <div className="flex justify-end pt-4">
@@ -1022,57 +1913,96 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, onClose, o
                   </p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4">
-                  {/* Pílula Azul */}
+                {/* Exibição Progressiva da Decisão Matrix */}
+                <div className="flex flex-col items-center justify-center min-h-[320px] pt-4">
+                  {matrixStep === 1 && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="text-center space-y-4 py-12"
+                    >
+                      <p className="text-gray-400 text-lg font-light max-w-md mx-auto leading-relaxed italic">
+                        Duas pílulas, duas direções. Qual caminho você escolherá trilhar a partir de hoje?
+                      </p>
+                    </motion.div>
+                  )}
+
+                  {matrixStep === 2 && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 15 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.4 }}
+                      className="flex flex-col items-center space-y-6 max-w-lg"
+                    >
+                      <img src="/images/pilulaazul.png" alt="Pílula Azul" className="w-40 h-auto object-contain" />
+                      <div className="bg-dark-900 border border-blue-500/20 p-6 md:p-8 rounded-3xl text-left space-y-4 shadow-xl">
+                        <h3 className="text-xl font-serif font-bold text-blue-400 border-b border-dark-800 pb-2">Pílula Azul: Continuar como está</h3>
+                        <p className="text-sm text-gray-300 font-light leading-relaxed">
+                          Ignorar a desorganização invisível, continuar sem saber para onde o dinheiro está indo, manter a insegurança de não ter reserva sólida e adiar o sonho dos investimentos por mais tempo.
+                        </p>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {matrixStep === 3 && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 0.5 }}
+                      className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-5xl"
+                    >
+                      {/* Card Pílula Azul (Estático) */}
+                      <div className="flex flex-col items-center space-y-6">
+                        <img src="/images/pilulaazul.png" alt="Pílula Azul" className="w-36 h-auto object-contain" />
+                        <div className="bg-dark-900 border border-dark-800 p-6 md:p-8 rounded-3xl text-left space-y-4 shadow-xl w-full min-h-[220px]">
+                          <h3 className="text-lg font-serif font-bold text-blue-400 border-b border-dark-850 pb-2">Pílula Azul: Continuar como está</h3>
+                          <p className="text-xs text-gray-450 font-light leading-relaxed">
+                            Ignorar a desorganização invisível, continuar sem saber para onde o dinheiro está indo, manter a insegurança de não ter reserva sólida e adiar o sonho dos investimentos por mais tempo.
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Card Pílula Vermelha (Estático) */}
+                      <div className="flex flex-col items-center space-y-6">
+                        <img src="/images/pilulavermelha.png" alt="Pílula Vermelha" className="w-36 h-auto object-contain animate-pulse" />
+                        <div className="bg-dark-900 border border-gold-500/20 p-6 md:p-8 rounded-3xl text-left space-y-4 shadow-xl w-full min-h-[220px]">
+                          <h3 className="text-lg font-serif font-bold text-red-400 border-b border-dark-850 pb-2">Pílula Vermelha: Seguir com Método</h3>
+                          <p className="text-xs text-gray-300 font-light leading-relaxed">
+                            Tomar as rédeas do patrimônio, usar um método validado passo a passo, contar com suporte de um especialista de forma diária, investir com segurança e conquistar tranquilidade e liberdade financeira real.
+                          </p>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </div>
+
+                {/* Botões de Avanço do Slide */}
+                <div className="flex justify-between items-center pt-6 border-t border-dark-800/40">
                   <button
                     onClick={() => {
-                      handleInputChange('matrixDecision', 'blue');
-                      navigateTo('confirmacao_sentido');
+                      if (matrixStep > 1) {
+                        setMatrixStep(prev => prev - 1);
+                      } else {
+                        navigateBack();
+                      }
                     }}
-                    className={`p-6 md:p-8 rounded-3xl border text-left transition-all duration-300 flex flex-col justify-between space-y-6 ${meetingAnswers.matrixDecision === 'blue'
-                      ? 'bg-blue-950/20 border-blue-500/80 shadow-2xl shadow-blue-500/10'
-                      : 'bg-dark-900 border-dark-800 hover:border-blue-500/30'
-                    }`}
+                    className="px-6 py-3 bg-dark-850 hover:bg-dark-800 border border-dark-800 text-gray-300 rounded-xl text-xs font-bold uppercase tracking-widest transition-all"
                   >
-                    <div className="space-y-4">
-                      <div className="w-12 h-12 bg-blue-500/10 rounded-2xl flex items-center justify-center border border-blue-500/20 text-blue-500">
-                        <TrendingDown className="w-6 h-6" />
-                      </div>
-                      <h3 className="text-xl font-serif font-bold text-blue-400">Pílula Azul: Continuar como está</h3>
-                      <p className="text-xs text-gray-400 font-light leading-relaxed">
-                        Ignorar a desorganização invisível, continuar sem saber para onde o dinheiro está indo, manter a insegurança de não ter reserva sólida e adiar o sonho dos investimentos por mais tempo.
-                      </p>
-                    </div>
-                    <div className="inline-flex items-center gap-2 text-xs font-bold text-blue-400 uppercase tracking-widest pt-4">
-                      Escolher esta opção
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </div>
+                    Voltar
                   </button>
 
-                  {/* Pílula Vermelha */}
                   <button
                     onClick={() => {
-                      handleInputChange('matrixDecision', 'red');
-                      navigateTo('confirmacao_sentido');
+                      if (matrixStep < 3) {
+                        setMatrixStep(prev => prev + 1);
+                      } else {
+                        handleSaveAndNavigate('confirmacao_sentido');
+                      }
                     }}
-                    className={`p-6 md:p-8 rounded-3xl border text-left transition-all duration-300 flex flex-col justify-between space-y-6 ${meetingAnswers.matrixDecision === 'red'
-                      ? 'bg-red-950/20 border-red-500/80 shadow-2xl shadow-red-500/10'
-                      : 'bg-dark-900 border-dark-800 hover:border-red-500/30'
-                    }`}
+                    className="px-8 py-4 bg-gradient-to-r from-gold-600 to-amber-500 hover:from-gold-500 hover:to-amber-400 text-dark-950 font-black rounded-xl shadow-lg transition-all duration-300 uppercase tracking-widest text-xs flex items-center justify-center gap-2"
                   >
-                    <div className="space-y-4">
-                      <div className="w-12 h-12 bg-red-500/10 rounded-2xl flex items-center justify-center border border-red-500/20 text-red-500">
-                        <TrendingUp className="w-6 h-6" />
-                      </div>
-                      <h3 className="text-xl font-serif font-bold text-red-400">Pílula Vermelha: Seguir com Método</h3>
-                      <p className="text-xs text-gray-400 font-light leading-relaxed">
-                        Tomar as rédeas do patrimônio, usar um método validado passo a passo, contar com suporte de um especialista diário, investir com segurança e conquistar tranquilidade e liberdade financeira real.
-                      </p>
-                    </div>
-                    <div className="inline-flex items-center gap-2 text-xs font-bold text-red-400 uppercase tracking-widest pt-4">
-                      Escolher esta opção
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </div>
+                    {matrixStep === 3 ? 'Avançar' : 'Seguir'}
+                    <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
               </div>
@@ -1087,9 +2017,14 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, onClose, o
                   <p className="text-gray-400 text-sm md:text-base font-light">
                     O caminho da pílula vermelha exige comprometimento. Deseja seguir com a transformação da sua vida financeira hoje?
                   </p>
+
+                  {/* Imagem da Pílula Vermelha centralizada abaixo do título */}
+                  <div className="flex justify-center pt-4">
+                    <img src="/images/pilulavermelha.png" alt="Pílula Vermelha" className="w-44 h-auto object-contain" />
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                   {/* RESPOSTA SIM */}
                   <button
                     onClick={async () => {
@@ -1103,7 +2038,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, onClose, o
                     className={`p-6 rounded-2xl border text-center transition-all duration-300 font-bold ${meetingAnswers.initialSolutionSense === 'Sim'
                       ? 'bg-gold-500/10 border-gold-500 text-gold-400 shadow-xl'
                       : 'bg-dark-900 border-dark-800 text-gray-300 hover:border-gold-500/30 hover:text-white'
-                    }`}
+                      }`}
                   >
                     <CheckCircle2 className="w-8 h-8 text-gold-500 mx-auto mb-3" />
                     <span className="block text-base">Sim, faz total sentido!</span>
@@ -1123,7 +2058,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, onClose, o
                     className={`p-6 rounded-2xl border text-center transition-all duration-300 font-bold ${meetingAnswers.initialSolutionSense === 'Não'
                       ? 'bg-red-500/10 border-red-500 text-red-400 shadow-xl'
                       : 'bg-dark-900 border-dark-800 text-gray-300 hover:border-red-500/30 hover:text-white'
-                    }`}
+                      }`}
                   >
                     <X className="w-8 h-8 text-red-500 mx-auto mb-3" />
                     <span className="block text-base">Não quero seguir agora.</span>
@@ -1266,7 +2201,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, onClose, o
                 </div>
 
                 <div className="bg-dark-900 border border-dark-800 max-w-lg mx-auto rounded-3xl p-6 md:p-8 space-y-6 text-center shadow-2xl relative">
-                  
+
                   <div className="p-4 bg-dark-950 rounded-xl border border-dark-850 text-left space-y-2 text-xs text-gray-300 font-light">
                     <p className="font-bold text-white text-sm">Condição Especial: Vaga Estrutural</p>
                     <p>
@@ -1344,7 +2279,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, onClose, o
                 </div>
 
                 <div className="bg-dark-900 border border-dark-800 max-w-lg mx-auto rounded-3xl p-6 md:p-8 space-y-6 text-center shadow-2xl relative">
-                  
+
                   <div className="p-4 bg-dark-950 rounded-xl border border-dark-850 text-left space-y-2 text-xs text-gray-300 font-light">
                     <p className="font-bold text-white text-sm">Entrega do Produto Expresso</p>
                     <p>
@@ -1568,15 +2503,24 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, onClose, o
 
       {/* Footer sticky de Navegação Fina */}
       <footer className="sticky bottom-0 z-30 bg-dark-900/90 backdrop-blur-md border-t border-dark-800 px-6 py-4 flex items-center justify-between">
-        
+
         {/* Botão de Voltar */}
         <button
-          onClick={navigateBack}
-          disabled={slideHistory.length === 0}
-          className={`flex items-center gap-1.5 px-4 py-2.5 rounded-lg border text-xs font-bold uppercase tracking-wider transition-all duration-200 ${slideHistory.length === 0
+          onClick={() => {
+            if (currentSlide === 'coleta_informacoes') {
+              handleColetaBack();
+            } else if (currentSlide === 'coleta_informacoes_2') {
+              navigateTo('coleta_informacoes');
+              setColetaStep(6);
+            } else {
+              navigateBack();
+            }
+          }}
+          disabled={slideHistory.length === 0 && (currentSlide !== 'coleta_informacoes' || coletaStep === 1)}
+          className={`flex items-center gap-1.5 px-4 py-2.5 rounded-lg border text-xs font-bold uppercase tracking-wider transition-all duration-200 ${slideHistory.length === 0 && (currentSlide !== 'coleta_informacoes' || coletaStep === 1)
             ? 'bg-dark-950 border-dark-900 text-gray-750 cursor-not-allowed'
             : 'bg-dark-800 hover:bg-dark-750 border-dark-700 text-gray-300 hover:text-white'
-          }`}
+            }`}
         >
           <ChevronLeft className="w-4 h-4" />
           Voltar
@@ -1584,17 +2528,17 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, onClose, o
 
         {/* Indicador de Passo Atual */}
         <span className="text-[10px] text-gray-500 font-mono uppercase tracking-widest font-bold">
-          Etapa: {currentSlide}
+          Etapa: {currentSlide} {currentSlide === 'coleta_informacoes' && `(P${coletaStep}/6)`}
         </span>
 
         {/* Botão de Avançar */}
-        {currentSlide !== 'agradecimento_final' && 
-         currentSlide !== 'confirmacao_sentido' && 
-         currentSlide !== 'investimento_padrao' && 
-         currentSlide !== 'condicao_especial' && 
-         currentSlide !== 'downsell' && 
-         currentSlide !== 'proximos_passos' && 
-         currentSlide !== 'proximos_passos_downsell' ? (
+        {currentSlide !== 'agradecimento_final' &&
+          currentSlide !== 'confirmacao_sentido' &&
+          currentSlide !== 'investimento_padrao' &&
+          currentSlide !== 'condicao_especial' &&
+          currentSlide !== 'downsell' &&
+          currentSlide !== 'proximos_passos' &&
+          currentSlide !== 'proximos_passos_downsell' ? (
           <button
             onClick={() => {
               if (currentSlide === 'intro') {
@@ -1607,7 +2551,10 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, onClose, o
                 navigateTo('confirmacao_dados');
               } else if (currentSlide === 'confirmacao_dados') {
                 navigateTo('coleta_informacoes');
+                setColetaStep(1);
               } else if (currentSlide === 'coleta_informacoes') {
+                handleColetaNext();
+              } else if (currentSlide === 'coleta_informacoes_2') {
                 handleSaveAndNavigate('adequacao');
               } else if (currentSlide === 'adequacao') {
                 navigateTo('provas_sociais');
@@ -1631,6 +2578,58 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, onClose, o
         )}
       </footer>
 
+      {/* Modal de Saída Premium */}
+      <AnimatePresence>
+        {showExitModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            {/* Backdrop com blur */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowExitModal(false)}
+              className="absolute inset-0 bg-black/80 backdrop-blur-md"
+            ></motion.div>
+
+            {/* Caixa do Modal */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-md bg-dark-900 border border-dark-800 rounded-3xl p-8 shadow-2xl space-y-6 z-10 text-center"
+            >
+              <div className="w-16 h-16 bg-red-500/10 text-red-500 rounded-2xl flex items-center justify-center mx-auto border border-red-500/20">
+                <AlertCircle className="w-8 h-8" />
+              </div>
+
+              <div className="space-y-2">
+                <h3 className="text-xl font-bold text-white">Encerrar Apresentação?</h3>
+                <p className="text-gray-400 text-sm font-light leading-relaxed">
+                  Você tem certeza de que deseja encerrar esta apresentação estratégica? As respostas salvas até o momento não serão perdidas, mas a sessão de apresentação será fechada.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <button
+                  onClick={() => setShowExitModal(false)}
+                  className="py-3 px-6 bg-dark-800 hover:bg-dark-750 text-gray-300 font-bold rounded-xl text-xs uppercase tracking-widest border border-dark-700 transition-colors"
+                >
+                  Continuar
+                </button>
+                <button
+                  onClick={() => {
+                    setShowExitModal(false);
+                    onClose();
+                  }}
+                  className="py-3 px-6 bg-gradient-to-r from-red-650 to-red-550 hover:from-red-550 hover:to-red-450 text-white font-bold rounded-xl text-xs uppercase tracking-widest transition-colors shadow-lg shadow-red-500/10"
+                >
+                  Sim, Sair
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
