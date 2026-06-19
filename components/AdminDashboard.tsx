@@ -131,6 +131,8 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
     const [leadToDelete, setLeadToDelete] = useState<Lead | null>(null);
     const [showPresentationAnswersModal, setShowPresentationAnswersModal] = useState(false);
     const [activeAnswersTab, setActiveAnswersTab] = useState<'diagnostico' | 'metas' | 'emocional' | 'fechamento'>('diagnostico');
+    const [confirmClear, setConfirmClear] = useState(false);
+    const [clearingPresentation, setClearingPresentation] = useState(false);
 
     const handleCopyLink = async (link: string, idx: number) => {
         try {
@@ -186,6 +188,40 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
             }
         }
         setLeadToDelete(null);
+    };
+
+    const handleClearPresentation = async () => {
+        if (!selectedLead) return;
+        if (!confirmClear) {
+            setConfirmClear(true);
+            return;
+        }
+
+        setClearingPresentation(true);
+        try {
+            const updatedAnswers = { ...selectedLead.answers };
+            delete updatedAnswers.meeting;
+
+            const { data, error } = await supabase
+                .from('leads')
+                .update({ answers: updatedAnswers })
+                .eq('id', selectedLead.id)
+                .select();
+
+            if (error) {
+                console.error('Erro ao limpar apresentação:', error);
+                alert(`Erro ao limpar: ${error.message}`);
+            } else if (data && data.length > 0) {
+                const updatedLead = data[0] as Lead;
+                setLeads(prev => prev.map(l => l.id === selectedLead.id ? updatedLead : l));
+                setSelectedLead(updatedLead);
+                setConfirmClear(false);
+            }
+        } catch (e) {
+            console.error('Erro ao limpar dados da apresentação:', e);
+        } finally {
+            setClearingPresentation(false);
+        }
     };
 
     const handleStatusUpdate = async (id: string, newStatus: Lead['status']) => {
@@ -888,7 +924,10 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            onClick={() => setShowPresentationAnswersModal(false)}
+                            onClick={() => {
+                                setShowPresentationAnswersModal(false);
+                                setConfirmClear(false);
+                            }}
                             className="absolute inset-0 bg-black/75 backdrop-blur-sm"
                         />
                         
@@ -912,7 +951,10 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                                     </div>
                                 </div>
                                 <button
-                                    onClick={() => setShowPresentationAnswersModal(false)}
+                                    onClick={() => {
+                                        setShowPresentationAnswersModal(false);
+                                        setConfirmClear(false);
+                                    }}
                                     className="p-2 hover:bg-dark-800 rounded-lg text-gray-400 hover:text-white transition-colors"
                                 >
                                     <X className="w-5 h-5" />
@@ -1163,9 +1205,25 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                             </div>
                             
                             {/* Footer */}
-                            <div className="p-6 border-t border-dark-800 flex justify-end shrink-0">
+                            <div className="p-6 border-t border-dark-800 flex justify-between items-center shrink-0">
+                                <div>
+                                    {selectedLead.answers?.meeting && (
+                                        <button
+                                            type="button"
+                                            onClick={handleClearPresentation}
+                                            disabled={clearingPresentation}
+                                            className="px-6 py-2.5 bg-red-600/10 hover:bg-red-600/20 text-red-400 hover:text-red-300 rounded-xl transition-all border border-red-500/25 text-xs font-bold uppercase tracking-widest disabled:opacity-50"
+                                        >
+                                            {clearingPresentation ? 'Limpando...' : confirmClear ? 'Confirmar Exclusão?' : 'Apagar Apresentação'}
+                                        </button>
+                                    )}
+                                </div>
                                 <button
-                                    onClick={() => setShowPresentationAnswersModal(false)}
+                                    type="button"
+                                    onClick={() => {
+                                        setShowPresentationAnswersModal(false);
+                                        setConfirmClear(false);
+                                    }}
                                     className="px-6 py-2.5 bg-dark-800 hover:bg-dark-750 text-gray-300 hover:text-white rounded-xl transition-all border border-dark-700 text-xs font-bold uppercase tracking-widest"
                                 >
                                     Fechar

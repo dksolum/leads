@@ -5,7 +5,7 @@ import {
   HelpCircle, AlertCircle, Image as ImageIcon, Save,
   Users, Award, TrendingUp, ShieldCheck, Play, ArrowRight,
   TrendingDown, CheckCircle2, RefreshCw, HeartHandshake, Brain,
-  Compass, Eye, Target, Sparkle
+  Compass, Eye, Target, Sparkle, Coins, CreditCard, Info
 } from 'lucide-react';
 import { Lead, MeetingAnswers } from '../types';
 import { supabase } from '../lib/supabase';
@@ -55,6 +55,8 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, onClose, o
   const [slideHistory, setSlideHistory] = useState<SlideId[]>([]);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [showExitModal, setShowExitModal] = useState<boolean>(false);
+  // Controle de exibição de detalhes de formas de pagamento (negociação)
+  const [paymentDetailsModal, setPaymentDetailsModal] = useState<'padrao' | 'especial' | 'downsell' | null>(null);
 
   // Controle de sub-passos na coleta de dados parte 1
   const [coletaStep, setColetaStep] = useState<number>(1);
@@ -2116,6 +2118,16 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, onClose, o
                     Melhor Opção
                   </div>
 
+                  {/* Botão de Negociação (Formas de Pagamento) */}
+                  <button
+                    type="button"
+                    onClick={() => setPaymentDetailsModal(paymentDetailsModal === 'padrao' ? null : 'padrao')}
+                    className="absolute top-4 left-4 p-2 bg-dark-950/80 hover:bg-dark-800 border border-dark-800 hover:border-gold-500/30 text-gray-455 hover:text-gold-400 rounded-full transition-all cursor-pointer shadow-md z-10"
+                    title="Negociar / Opções de Pagamento"
+                  >
+                    <Coins className="w-4 h-4" />
+                  </button>
+
                   <div className="space-y-2">
                     <h4 className="text-sm text-gray-500 uppercase tracking-widest font-bold">Programa Completo</h4>
                     <div className="text-3xl md:text-4xl font-serif font-extrabold text-white">
@@ -2170,20 +2182,22 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, onClose, o
                       Seguir com Pagamento Parcelado
                     </button>
 
-                    {/* Recusou */}
-                    <button
-                      onClick={async () => {
-                        handleInputChange('investmentChoice', 'Recusou');
-                        await saveToSupabase({
-                          ...meetingAnswers,
-                          investmentChoice: 'Recusou'
-                        });
-                        navigateTo('condicao_especial');
-                      }}
-                      className="w-full py-2.5 text-gray-500 hover:text-red-400 transition-colors uppercase tracking-widest text-[9px] font-bold"
-                    >
-                      Não é viável neste valor
-                    </button>
+                    {/* Recusou - Oculto por padrão, visível com hover */}
+                    <div className="h-9 flex items-center justify-center">
+                      <button
+                        onClick={async () => {
+                          handleInputChange('investmentChoice', 'Recusou');
+                          await saveToSupabase({
+                            ...meetingAnswers,
+                            investmentChoice: 'Recusou'
+                          });
+                          navigateTo('condicao_especial');
+                        }}
+                        className="w-full py-2 text-gray-600 hover:text-red-400 uppercase tracking-widest text-[9px] font-black opacity-0 hover:opacity-100 transition-all duration-300 cursor-pointer"
+                      >
+                        Não é viável neste valor
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -2200,12 +2214,22 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, onClose, o
                   </p>
                 </div>
 
-                <div className="bg-dark-900 border border-dark-800 max-w-lg mx-auto rounded-3xl p-6 md:p-8 space-y-6 text-center shadow-2xl relative">
+                <div className="bg-dark-900 border border-dark-800 max-w-lg mx-auto rounded-3xl p-6 md:p-8 space-y-6 text-center shadow-2xl relative overflow-hidden">
+                  
+                  {/* Botão de Negociação (Formas de Pagamento) */}
+                  <button
+                    type="button"
+                    onClick={() => setPaymentDetailsModal(paymentDetailsModal === 'especial' ? null : 'especial')}
+                    className="absolute top-4 left-4 p-2 bg-dark-950/80 hover:bg-dark-800 border border-dark-800 hover:border-gold-500/30 text-gray-455 hover:text-gold-400 rounded-full transition-all cursor-pointer shadow-md z-10"
+                    title="Negociar / Opções de Pagamento"
+                  >
+                    <Coins className="w-4 h-4" />
+                  </button>
 
-                  <div className="p-4 bg-dark-950 rounded-xl border border-dark-850 text-left space-y-2 text-xs text-gray-300 font-light">
+                  <div className="mt-8 p-4 bg-dark-950 rounded-xl border border-dark-850 text-left space-y-2 text-xs text-gray-300 font-light">
                     <p className="font-bold text-white text-sm">Condição Especial: Vaga Estrutural</p>
                     <p>
-                      Para viabilizar a sua entrada agora, podemos flexibilizar a mentoria. A entrega será feita com encontros em grupo ou reduziremos para 2 encontros de onboarding individual mais acompanhamento simplificado.
+                      Para viabilizar a sua entrada agora, podemos flexibilizar a mentoria. A entrega será feita com encontros in grupo ou reduziremos para 2 encontros de onboarding individual mais acompanhamento simplificado.
                     </p>
                   </div>
 
@@ -2248,20 +2272,22 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, onClose, o
                       Aceitar Condição Especial (Boleto Parcelado)
                     </button>
 
-                    {/* Ainda Não */}
-                    <button
-                      onClick={async () => {
-                        handleInputChange('negotiationChoice', 'Recusou');
-                        await saveToSupabase({
-                          ...meetingAnswers,
-                          negotiationChoice: 'Recusou'
-                        });
-                        navigateTo('downsell');
-                      }}
-                      className="w-full py-2.5 text-gray-500 hover:text-red-400 transition-colors uppercase tracking-widest text-[9px] font-bold"
-                    >
-                      Ainda não é viável para mim
-                    </button>
+                    {/* Ainda Não - Oculto por padrão, visível com hover */}
+                    <div className="h-9 flex items-center justify-center">
+                      <button
+                        onClick={async () => {
+                          handleInputChange('negotiationChoice', 'Recusou');
+                          await saveToSupabase({
+                            ...meetingAnswers,
+                            negotiationChoice: 'Recusou'
+                          });
+                          navigateTo('downsell');
+                        }}
+                        className="w-full py-2 text-gray-600 hover:text-red-400 uppercase tracking-widest text-[9px] font-black opacity-0 hover:opacity-100 transition-all duration-300 cursor-pointer"
+                      >
+                        Ainda não é viável para mim
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -2278,9 +2304,19 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, onClose, o
                   </p>
                 </div>
 
-                <div className="bg-dark-900 border border-dark-800 max-w-lg mx-auto rounded-3xl p-6 md:p-8 space-y-6 text-center shadow-2xl relative">
+                <div className="bg-dark-900 border border-dark-800 max-w-lg mx-auto rounded-3xl p-6 md:p-8 space-y-6 text-center shadow-2xl relative overflow-hidden">
+                  
+                  {/* Botão de Negociação (Formas de Pagamento) */}
+                  <button
+                    type="button"
+                    onClick={() => setPaymentDetailsModal(paymentDetailsModal === 'downsell' ? null : 'downsell')}
+                    className="absolute top-4 left-4 p-2 bg-dark-950/80 hover:bg-dark-800 border border-dark-800 hover:border-gold-500/30 text-gray-455 hover:text-gold-400 rounded-full transition-all cursor-pointer shadow-md z-10"
+                    title="Negociar / Opções de Pagamento"
+                  >
+                    <Coins className="w-4 h-4" />
+                  </button>
 
-                  <div className="p-4 bg-dark-950 rounded-xl border border-dark-850 text-left space-y-2 text-xs text-gray-300 font-light">
+                  <div className="mt-8 p-4 bg-dark-950 rounded-xl border border-dark-850 text-left space-y-2 text-xs text-gray-300 font-light">
                     <p className="font-bold text-white text-sm">Entrega do Produto Expresso</p>
                     <p>
                       Consiste em 1 única sessão individual de 1h30m focado puramente em estancar vazamento de caixa, mais a planilha automatizada para controle. Sem suporte diário, mas com direcionamento prático.
@@ -2326,20 +2362,22 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, onClose, o
                       Adquirir Sessão Expresso (Parcelado)
                     </button>
 
-                    {/* Recusou definitivo */}
-                    <button
-                      onClick={async () => {
-                        handleInputChange('downsellChoice', 'Recusou');
-                        await saveToSupabase({
-                          ...meetingAnswers,
-                          downsellChoice: 'Recusou'
-                        });
-                        navigateTo('agradecimento_final');
-                      }}
-                      className="w-full py-2.5 text-gray-500 hover:text-red-400 transition-colors uppercase tracking-widest text-[9px] font-bold"
-                    >
-                      Prefiro não seguir agora
-                    </button>
+                    {/* Recusou definitivo - Oculto por padrão, visível com hover */}
+                    <div className="h-9 flex items-center justify-center">
+                      <button
+                        onClick={async () => {
+                          handleInputChange('downsellChoice', 'Recusou');
+                          await saveToSupabase({
+                            ...meetingAnswers,
+                            downsellChoice: 'Recusou'
+                          });
+                          navigateTo('agradecimento_final');
+                        }}
+                        className="w-full py-2 text-gray-600 hover:text-red-400 uppercase tracking-widest text-[9px] font-black opacity-0 hover:opacity-100 transition-all duration-300 cursor-pointer"
+                      >
+                        Prefiro não seguir agora
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -2626,6 +2664,107 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, onClose, o
                   Sim, Sair
                 </button>
               </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal de Detalhes de Pagamento / Negociação */}
+      <AnimatePresence>
+        {paymentDetailsModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            {/* Backdrop com blur */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setPaymentDetailsModal(null)}
+              className="absolute inset-0 bg-black/80 backdrop-blur-md"
+            ></motion.div>
+
+            {/* Caixa do Modal */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-md bg-dark-900 border border-dark-800 rounded-3xl p-6 md:p-8 shadow-2xl space-y-6 z-10"
+            >
+              <div className="flex items-center justify-between border-b border-dark-800 pb-3">
+                <div className="flex items-center gap-2 text-gold-500">
+                  <Coins className="w-5 h-5" />
+                  <h3 className="text-lg font-serif font-bold text-white">Formas de Pagamento</h3>
+                </div>
+                <button
+                  onClick={() => setPaymentDetailsModal(null)}
+                  className="p-1.5 hover:bg-dark-800 rounded-full text-gray-400 hover:text-white transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {paymentDetailsModal === 'padrao' && (
+                  <div className="space-y-3">
+                    <p className="text-xs text-gray-450 font-light leading-relaxed">Opções de parcelamento e à vista para a Consultoria Estruturada:</p>
+                    <div className="p-3 bg-dark-950 rounded-xl border border-dark-850">
+                      <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Cartão de Crédito</p>
+                      <p className="text-sm text-white font-medium mt-0.5">Em até 12x de R$ 61,74 (com juros da plataforma)</p>
+                    </div>
+                    <div className="p-3 bg-dark-950 rounded-xl border border-dark-850">
+                      <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">À Vista (PIX)</p>
+                      <p className="text-sm text-white font-medium mt-0.5">R$ 597 à vista com desconto especial</p>
+                    </div>
+                    <div className="p-3 bg-dark-950 rounded-xl border border-dark-850">
+                      <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Boleto Parcelado</p>
+                      <p className="text-sm text-white font-medium mt-0.5">Até 2x de R$ 314,22 sem consulta (Entrada + 30 dias)</p>
+                    </div>
+                  </div>
+                )}
+
+                {paymentDetailsModal === 'especial' && (
+                  <div className="space-y-3">
+                    <p className="text-xs text-gray-450 font-light leading-relaxed">Opções de parcelamento para a Condição Especial:</p>
+                    <div className="p-3 bg-dark-950 rounded-xl border border-dark-850">
+                      <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Entrada + Saldo</p>
+                      <p className="text-sm text-white font-medium mt-0.5">Entrada de R$ 147 + 1x de R$ 450 (Cartão/Pix)</p>
+                    </div>
+                    <div className="p-3 bg-dark-950 rounded-xl border border-dark-850">
+                      <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Boleto Parcelado</p>
+                      <p className="text-sm text-white font-medium mt-0.5">Até 3x de R$ 210 no Boleto (Sem consulta)</p>
+                    </div>
+                    <div className="p-3 bg-dark-950 rounded-xl border border-dark-850">
+                      <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Boleto PARCELEX</p>
+                      <p className="text-sm text-white font-medium mt-0.5">Opção de parcelamento estendido (Sujeito à aprovação)</p>
+                    </div>
+                  </div>
+                )}
+
+                {paymentDetailsModal === 'downsell' && (
+                  <div className="space-y-3">
+                    <p className="text-xs text-gray-450 font-light leading-relaxed">Opções de parcelamento para a Sessão Expresso:</p>
+                    <div className="p-3 bg-dark-950 rounded-xl border border-dark-850">
+                      <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">À Vista (PIX)</p>
+                      <p className="text-sm text-white font-medium mt-0.5">R$ 197 à vista no PIX ou Boleto</p>
+                    </div>
+                    <div className="p-3 bg-dark-950 rounded-xl border border-dark-850">
+                      <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Cartão de Crédito</p>
+                      <p className="text-sm text-white font-medium mt-0.5">Em até 3x de R$ 71,22 no Cartão de Crédito</p>
+                    </div>
+                    <div className="p-3 bg-dark-950 rounded-xl border border-dark-850">
+                      <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Reserva de Vaga</p>
+                      <p className="text-sm text-white font-medium mt-0.5">R$ 47 para reserva de vaga + saldo residual antes da sessão</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setPaymentDetailsModal(null)}
+                className="w-full py-3 bg-dark-800 hover:bg-dark-750 text-gray-300 hover:text-white rounded-xl text-xs font-bold uppercase tracking-widest border border-dark-700 transition-colors"
+              >
+                Voltar
+              </button>
             </motion.div>
           </div>
         )}
