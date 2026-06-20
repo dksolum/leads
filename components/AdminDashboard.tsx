@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
-import { Lead } from '../types';
+import { Lead, AdminUser, PricingPackage, PaymentOption } from '../types';
 import {
     Users,
     Search,
@@ -21,7 +21,13 @@ import {
     X,
     AlertCircle,
     Calendar,
-    Target
+    Target,
+    Shield,
+    DollarSign,
+    UserPlus,
+    Coins,
+    Lock,
+    ShieldAlert
 } from 'lucide-react';
 import { PresentationFlow } from './PresentationFlow';
 
@@ -94,7 +100,7 @@ const OBJECTIONS_MAPPING: Record<string, { acolher: string, reenquadrar: string,
     }
 };
 
-const PAYMENT_OPTIONS = [
+const STATIC_PAYMENT_OPTIONS: PaymentOption[] = [
     { label: '1', description: 'Até 12x de R$ 61,74 no Cartão de Crédito', link: 'https://hotm.io/solum-consultoria' },
     { label: '2', description: 'À vista por R$ 597', link: 'https://hotm.io/solum-consultoria' },
     { label: '3', description: 'Até 2x de R$ 314,22 no Boleto Parcelado', link: 'https://hotm.io/solum-consultoria-parcelado' },
@@ -134,6 +140,37 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
     const [confirmClear, setConfirmClear] = useState(false);
     const [clearingPresentation, setClearingPresentation] = useState(false);
 
+    // Controle de papéis de usuários (RBAC) e abas
+    const [userRole, setUserRole] = useState<'administrador' | 'vendedor' | 'secretario' | null>(null);
+    const [currentUserEmail, setCurrentUserEmail] = useState<string>('');
+    const [authLoading, setAuthLoading] = useState(true);
+    const [accessDenied, setAccessDenied] = useState(false);
+    const [activeTab, setActiveTab] = useState<'leads' | 'users' | 'pricing'>('leads');
+
+    // Usuários e Precificação
+    const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
+    const [pricingPackages, setPricingPackages] = useState<PricingPackage[]>([]);
+    const [loadingUsers, setLoadingUsers] = useState(false);
+    const [loadingPricing, setLoadingPricing] = useState(false);
+
+    // Form Novo Usuário
+    const [newEmail, setNewEmail] = useState('');
+    const [newRole, setNewRole] = useState<'administrador' | 'vendedor' | 'secretario'>('vendedor');
+    const [submittingUser, setSubmittingUser] = useState(false);
+
+    // Form Nova Precificação
+    const [newPricingName, setNewPricingName] = useState('');
+    const [newPricingValue, setNewPricingValue] = useState('');
+    const [newPricingOptions, setNewPricingOptions] = useState<PaymentOption[]>([
+        { label: '1', description: '', link: '' },
+        { label: '2', description: '', link: '' },
+        { label: '3', description: '', link: '' },
+        { label: '4', description: '', link: '' },
+        { label: '5', description: '', link: '' },
+        { label: '6', description: '', link: '' }
+    ]);
+    const [submittingPricing, setSubmittingPricing] = useState(false);
+
     const handleCopyLink = async (link: string, idx: number) => {
         try {
             await navigator.clipboard.writeText(link);
@@ -165,9 +202,257 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
         setLoading(false);
     };
 
+    const checkUserRole = async () => {
+        setAuthLoading(true);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session || !session.user) {
+                setAccessDenied(true);
+                setAuthLoading(false);
+                return;
+            }
+
+            const email = session.user.email || '';
+            setCurrentUserEmail(email);
+
+            if (email.toLowerCase() === 'diegokloppel21@gmail.com') {
+                setUserRole('administrador');
+                setAccessDenied(false);
+            } else {
+                const { data, error } = await supabase
+                    .from('admin_users')
+                    .select('role')
+                    .eq('email', email.toLowerCase())
+                    .maybeSingle();
+
+                if (data && data.role) {
+                    setUserRole(data.role as any);
+                    setAccessDenied(false);
+                } else {
+                    setUserRole(null);
+                    setAccessDenied(true);
+                }
+            }
+        } catch (e) {
+            console.error('Erro ao verificar permissões:', e);
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.user?.email?.toLowerCase() === 'diegokloppel21@gmail.com') {
+                setUserRole('administrador');
+                setAccessDenied(false);
+            } else {
+                setAccessDenied(true);
+            }
+        } finally {
+            setAuthLoading(false);
+        }
+    };
+
+    const fetchAdminUsers = async () => {
+        setLoadingUsers(true);
+        try {
+            const { data, error } = await supabase
+                .from('admin_users')
+                .select('*')
+                .order('created_at', { ascending: false });
+            if (!error && data) {
+                setAdminUsers(data);
+            }
+        } catch (e) {
+            console.error('Erro ao buscar usuários administrativos:', e);
+        } finally {
+            setLoadingUsers(false);
+        }
+    };
+
+    const fetchPricingPackages = async () => {
+        setLoadingPricing(true);
+        try {
+            const { data, error } = await supabase
+                .from('pricing_packages')
+                .select('*')
+                .order('created_at', { ascending: false });
+            if (!error && data) {
+                setPricingPackages(data);
+            }
+        } catch (e) {
+            console.error('Erro ao buscar precificações:', e);
+        } finally {
+            setLoadingPricing(false);
+        }
+    };
+
+    const handleAddUser = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newEmail) return;
+        setSubmittingUser(true);
+        try {
+            const { data, error } = await supabase
+                .from('admin_users')
+                .insert({
+                    email: newEmail.trim().toLowerCase(),
+                    role: newRole
+                })
+                .select();
+
+            if (error) {
+                if (error.code === '42P01') {
+                    alert('Erro: A tabela admin_users não existe no Supabase. Por favor, execute o script SQL de inicialização no painel do seu Supabase.');
+                } else {
+                    alert(`Erro ao adicionar usuário: ${error.message}`);
+                }
+            } else if (data && data.length > 0) {
+                setAdminUsers(prev => [data[0] as AdminUser, ...prev]);
+                setNewEmail('');
+                setNewRole('vendedor');
+            }
+        } catch (err: any) {
+            console.error(err);
+            alert('Falha ao se conectar com o servidor.');
+        } finally {
+            setSubmittingUser(false);
+        }
+    };
+
+    const handleDeleteUser = async (id: string, email: string) => {
+        if (userRole !== 'administrador') {
+            alert('Apenas administradores podem excluir usuários.');
+            return;
+        }
+        if (email.toLowerCase() === currentUserEmail.toLowerCase()) {
+            alert('Você não pode excluir seu próprio usuário administrativo.');
+            return;
+        }
+        if (!window.confirm(`Tem certeza que deseja excluir o acesso administrativo do e-mail ${email}?`)) {
+            return;
+        }
+
+        try {
+            const { error } = await supabase
+                .from('admin_users')
+                .delete()
+                .eq('id', id);
+
+            if (error) {
+                alert(`Erro ao excluir: ${error.message}`);
+            } else {
+                setAdminUsers(prev => prev.filter(u => u.id !== id));
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    const handleAddPricing = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newPricingName || !newPricingValue) {
+            alert('Por favor, informe o nome e o valor da precificação.');
+            return;
+        }
+        const filledOptions = newPricingOptions.filter(o => o.description.trim() !== '');
+        if (filledOptions.length === 0) {
+            alert('Por favor, informe pelo menos uma forma de pagamento.');
+            return;
+        }
+
+        setSubmittingPricing(true);
+        try {
+            const { data, error } = await supabase
+                .from('pricing_packages')
+                .insert({
+                    name: newPricingName.trim(),
+                    value: newPricingValue.trim(),
+                    payment_options: newPricingOptions
+                })
+                .select();
+
+            if (error) {
+                if (error.code === '42P01') {
+                    alert('Erro: A tabela pricing_packages não existe no Supabase. Por favor, execute o script SQL de inicialização no painel do seu Supabase.');
+                } else {
+                    alert(`Erro ao criar precificação: ${error.message}`);
+                }
+            } else if (data && data.length > 0) {
+                setPricingPackages(prev => [data[0] as PricingPackage, ...prev]);
+                setNewPricingName('');
+                setNewPricingValue('');
+                setNewPricingOptions([
+                    { label: '1', description: '', link: '' },
+                    { label: '2', description: '', link: '' },
+                    { label: '3', description: '', link: '' },
+                    { label: '4', description: '', link: '' },
+                    { label: '5', description: '', link: '' },
+                    { label: '6', description: '', link: '' }
+                ]);
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Falha ao se conectar com o servidor.');
+        } finally {
+            setSubmittingPricing(false);
+        }
+    };
+
+    const handleDeletePricing = async (id: string, name: string) => {
+        if (userRole !== 'administrador') {
+            alert('Apenas administradores podem gerenciar a precificação.');
+            return;
+        }
+        if (!window.confirm(`Tem certeza que deseja excluir o pacote de precificação "${name}"?`)) {
+            return;
+        }
+
+        try {
+            const { error } = await supabase
+                .from('pricing_packages')
+                .delete()
+                .eq('id', id);
+
+            if (error) {
+                alert(`Erro ao excluir: ${error.message}`);
+            } else {
+                setPricingPackages(prev => prev.filter(p => p.id !== id));
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    const handleUpdateLeadPricing = async (leadId: string, pricingId: string) => {
+        if (userRole !== 'administrador') return;
+        const updatedAnswers = {
+            ...selectedLead!.answers,
+            selectedPricingId: pricingId === 'default' ? undefined : pricingId
+        };
+
+        const { data, error } = await supabase
+            .from('leads')
+            .update({ answers: updatedAnswers })
+            .eq('id', leadId)
+            .select();
+
+        if (error) {
+            console.error('Erro ao atualizar precificação do lead:', error);
+            alert(`Erro ao salvar precificação: ${error.message}`);
+        } else if (data && data.length > 0) {
+            const updatedLead = data[0] as Lead;
+            setLeads(prev => prev.map(l => l.id === leadId ? updatedLead : l));
+            setSelectedLead(updatedLead);
+        }
+    };
+
     useEffect(() => {
+        checkUserRole();
         fetchLeads();
     }, []);
+
+    useEffect(() => {
+        if (userRole === 'administrador' || userRole === 'secretario') {
+            fetchAdminUsers();
+        }
+        if (userRole === 'administrador') {
+            fetchPricingPackages();
+        }
+    }, [userRole]);
 
     useEffect(() => {
         setSelectedObjection(null);
@@ -337,10 +622,87 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                 </div>
             </header>
 
+            {/* Abas de Navegação Administrativa */}
+            {!authLoading && !accessDenied && (
+                <div className="max-w-7xl mx-auto px-6 mt-6 shrink-0">
+                    <div className="flex border-b border-dark-800 gap-4">
+                        <button
+                            type="button"
+                            onClick={() => { setActiveTab('leads'); setSelectedLead(null); }}
+                            className={`px-5 py-3 border-b-2 text-sm font-bold transition-all flex items-center gap-2 ${
+                                activeTab === 'leads'
+                                    ? 'border-gold-500 text-gold-400'
+                                    : 'border-transparent text-gray-500 hover:text-gray-400'
+                            }`}
+                        >
+                            <Users className="w-4 h-4" />
+                            Leads
+                        </button>
+                        {(userRole === 'administrador' || userRole === 'secretario') && (
+                            <button
+                                type="button"
+                                onClick={() => { setActiveTab('users'); setSelectedLead(null); }}
+                                className={`px-5 py-3 border-b-2 text-sm font-bold transition-all flex items-center gap-2 ${
+                                    activeTab === 'users'
+                                        ? 'border-gold-500 text-gold-400'
+                                        : 'border-transparent text-gray-500 hover:text-gray-400'
+                                }`}
+                            >
+                                <Shield className="w-4 h-4" />
+                                Usuários
+                            </button>
+                        )}
+                        {userRole === 'administrador' && (
+                            <button
+                                type="button"
+                                onClick={() => { setActiveTab('pricing'); setSelectedLead(null); }}
+                                className={`px-5 py-3 border-b-2 text-sm font-bold transition-all flex items-center gap-2 ${
+                                    activeTab === 'pricing'
+                                        ? 'border-gold-500 text-gold-400'
+                                        : 'border-transparent text-gray-500 hover:text-gray-400'
+                                }`}
+                            >
+                                <DollarSign className="w-4 h-4" />
+                                Precificação
+                            </button>
+                        )}
+                    </div>
+                </div>
+            )}
+
             <main className="max-w-7xl mx-auto p-6">
-                <AnimatePresence mode="wait">
-                    {/* Se não houver lead selecionado, exibe a tabela de leads em largura total */}
-                    {!selectedLead ? (
+                {authLoading ? (
+                    <div className="flex flex-col items-center justify-center py-24">
+                        <RefreshCw className="w-10 h-10 text-gold-500 animate-spin mb-4" />
+                        <p className="text-gray-500 text-sm">Carregando permissões...</p>
+                    </div>
+                ) : accessDenied ? (
+                    <div className="max-w-md mx-auto py-16 text-center space-y-6 bg-dark-900 border border-dark-800 p-8 rounded-2xl shadow-2xl mt-12">
+                        <div className="w-16 h-16 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mx-auto border border-red-500/20">
+                            <ShieldAlert className="w-8 h-8" />
+                        </div>
+                        <div className="space-y-2">
+                            <h2 className="text-xl font-bold text-white">Acesso Restrito</h2>
+                            <p className="text-gray-400 text-sm leading-relaxed">
+                                O e-mail <strong className="text-slate-350">{currentUserEmail}</strong> não tem permissão para acessar o sistema administrativo.
+                            </p>
+                            <p className="text-xs text-gray-500 font-light">
+                                Entre em contato com o administrador para solicitar permissão.
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={onLogout}
+                            className="w-full py-3 bg-red-650 hover:bg-red-550 text-white font-bold rounded-lg transition-colors text-sm uppercase tracking-wider cursor-pointer"
+                        >
+                            Sair da Conta
+                        </button>
+                    </div>
+                ) : (
+                    <AnimatePresence mode="wait">
+                        {activeTab === 'leads' && (
+                            <div className="space-y-6">
+                                {!selectedLead ? (
                         <motion.div
                             key="list-view"
                             initial={{ opacity: 0, y: 15 }}
@@ -501,12 +863,14 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                                                         </span>
                                                     </td>
                                                     <td className="px-6 py-4 text-right">
-                                                        <button
-                                                            onClick={(e) => { e.stopPropagation(); handleDelete(lead); }}
-                                                            className="p-2 text-gray-600 hover:text-red-400 transition-colors"
-                                                        >
-                                                            <Trash2 className="w-4 h-4" />
-                                                        </button>
+                                                        {userRole === 'administrador' && (
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); handleDelete(lead); }}
+                                                                className="p-2 text-gray-655 hover:text-red-400 transition-colors cursor-pointer"
+                                                            >
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </button>
+                                                        )}
                                                     </td>
                                                 </tr>
                                             ))}
@@ -732,11 +1096,12 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                                                         <button
                                                             key={s}
                                                             onClick={() => handleStatusUpdate(selectedLead.id, s)}
-                                                            disabled={updatingStatus === selectedLead.id}
+                                                            disabled={updatingStatus === selectedLead.id || userRole === 'secretario'}
                                                             className={`px-4 py-3 rounded-lg text-xs md:text-sm font-semibold border transition-all ${selectedLead.status === s
                                                                 ? statusColors[s] + ' shadow-md'
                                                                 : 'bg-dark-900 border-dark-800 text-gray-500 hover:border-dark-700 hover:text-gray-400'
-                                                            }`}
+                                                            } ${userRole === 'secretario' ? 'opacity-65 cursor-not-allowed' : 'cursor-pointer'}`}
+                                                            title={userRole === 'secretario' ? 'Secretários não podem alterar o status' : ''}
                                                         >
                                                             {s}
                                                         </button>
@@ -812,41 +1177,67 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
 
                                             {/* Bloco de Opções de Pagamento */}
                                             <div className="bg-dark-850 p-6 rounded-xl border border-dark-800 space-y-4">
-                                                <div className="flex items-center gap-2">
-                                                    <CreditCard className="w-4 h-4 text-gold-500" />
-                                                    <h4 className="text-xs font-semibold uppercase tracking-widest text-gray-500">Opções de Pagamento</h4>
+                                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-dark-800 pb-4">
+                                                    <div className="flex items-center gap-2">
+                                                        <CreditCard className="w-4 h-4 text-gold-500" />
+                                                        <h4 className="text-xs font-semibold uppercase tracking-widest text-gray-500 font-sans">Opções de Pagamento</h4>
+                                                    </div>
+                                                    
+                                                    {/* Dropdown de Precificação */}
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-[10px] text-gray-450 uppercase font-bold tracking-wider shrink-0 font-sans">Precificação:</span>
+                                                        <select
+                                                            value={selectedLead.answers.selectedPricingId || 'default'}
+                                                            onChange={(e) => handleUpdateLeadPricing(selectedLead.id, e.target.value)}
+                                                            disabled={userRole !== 'administrador'}
+                                                            className="bg-dark-900 border border-dark-800 text-white rounded-lg px-3 py-1.5 text-xs outline-none focus:border-gold-500 transition-all cursor-pointer font-medium disabled:opacity-60 disabled:cursor-not-allowed"
+                                                        >
+                                                            <option value="default">Renda de até 10 mil reais (R$ 597) - Padrão</option>
+                                                            {pricingPackages.map(pkg => (
+                                                                <option key={pkg.id} value={pkg.id}>{pkg.name} ({pkg.value})</option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
                                                 </div>
+
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                    {PAYMENT_OPTIONS.map((option, idx) => (
-                                                        <div key={idx} className="bg-dark-900 rounded-lg border border-dark-800 hover:border-gold-500/20 transition-all overflow-hidden flex flex-col justify-between">
-                                                            <div className="p-4 flex items-start gap-3">
-                                                                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-gold-500/10 text-gold-500 font-bold text-[11px] shrink-0 border border-gold-500/20">
-                                                                    {option.label}
-                                                                </span>
-                                                                <span className="text-sm text-gray-300 font-medium leading-snug">{option.description}</span>
+                                                    {(() => {
+                                                        const currentPricingId = selectedLead.answers.selectedPricingId;
+                                                        const currentPkg = currentPricingId && pricingPackages.find(p => p.id === currentPricingId);
+                                                        const options = currentPkg ? currentPkg.payment_options : STATIC_PAYMENT_OPTIONS;
+                                                        const activeOptions = options.filter(o => o && o.description && o.description.trim() !== '');
+
+                                                        return activeOptions.map((option, idx) => (
+                                                            <div key={idx} className="bg-dark-900 rounded-lg border border-dark-800 hover:border-gold-500/20 transition-all overflow-hidden flex flex-col justify-between">
+                                                                <div className="p-4 flex items-start gap-3">
+                                                                    <span className="flex items-center justify-center w-6 h-6 rounded-full bg-gold-500/10 text-gold-500 font-bold text-[11px] shrink-0 border border-gold-500/20">
+                                                                        {option.label}
+                                                                    </span>
+                                                                    <span className="text-sm text-gray-300 font-medium leading-snug">{option.description}</span>
+                                                                </div>
+                                                                <div className="flex items-center justify-between px-4 py-2 bg-dark-950/40 border-t border-dark-800/40">
+                                                                    <span className="text-[10px] text-gray-500 truncate max-w-[150px] md:max-w-xs">{option.link}</span>
+                                                                    <button
+                                                                        onClick={() => handleCopyLink(option.link, idx)}
+                                                                        className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 bg-dark-800 hover:bg-dark-750 text-gold-500 hover:text-gold-400 rounded-md transition-colors border border-dark-700"
+                                                                        title="Copiar link"
+                                                                    >
+                                                                        {copiedIndex === idx ? (
+                                                                            <>
+                                                                                <CheckCircle2 className="w-3 h-3 text-green-500" />
+                                                                                <span className="text-green-500 text-[9px]">Copiado</span>
+                                                                            </>
+                                                                        ) : (
+                                                                            <>
+                                                                                <Copy className="w-3 h-3" />
+                                                                                <span className="text-[9px]">Copiar Link</span>
+                                                                            </>
+                                                                        )}
+                                                                    </button>
+                                                                </div>
                                                             </div>
-                                                            <div className="flex items-center justify-between px-4 py-2 bg-dark-950/40 border-t border-dark-800/40">
-                                                                <span className="text-[10px] text-gray-500 truncate max-w-[150px] md:max-w-xs">{option.link}</span>
-                                                                <button
-                                                                    onClick={() => handleCopyLink(option.link, idx)}
-                                                                    className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 bg-dark-800 hover:bg-dark-750 text-gold-500 hover:text-gold-400 rounded-md transition-colors border border-dark-700"
-                                                                    title="Copiar link"
-                                                                >
-                                                                    {copiedIndex === idx ? (
-                                                                        <>
-                                                                            <CheckCircle2 className="w-3 h-3 text-green-500" />
-                                                                            <span className="text-green-500 text-[9px]">Copiado</span>
-                                                                        </>
-                                                                    ) : (
-                                                                        <>
-                                                                            <Copy className="w-3 h-3" />
-                                                                            <span className="text-[9px]">Copiar Link</span>
-                                                                        </>
-                                                                    )}
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    ))}
+                                                        ));
+                                                    })()}
                                                 </div>
                                             </div>
                                         </motion.div>
@@ -856,8 +1247,266 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                             </div>
                         </motion.div>
                     )}
-                </AnimatePresence>
-            </main>
+                </div>
+            )}
+
+            {activeTab === 'users' && (
+                <motion.div
+                    key="users-tab"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="space-y-6"
+                >
+                    <div className="bg-dark-900 border border-dark-800 rounded-xl p-6 shadow-2xl font-sans">
+                        <h3 className="text-lg font-serif text-white font-bold mb-4">Adicionar Novo Usuário Administrativo</h3>
+                        
+                        <form onSubmit={handleAddUser} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                            <div className="space-y-2">
+                                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider">E-mail do Usuário</label>
+                                <input
+                                    type="email"
+                                    required
+                                    placeholder="email@dominio.com"
+                                    value={newEmail}
+                                    onChange={(e) => setNewEmail(e.target.value)}
+                                    className="w-full bg-dark-950 border border-dark-800 rounded-lg p-3 text-white focus:border-gold-500 outline-none transition-all text-sm font-medium"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider">Papel / Acesso</label>
+                                <select
+                                    value={newRole}
+                                    onChange={(e: any) => setNewRole(e.target.value)}
+                                    className="w-full bg-dark-950 border border-dark-800 text-white rounded-lg p-3 text-sm outline-none focus:border-gold-500 transition-all cursor-pointer font-medium"
+                                >
+                                    <option value="vendedor">Vendedor</option>
+                                    <option value="secretario">Secretário</option>
+                                    <option value="administrador">Administrador</option>
+                                </select>
+                            </div>
+                            <button
+                                type="submit"
+                                disabled={submittingUser || !newEmail}
+                                className="py-3 px-6 bg-gold-500 hover:bg-gold-400 text-black font-bold rounded-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50 text-sm cursor-pointer"
+                            >
+                                <UserPlus className="w-4 h-4 text-black" />
+                                {submittingUser ? 'Adicionando...' : 'Adicionar Usuário'}
+                            </button>
+                        </form>
+                    </div>
+
+                    <div className="bg-dark-900 border border-dark-800 rounded-xl overflow-hidden shadow-2xl font-sans">
+                        <div className="p-4 bg-dark-850 border-b border-dark-800 flex justify-between items-center">
+                            <h3 className="text-sm font-bold uppercase tracking-wider text-gray-400">Usuários Cadastrados</h3>
+                            <span className="text-xs text-gray-500 font-mono">{adminUsers.length + 1} usuários</span>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left">
+                                <thead className="bg-dark-800/50 text-xs uppercase tracking-widest text-gray-500">
+                                    <tr>
+                                        <th className="px-6 py-4 font-semibold">E-mail</th>
+                                        <th className="px-6 py-4 font-semibold">Papel</th>
+                                        <th className="px-6 py-4 font-semibold text-right">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-dark-800">
+                                    {/* Super Admin fixo no topo */}
+                                    <tr className="bg-gold-500/5 border-l-2 border-gold-500">
+                                        <td className="px-6 py-4 font-medium text-white flex items-center gap-2">
+                                            diegokloppel21@gmail.com
+                                            <span className="text-[9px] px-2 py-0.5 bg-gold-500/20 text-gold-400 rounded border border-gold-500/20 font-bold uppercase">Criador</span>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className="text-[10px] px-2.5 py-1 rounded-full bg-red-500/10 text-red-400 border border-red-500/20 font-semibold uppercase tracking-wider">
+                                                Administrador
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 text-right text-xs text-gray-500 italic font-mono">
+                                            Acesso Mestre
+                                        </td>
+                                    </tr>
+
+                                    {adminUsers.map(user => (
+                                        <tr key={user.id} className="hover:bg-dark-800/40 transition-colors">
+                                            <td className="px-6 py-4 text-gray-300 font-medium">{user.email}</td>
+                                            <td className="px-6 py-4">
+                                                <span className={`text-[10px] px-2.5 py-1 rounded-full border font-semibold uppercase tracking-wider ${
+                                                    user.role === 'administrador'
+                                                        ? 'bg-red-500/10 text-red-400 border-red-500/20'
+                                                        : user.role === 'secretario'
+                                                        ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                                                        : 'bg-green-500/10 text-green-400 border-green-500/20'
+                                                }`}>
+                                                    {user.role}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 text-right">
+                                                <button
+                                                    onClick={() => handleDeleteUser(user.id, user.email)}
+                                                    disabled={userRole !== 'administrador'}
+                                                    className="p-2 text-gray-600 hover:text-red-400 transition-colors disabled:opacity-30 disabled:hover:text-gray-600 cursor-pointer"
+                                                    title={userRole === 'administrador' ? "Remover acesso" : "Apenas administradores podem excluir"}
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </motion.div>
+            )}
+
+            {activeTab === 'pricing' && (
+                <motion.div
+                    key="pricing-tab"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="space-y-6"
+                >
+                    <div className="bg-dark-900 border border-dark-800 rounded-xl p-6 shadow-2xl font-sans">
+                        <h3 className="text-lg font-serif text-white font-bold mb-4">Criar Novo Pacote de Precificação</h3>
+                        
+                        <form onSubmit={handleAddPricing} className="space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider">Nome da Precificação</label>
+                                    <input
+                                        type="text"
+                                        required
+                                        placeholder="Ex: Renda acima de 15 mil reais"
+                                        value={newPricingName}
+                                        onChange={(e) => setNewPricingName(e.target.value)}
+                                        className="w-full bg-dark-950 border border-dark-800 rounded-lg p-3 text-white focus:border-gold-500 outline-none transition-all text-sm font-medium"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider">Valor do Pacote</label>
+                                    <input
+                                        type="text"
+                                        required
+                                        placeholder="Ex: R$ 997"
+                                        value={newPricingValue}
+                                        onChange={(e) => setNewPricingValue(e.target.value)}
+                                        className="w-full bg-dark-950 border border-dark-800 rounded-lg p-3 text-white focus:border-gold-500 outline-none transition-all text-sm font-medium"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <h4 className="text-xs font-bold uppercase tracking-wider text-gray-500 border-b border-dark-800 pb-2 font-sans">Opções de Pagamento (Até 6 Formas)</h4>
+                                
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {newPricingOptions.map((opt, idx) => (
+                                        <div key={idx} className="p-4 bg-dark-950 rounded-xl border border-dark-850 space-y-3 relative">
+                                            <span className="absolute top-2 right-3 text-[10px] font-bold text-gold-500 bg-gold-500/10 px-2 py-0.5 rounded border border-gold-500/20">
+                                                Forma {opt.label}
+                                            </span>
+                                            <div className="space-y-1">
+                                                <label className="block text-[9px] font-semibold text-gray-450 uppercase tracking-widest font-sans">Descrição da Opção</label>
+                                                <input
+                                                    type="text"
+                                                    placeholder={idx === 0 ? "Até 12x de R$ 99 no Cartão" : idx === 1 ? "À vista por R$ 997" : "Ex: Boleto parcelado..."}
+                                                    value={opt.description}
+                                                    onChange={(e) => {
+                                                        const updated = [...newPricingOptions];
+                                                        updated[idx].description = e.target.value;
+                                                        setNewPricingOptions(updated);
+                                                    }}
+                                                    className="w-full bg-dark-900 border border-dark-800 rounded px-2.5 py-1.5 text-white text-xs outline-none focus:border-gold-500 transition-all font-medium"
+                                                />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label className="block text-[9px] font-semibold text-gray-450 uppercase tracking-widest font-sans">Link do Checkout</label>
+                                                <input
+                                                    type="url"
+                                                    placeholder="https://..."
+                                                    value={opt.link}
+                                                    onChange={(e) => {
+                                                        const updated = [...newPricingOptions];
+                                                        updated[idx].link = e.target.value;
+                                                        setNewPricingOptions(updated);
+                                                    }}
+                                                    className="w-full bg-dark-900 border border-dark-800 rounded px-2.5 py-1.5 text-white text-xs outline-none focus:border-gold-500 transition-all font-medium"
+                                                />
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="flex justify-end pt-2">
+                                <button
+                                    type="submit"
+                                    disabled={submittingPricing || !newPricingName || !newPricingValue}
+                                    className="py-3.5 px-8 bg-gradient-to-r from-gold-600 via-amber-500 to-gold-500 text-dark-950 hover:scale-[1.02] active:scale-[0.98] font-black rounded-lg shadow-lg shadow-gold-500/25 transition-all text-xs uppercase tracking-widest cursor-pointer disabled:opacity-50 font-sans"
+                                >
+                                    {submittingPricing ? 'Criando...' : 'Cadastrar Precificação'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div className="bg-dark-900 border border-dark-800 rounded-xl overflow-hidden shadow-2xl font-sans">
+                        <div className="p-4 bg-dark-850 border-b border-dark-800 flex justify-between items-center">
+                            <h3 className="text-sm font-bold uppercase tracking-wider text-gray-405">Pacotes Cadastrados</h3>
+                            <span className="text-xs text-gray-500 font-mono">{pricingPackages.length + 1} pacotes</span>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left">
+                                <thead className="bg-dark-800/50 text-xs uppercase tracking-widest text-gray-500">
+                                    <tr>
+                                        <th className="px-6 py-4 font-semibold font-sans">Nome</th>
+                                        <th className="px-6 py-4 font-semibold font-sans">Valor Total</th>
+                                        <th className="px-6 py-4 font-semibold font-sans">Formas Cadastradas</th>
+                                        <th className="px-6 py-4 font-semibold text-right font-sans">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-dark-800">
+                                    {/* Padrão do sistema */}
+                                    <tr className="bg-gold-500/5 border-l-2 border-gold-500">
+                                        <td className="px-6 py-4 font-medium text-white flex items-center gap-2">
+                                            Renda de até 10 mil reais
+                                            <span className="text-[9px] px-2 py-0.5 bg-gold-500/20 text-gold-400 rounded border border-gold-500/20 font-bold uppercase">Padrão</span>
+                                        </td>
+                                        <td className="px-6 py-4 font-bold text-gold-500">R$ 597</td>
+                                        <td className="px-6 py-4 text-xs text-gray-400">6 formas de pagamento cadastradas</td>
+                                        <td className="px-6 py-4 text-right text-xs text-gray-500 italic font-mono">
+                                            Original do Sistema
+                                        </td>
+                                    </tr>
+
+                                    {pricingPackages.map(pkg => (
+                                        <tr key={pkg.id} className="hover:bg-dark-800/40 transition-colors">
+                                            <td className="px-6 py-4 text-gray-300 font-medium">{pkg.name}</td>
+                                            <td className="px-6 py-4 font-bold text-gold-500">{pkg.value}</td>
+                                            <td className="px-6 py-4 text-xs text-gray-400">
+                                                {pkg.payment_options.filter(o => o.description && o.description.trim() !== '').length} formas ativas
+                                            </td>
+                                            <td className="px-6 py-4 text-right">
+                                                <button
+                                                    onClick={() => handleDeletePricing(pkg.id, pkg.name)}
+                                                    className="p-2 text-gray-600 hover:text-red-400 transition-colors cursor-pointer"
+                                                    title="Excluir precificação"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </motion.div>
+            )}
+        </AnimatePresence>
+    )}
+</main>
 
             {/* Modal de Confirmação de Exclusão */}
             <AnimatePresence>
@@ -1237,6 +1886,7 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
             {activePresentationLead && (
                 <PresentationFlow
                     lead={activePresentationLead}
+                    pricingPackages={pricingPackages}
                     onClose={() => {
                         setActivePresentationLead(null);
                         fetchLeads();

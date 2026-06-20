@@ -43,6 +43,7 @@ export interface UserAnswers {
   whatsapp?: string; // For the fallback
   meeting?: MeetingAnswers;
   formType?: 'personal' | 'business' | 'complete';
+  selectedPricingId?: string;
 }
 
 export interface MeetingAnswers {
@@ -123,4 +124,25 @@ export interface QuestionStep {
     note?: string;
     inputType?: 'text' | 'textarea' | 'number' | 'radio';
   };
+}
+
+export interface AdminUser {
+  id: string;
+  email: string;
+  role: 'administrador' | 'vendedor' | 'secretario';
+  created_at?: string;
+}
+
+export interface PaymentOption {
+  label: string;
+  description: string;
+  link: string;
+}
+
+export interface PricingPackage {
+  id: string;
+  name: string;
+  value: string;
+  payment_options: PaymentOption[];
+  created_at?: string;
 }

@@ -5,13 +5,14 @@ import {
   HelpCircle, AlertCircle, Image as ImageIcon, Save,
   Users, Award, TrendingUp, ShieldCheck, Play, ArrowRight,
   TrendingDown, CheckCircle2, RefreshCw, HeartHandshake, Brain,
-  Compass, Eye, Target, Sparkle, Coins, CreditCard, Info
+  Compass, Eye, Target, Sparkle, Coins, CreditCard, Info, ExternalLink
 } from 'lucide-react';
-import { Lead, MeetingAnswers } from '../types';
+import { Lead, MeetingAnswers, PricingPackage } from '../types';
 import { supabase } from '../lib/supabase';
 
 interface PresentationProps {
   lead: Lead;
+  pricingPackages?: PricingPackage[];
   onClose: () => void;
   onUpdateLead: (updatedLead: Lead) => void;
 }
@@ -19,7 +20,7 @@ interface PresentationProps {
 // Imagem padrão de fundo fixa para a capa fornecida pelo usuário
 const DIAGNOSTICO_BG = '/images/diagnostico.webp';
 
-export const PresentationFlow: React.FC<PresentationProps> = ({ lead, onClose, onUpdateLead }) => {
+export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPackages = [], onClose, onUpdateLead }) => {
   // Estado para controlar o slide atual
   type SlideId =
     | 'intro'
@@ -57,6 +58,35 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, onClose, o
   const [showExitModal, setShowExitModal] = useState<boolean>(false);
   // Controle de exibição de detalhes de formas de pagamento (negociação)
   const [paymentDetailsModal, setPaymentDetailsModal] = useState<'padrao' | 'especial' | 'downsell' | null>(null);
+
+  // Lógica de precificação ativa dinamicamente
+  const currentPricingId = lead.answers?.selectedPricingId;
+  const activePricing = (pricingPackages && currentPricingId)
+    ? pricingPackages.find(p => p.id === currentPricingId)
+    : null;
+
+  // Fallback padrão se não houver pacote selecionado ou se a tabela estiver vazia
+  const DEFAULT_PAYMENT_OPTIONS = [
+    { label: '1', description: 'Até 12x de R$ 61,74 no Cartão de Crédito', link: 'https://hotm.io/solum-consultoria' },
+    { label: '2', description: 'À vista por R$ 597', link: 'https://hotm.io/solum-consultoria' },
+    { label: '3', description: 'Até 2x de R$ 314,22 no Boleto Parcelado', link: 'https://hotm.io/solum-consultoria-parcelado' },
+    { label: '4', description: 'Entrada de R$ 147 + 1x de R$ 450', link: 'https://mpago.li/2PY7vuj' },
+    { label: '5', description: 'Boleto Parcelado (PARCELEX) - Última tentativa', link: 'https://hotm.io/solum-consultoria-parcelex' },
+    { label: '6', description: 'R$ 47 (GARANTIR A VAGA) + 1x de R$ 550 (NO DIA DO FECHAMENTO)', link: 'https://mpago.li/2gVs1Rb' },
+  ];
+
+  const currentOptions = activePricing ? activePricing.payment_options : DEFAULT_PAYMENT_OPTIONS;
+
+  // Formatar valores para exibição nos cards
+  const opt1 = currentOptions.find(o => o.label === '1');
+  const opt2 = currentOptions.find(o => o.label === '2');
+  const opt4 = currentOptions.find(o => o.label === '4');
+  const opt5 = currentOptions.find(o => o.label === '5');
+
+  const displayParcelado = opt1 ? opt1.description : '12x de R$ 61,74';
+  const displayAVista = opt2 ? opt2.description : 'R$ 597 à vista com desconto especial';
+  const displayEspecial1 = opt4 ? opt4.description : 'Entrada de R$ 147 + 1x de R$ 450';
+  const displayEspecial2 = opt5 ? opt5.description : 'ou parcelado em Boleto em até 3x de R$ 210';
 
   // Controle de sub-passos na coleta de dados parte 1
   const [coletaStep, setColetaStep] = useState<number>(1);
@@ -334,7 +364,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, onClose, o
                 <div className="space-y-5 max-w-3xl mt-12 md:mt-20">
                   <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-gold-500/10 text-gold-400 border border-gold-500/20 rounded-full text-xs font-bold uppercase tracking-wider">
                     <Sparkles className="w-3.5 h-3.5 animate-pulse text-gold-500" />
-                    Apresentação Personalizada
+                    Atendimento Personalizado
                   </div>
                   <h1 className="font-serif font-extrabold text-5xl md:text-7xl lg:text-8xl text-white tracking-tight drop-shadow-lg leading-none">
                     Consultoria <br />
@@ -2130,10 +2160,10 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, onClose, o
 
                   <div className="space-y-2">
                     <h4 className="text-sm text-gray-500 uppercase tracking-widest font-bold">Programa Completo</h4>
-                    <div className="text-3xl md:text-4xl font-serif font-extrabold text-white">
-                      12x de <span className="text-gold-500">R$ 61,74</span>
+                    <div className="text-2xl md:text-3xl font-serif font-extrabold text-white">
+                      {displayParcelado}
                     </div>
-                    <p className="text-xs text-gray-400 font-light">ou R$ 597 à vista com desconto especial</p>
+                    <p className="text-xs text-gray-400 font-light">ou {displayAVista}</p>
                   </div>
 
                   <ul className="text-xs text-gray-400 space-y-2 py-4 border-t border-b border-dark-800 text-left max-w-xs mx-auto">
@@ -2215,7 +2245,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, onClose, o
                 </div>
 
                 <div className="bg-dark-900 border border-dark-800 max-w-lg mx-auto rounded-3xl p-6 md:p-8 space-y-6 text-center shadow-2xl relative overflow-hidden">
-                  
+
                   {/* Botão de Negociação (Formas de Pagamento) */}
                   <button
                     type="button"
@@ -2229,16 +2259,16 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, onClose, o
                   <div className="mt-8 p-4 bg-dark-950 rounded-xl border border-dark-850 text-left space-y-2 text-xs text-gray-300 font-light">
                     <p className="font-bold text-white text-sm">Condição Especial: Vaga Estrutural</p>
                     <p>
-                      Para viabilizar a sua entrada agora, podemos flexibilizar a mentoria. A entrega será feita com encontros in grupo ou reduziremos para 2 encontros de onboarding individual mais acompanhamento simplificado.
+                      Para viabilizar a sua entrada agora, podemos flexibilizar a mentoria. A entrega será feita com encontros em grupo ou reduziremos para 2 encontros de onboarding individual mais acompanhamento simplificado.
                     </p>
                   </div>
 
                   <div className="space-y-2">
                     <h4 className="text-sm text-gray-500 uppercase tracking-widest font-bold">Investimento Promocional</h4>
                     <div className="text-3xl md:text-4xl font-serif font-extrabold text-gold-400">
-                      Entrada de R$ 147 + 1x de R$ 450
+                      {displayEspecial1}
                     </div>
-                    <p className="text-xs text-gray-400 font-light">ou parcelado em Boleto em até 3x de R$ 210</p>
+                    <p className="text-xs text-gray-400 font-light">{displayEspecial2}</p>
                   </div>
 
                   <div className="grid grid-cols-1 gap-3 pt-2">
@@ -2305,7 +2335,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, onClose, o
                 </div>
 
                 <div className="bg-dark-900 border border-dark-800 max-w-lg mx-auto rounded-3xl p-6 md:p-8 space-y-6 text-center shadow-2xl relative overflow-hidden">
-                  
+
                   {/* Botão de Negociação (Formas de Pagamento) */}
                   <button
                     type="button"
@@ -2706,36 +2736,50 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, onClose, o
                 {paymentDetailsModal === 'padrao' && (
                   <div className="space-y-3">
                     <p className="text-xs text-gray-450 font-light leading-relaxed">Opções de parcelamento e à vista para a Consultoria Estruturada:</p>
-                    <div className="p-3 bg-dark-950 rounded-xl border border-dark-850">
-                      <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Cartão de Crédito</p>
-                      <p className="text-sm text-white font-medium mt-0.5">Em até 12x de R$ 61,74 (com juros da plataforma)</p>
-                    </div>
-                    <div className="p-3 bg-dark-950 rounded-xl border border-dark-850">
-                      <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">À Vista (PIX)</p>
-                      <p className="text-sm text-white font-medium mt-0.5">R$ 597 à vista com desconto especial</p>
-                    </div>
-                    <div className="p-3 bg-dark-950 rounded-xl border border-dark-850">
-                      <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Boleto Parcelado</p>
-                      <p className="text-sm text-white font-medium mt-0.5">Até 2x de R$ 314,22 sem consulta (Entrada + 30 dias)</p>
-                    </div>
+                    {currentOptions.filter(o => ['1', '2', '3'].includes(o.label)).map((opt) => (
+                      <a
+                        key={opt.label}
+                        href={opt.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block p-3.5 bg-dark-950 hover:bg-dark-850 border border-dark-800 hover:border-gold-500/30 rounded-xl transition-all group cursor-pointer"
+                      >
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <p className="text-[10px] text-gray-500 group-hover:text-gold-500 uppercase font-bold tracking-wider transition-colors">
+                              Opção {opt.label}
+                            </p>
+                            <p className="text-xs md:text-sm text-white font-medium mt-0.5 leading-relaxed">{opt.description}</p>
+                          </div>
+                          <ExternalLink className="w-4 h-4 text-gray-550 group-hover:text-gold-500 transition-colors shrink-0 ml-2" />
+                        </div>
+                      </a>
+                    ))}
                   </div>
                 )}
 
                 {paymentDetailsModal === 'especial' && (
                   <div className="space-y-3">
                     <p className="text-xs text-gray-450 font-light leading-relaxed">Opções de parcelamento para a Condição Especial:</p>
-                    <div className="p-3 bg-dark-950 rounded-xl border border-dark-850">
-                      <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Entrada + Saldo</p>
-                      <p className="text-sm text-white font-medium mt-0.5">Entrada de R$ 147 + 1x de R$ 450 (Cartão/Pix)</p>
-                    </div>
-                    <div className="p-3 bg-dark-950 rounded-xl border border-dark-850">
-                      <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Boleto Parcelado</p>
-                      <p className="text-sm text-white font-medium mt-0.5">Até 3x de R$ 210 no Boleto (Sem consulta)</p>
-                    </div>
-                    <div className="p-3 bg-dark-950 rounded-xl border border-dark-850">
-                      <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Boleto PARCELEX</p>
-                      <p className="text-sm text-white font-medium mt-0.5">Opção de parcelamento estendido (Sujeito à aprovação)</p>
-                    </div>
+                    {currentOptions.filter(o => ['4', '5', '6'].includes(o.label)).map((opt) => (
+                      <a
+                        key={opt.label}
+                        href={opt.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block p-3.5 bg-dark-950 hover:bg-dark-850 border border-dark-800 hover:border-gold-500/30 rounded-xl transition-all group cursor-pointer"
+                      >
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <p className="text-[10px] text-gray-500 group-hover:text-gold-500 uppercase font-bold tracking-wider transition-colors">
+                              Opção {opt.label}
+                            </p>
+                            <p className="text-xs md:text-sm text-gold-400 font-medium mt-0.5 leading-relaxed">{opt.description}</p>
+                          </div>
+                          <ExternalLink className="w-4 h-4 text-gray-550 group-hover:text-gold-500 transition-colors shrink-0 ml-2" />
+                        </div>
+                      </a>
+                    ))}
                   </div>
                 )}
 
