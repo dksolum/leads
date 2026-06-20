@@ -361,7 +361,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                 className="relative w-full min-h-[calc(100vh-145px)] flex flex-col justify-between p-8 md:p-20 bg-cover bg-center transition-all duration-700"
                 style={{ backgroundImage: `linear-gradient(rgba(9, 9, 11, 0.45), rgba(9, 9, 11, 0.95)), url(${DIAGNOSTICO_BG})` }}
               >
-                <div className="space-y-5 max-w-3xl mt-12 md:mt-20">
+                <div className="space-y-5 max-w-2xl mt-12 md:mt-20 md:ml-auto text-left flex flex-col items-start">
                   <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-gold-500/10 text-gold-400 border border-gold-500/20 rounded-full text-xs font-bold uppercase tracking-wider">
                     <Sparkles className="w-3.5 h-3.5 animate-pulse text-gold-500" />
                     Atendimento Personalizado
@@ -377,7 +377,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                   </p>
                 </div>
 
-                <div className="flex flex-col sm:flex-row items-center gap-4 mt-12 md:mt-16 border-t border-dark-800/40 pt-6">
+                <div className="flex flex-col sm:flex-row items-center gap-4 mt-12 md:mt-16 border-t border-dark-800/40 pt-6 w-full md:justify-end">
                   <button
                     onClick={() => navigateTo('do_que_se_trata')}
                     className="w-full sm:w-auto px-10 py-4.5 bg-gradient-to-r from-gold-600 to-amber-500 hover:from-gold-500 hover:to-amber-400 text-dark-950 font-black rounded-xl shadow-xl shadow-gold-500/10 hover:shadow-gold-500/30 transition-all duration-300 hover:scale-105 active:scale-95 flex items-center justify-center gap-2.5 uppercase tracking-widest text-xs"
@@ -399,7 +399,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                   <h3 className="text-xs font-bold uppercase tracking-widest text-gold-500 font-mono">Conceito</h3>
                   <h1 className="font-serif font-bold text-3xl md:text-5xl lg:text-6xl text-white">Do que se trata a Consultoria?</h1>
                   <p className="text-gray-400 text-sm md:text-base max-w-2xl mx-auto font-light leading-relaxed">
-                    Mais do que relatórios ou planilhas, a consultoria é focada em construir uma nova visão de prosperidade.
+                    Mais do que números, é mais controle sobre sua vida. Clareza para tomar melhores decisões e construir patrimônio com segurança.
                   </p>
                 </div>
 
@@ -412,7 +412,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                     <div className="space-y-2">
                       <h3 className="text-lg md:text-xl font-bold text-white">Relação com o Dinheiro</h3>
                       <p className="text-gray-450 text-sm font-light leading-relaxed">
-                        Ir na raiz do comportamento de consumo. Aprender a planejar os gastos de forma que o dinheiro sirva aos seus valores e objetivos, sem culpa ou restrições extremas.
+                        Entenda para onde seu dinheiro vai e faça escolhas alinhadas aos seus objetivos.
                       </p>
                     </div>
                   </div>
@@ -425,7 +425,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                     <div className="space-y-2">
                       <h3 className="text-lg md:text-xl font-bold text-white">Melhores Decisões</h3>
                       <p className="text-gray-450 text-sm font-light leading-relaxed">
-                        Ter clareza analítica em cada escolha patrimonial. Saber avaliar juros, oportunidades de crédito, financiamentos, seguros e investimentos ideais de maneira autônoma.
+                        Tenha clareza para decidir o melhor caminho que impacta no seu bolso e no seu patrimônio.
                       </p>
                     </div>
                   </div>
@@ -438,7 +438,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                     <div className="space-y-2">
                       <h3 className="text-lg md:text-xl font-bold text-white">Qualidade de Vida</h3>
                       <p className="text-gray-450 text-sm font-light leading-relaxed">
-                        Garantir paz mental e segurança familiar. Ter um fluxo financeiro estruturado que permita deitar a cabeça no travesseiro sabendo que o futuro está sob controle.
+                        Mais tranquilidade no presente e mais segurança para o seu futuro e o da sua família.
                       </p>
                     </div>
                   </div>
@@ -447,7 +447,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                 {/* Seção: O que a Consultoria NÃO é apenas */}
                 <div className="border-t border-dark-800/60 pt-8 mt-8 space-y-6">
                   <h3 className="text-xs font-bold uppercase tracking-widest text-red-500 font-mono text-center">
-                    E o que a Consultoria NÃO é apenas:
+                    Ou seja, a Consultoria NÃO é apenas sobre:
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
                     {/* Card Não 1 */}
@@ -456,9 +456,9 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                         <X className="w-5 h-5" />
                       </div>
                       <div className="space-y-2">
-                        <h3 className="text-lg font-bold text-white">Apenas Investimentos</h3>
+                        <h3 className="text-lg font-bold text-white">Investimentos</h3>
                         <p className="text-gray-450 text-sm font-light leading-relaxed">
-                          Não é um serviço de recomendação cega de ações ou fundos. Focamos primeiro em estruturar sua base financeira e sua real capacidade de poupar.
+                          Antes de investir, é preciso organizar, planejar e construir uma base sólida
                         </p>
                       </div>
                     </div>
@@ -468,9 +468,9 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                         <X className="w-5 h-5" />
                       </div>
                       <div className="space-y-2">
-                        <h3 className="text-lg font-bold text-white">Pagar Dívidas sem Método</h3>
+                        <h3 className="text-lg font-bold text-white">Pagar Dívidas</h3>
                         <p className="text-gray-450 text-sm font-light leading-relaxed">
-                          Não é só renegociar parcelas. É um plano estratégico para mudar sua relação com o consumo e cartões, blindando seu patrimônio para nunca mais voltar a dever.
+                          Criamos estratégias para evitar que os mesmos problemas voltem a acontecer.
                         </p>
                       </div>
                     </div>
@@ -480,9 +480,9 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                         <X className="w-5 h-5" />
                       </div>
                       <div className="space-y-2">
-                        <h3 className="text-lg font-bold text-white">Organização Sem Propósito</h3>
+                        <h3 className="text-lg font-bold text-white">Organização de Números</h3>
                         <p className="text-gray-450 text-sm font-light leading-relaxed">
-                          Não é preencher planilhas complexas que você abandona na primeira semana. Construímos um sistema prático e diário voltado às suas metas e sonhos.
+                          Toda organização financeira precisa estar conectada aos seus objetivos de vida.
                         </p>
                       </div>
                     </div>
@@ -506,9 +506,9 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
               <div className="space-y-8 md:space-y-12 max-w-5xl mx-auto">
                 <div className="text-center space-y-3">
                   <h3 className="text-xs font-bold uppercase tracking-widest text-gold-500 font-mono">Direcionamento</h3>
-                  <h1 className="font-serif font-bold text-3xl md:text-5xl lg:text-6xl text-white">Nosso Objetivo de Hoje</h1>
+                  <h1 className="font-serif font-bold text-3xl md:text-5xl lg:text-6xl text-white">Nosso objetivo de hoje</h1>
                   <p className="text-gray-400 text-sm md:text-base max-w-2xl mx-auto font-light leading-relaxed">
-                    Antes de apresentar qualquer solução prática, precisamos entender o cenário completo.
+                    Primeiro entendemos sua realidade. Depois construímos a solução.
                   </p>
                 </div>
 
@@ -518,16 +518,13 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                   <div className="lg:col-span-7 space-y-6">
                     <div className="space-y-4 text-gray-300 font-light text-sm md:text-base leading-relaxed">
                       <h3 className="text-xl md:text-2xl font-serif text-white font-bold">
-                        Como vamos construir a sua solução?
+                        O que acontece nesta reunião?
                       </h3>
                       <p>
-                        Para entregar um plano de ação que funcione na prática, eu vou precisar entender a fundo como está estruturada a sua vida financeira hoje.
-                      </p>
-                      <p>
-                        Juntos, vamos analisar se existem problemas crônicos envolvendo dinheiro, compreender quais desafios você enfrenta no cotidiano, as áreas específicas que deseja melhorar e o tamanho das suas metas patrimoniais.
+                        O objetivo desta conversa é entender onde você está hoje e para onde deseja ir.
                       </p>
                       <p className="text-gold-400 font-semibold">
-                        Com este diagnóstico preciso, conseguiremos direcionar o método exatamente para o que se encaixa na sua realidade.
+                        Com esse diagnóstico, conseguimos construir um direcionamento personalizado para sua realidade.
                       </p>
                     </div>
                   </div>
@@ -540,7 +537,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                       </div>
                       <div>
                         <h4 className="text-xs text-gray-500 uppercase tracking-widest font-bold">Diagnóstico</h4>
-                        <p className="text-xs text-white font-medium">Mapear a Vida Financeira Atual</p>
+                        <p className="text-xs text-white font-medium">Mapear a sua situação atual</p>
                       </div>
                     </div>
 
@@ -550,7 +547,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                       </div>
                       <div>
                         <h4 className="text-xs text-gray-500 uppercase tracking-widest font-bold">Identificação</h4>
-                        <p className="text-xs text-white font-medium">Pontuar Problemas e Gargalos</p>
+                        <p className="text-xs text-white font-medium">Pontuar problemas que envolvem dinheiro</p>
                       </div>
                     </div>
 
@@ -560,7 +557,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                       </div>
                       <div>
                         <h4 className="text-xs text-gray-500 uppercase tracking-widest font-bold">Planejamento</h4>
-                        <p className="text-xs text-white font-medium">Entender Desafios e Metas Ativas</p>
+                        <p className="text-xs text-white font-medium">Identificar quais são os desafios e as metas</p>
                       </div>
                     </div>
 
@@ -570,7 +567,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                       </div>
                       <div>
                         <h4 className="text-xs text-gold-500 uppercase tracking-widest font-black">Entrega</h4>
-                        <p className="text-xs text-white font-black">Direcionamento sob Medida</p>
+                        <p className="text-xs text-white font-black">Direcionamento personalizado</p>
                       </div>
                     </div>
                   </div>
@@ -594,9 +591,9 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
               <div className="space-y-8 md:space-y-12">
                 <div className="text-center space-y-3">
                   <h3 className="text-xs font-bold uppercase tracking-widest text-gold-500 font-mono">Roteiro</h3>
-                  <h1 className="font-serif font-bold text-3xl md:text-5xl lg:text-6xl text-white">Como será a nossa jornada hoje?</h1>
+                  <h1 className="font-serif font-bold text-3xl md:text-5xl lg:text-6xl text-white">Seguiremos 03 pontos importantes</h1>
                   <p className="text-gray-400 text-sm md:text-base max-w-2xl mx-auto font-light leading-relaxed">
-                    O alinhamento é a chave para o sucesso. Nosso encontro tem uma agenda clara para construirmos a sua clareza financeira.
+                    Em poucos passos, vamos entender sua situação e definir os próximos caminhos possíveis.
                   </p>
                 </div>
 
@@ -605,9 +602,9 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                     <div className="w-12 h-12 bg-gold-500/10 rounded-xl flex items-center justify-center border border-gold-500/20 text-gold-500 group-hover:scale-110 transition-transform">
                       <Users className="w-5 h-5" />
                     </div>
-                    <h3 className="text-lg font-bold text-white">1. Confirmação e Aprofundamento</h3>
+                    <h3 className="text-lg font-bold text-white">1. Coleta de dados</h3>
                     <p className="text-gray-400 text-sm font-light leading-relaxed">
-                      Confirmar as informações que você já nos passou e detalhar os pontos cruciais do seu momento financeiro para uma análise sem lacunas.
+                      Confirmar informações e aprofundar os pontos mais importantes da sua situação.
                     </p>
                   </div>
 
@@ -615,9 +612,9 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                     <div className="w-12 h-12 bg-gold-500/10 rounded-xl flex items-center justify-center border border-gold-500/20 text-gold-500 group-hover:scale-110 transition-transform">
                       <Award className="w-5 h-5" />
                     </div>
-                    <h3 className="text-lg font-bold text-white">2. Como Posso Ajudar</h3>
+                    <h3 className="text-lg font-bold text-white">2. Mostrar o melhor caminho</h3>
                     <p className="text-gray-400 text-sm font-light leading-relaxed">
-                      Apresentar as soluções estruturadas para o seu perfil e demonstrar como o método de consultoria elimina seus gargalos de forma prática.
+                      Apresentar como a consultoria ajuda a resolver os desafios identificados.
                     </p>
                   </div>
 
@@ -625,23 +622,23 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                     <div className="w-12 h-12 bg-gold-500/10 rounded-xl flex items-center justify-center border border-gold-500/20 text-gold-500 group-hover:scale-110 transition-transform">
                       <TrendingUp className="w-5 h-5" />
                     </div>
-                    <h3 className="text-lg font-bold text-white">3. O Que Pode Ser Feito</h3>
+                    <h3 className="text-lg font-bold text-white">3. Escolher o próximo passo</h3>
                     <p className="text-gray-400 text-sm font-light leading-relaxed">
-                      Explicar em detalhes o funcionamento da nossa consultoria de acompanhamento contínuo e definir os passos para iniciarmos o seu processo.
+                      Definir qual caminho faz mais sentido para você neste momento
                     </p>
                   </div>
                 </div>
 
-                <div className="bg-gold-500/5 border border-gold-500/10 rounded-2xl p-6 flex flex-col md:flex-row items-center gap-4 justify-between mt-8">
-                  <div className="space-y-1 text-center md:text-left">
-                    <h4 className="text-white font-bold text-sm">Nosso Objetivo Principal</h4>
-                    <p className="text-gray-400 text-xs font-light">
-                      Fazer com que você saia desta reunião com um norte claro e absoluto sobre a sua vida financeira.
+                <div className="bg-gold-500/5 border-2 border-gold-500/20 rounded-2xl p-8 flex flex-col md:flex-row items-center gap-6 justify-between mt-12 shadow-2xl shadow-gold-500/5">
+                  <div className="space-y-2 text-center md:text-left flex-grow">
+                    <h4 className="text-gold-500 font-serif font-black text-xl uppercase tracking-widest">O Principal:</h4>
+                    <p className="text-white text-base md:text-lg font-light leading-relaxed">
+                      Que você saia desta conversa sabendo exatamente onde está e quais são suas opções daqui para frente.
                     </p>
                   </div>
                   <button
                     onClick={() => navigateTo('confirmacao_dados')}
-                    className="px-6 py-3 bg-dark-800 hover:bg-dark-750 text-gold-500 hover:text-gold-400 border border-dark-700 hover:border-gold-500/20 font-bold rounded-xl text-xs uppercase tracking-widest transition-all duration-300 flex items-center gap-2"
+                    className="px-8 py-4 bg-dark-800 hover:bg-dark-750 text-gold-500 hover:text-gold-400 border border-dark-700 hover:border-gold-500/20 font-black rounded-xl text-xs uppercase tracking-widest transition-all duration-300 flex items-center gap-2 shrink-0"
                   >
                     Avançar para Diagnóstico
                     <ArrowRight className="w-3.5 h-3.5" />
@@ -674,6 +671,18 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                     </div>
 
                     <div className="p-4 bg-dark-950 border border-dark-800/60 rounded-xl space-y-1">
+                      <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Já tentou resolver esse problema?</p>
+                      <p className="text-sm text-white font-medium">
+                        {lead.answers.triedSolution || 'Não informado'}
+                        {lead.answers.triedSolutionDescription && (
+                          <span className="block text-xs text-gray-450 mt-1.5 italic font-light leading-relaxed">
+                            "{lead.answers.triedSolutionDescription}"
+                          </span>
+                        )}
+                      </p>
+                    </div>
+
+                    <div className="p-4 bg-dark-950 border border-dark-800/60 rounded-xl space-y-1">
                       <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Situação Financeira Atual</p>
                       <p className="text-sm text-gold-500 font-semibold">{lead.answers.financialState}</p>
                     </div>
@@ -695,7 +704,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                       <p className="text-sm text-white font-medium">{lead.answers.goals}</p>
                     </div>
 
-                    <div className="p-4 bg-dark-950 border border-dark-800/60 rounded-xl space-y-1">
+                    <div className="p-4 bg-dark-950 border border-dark-800/60 rounded-xl space-y-1 md:col-span-2">
                       <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Decisão e Comprometimento</p>
                       <p className="text-sm text-white font-medium">
                         Comprometimento: <span className="text-gold-500 font-bold">{lead.answers.commitmentScale || '0'}/10</span>

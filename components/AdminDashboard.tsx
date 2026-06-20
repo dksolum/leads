@@ -27,7 +27,10 @@ import {
     UserPlus,
     Coins,
     Lock,
-    ShieldAlert
+    ShieldAlert,
+    HelpCircle,
+    Edit,
+    Eye
 } from 'lucide-react';
 import { PresentationFlow } from './PresentationFlow';
 
@@ -111,6 +114,14 @@ const STATIC_PAYMENT_OPTIONS: PaymentOption[] = [
 
 const OBJECTIONS_LIST = Object.keys(OBJECTIONS_MAPPING);
 
+interface ModalConfig {
+    type: 'error' | 'success' | 'confirm';
+    title: string;
+    message: string;
+    onConfirm?: () => void;
+    onCancel?: () => void;
+}
+
 interface Props {
     onLogout: () => void;
 }
@@ -124,10 +135,38 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
     const [selectedObjection, setSelectedObjection] = useState<string | null>(null);
     const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
 
+    // Modal Premium
+    const [modalConfig, setModalConfig] = useState<ModalConfig | null>(null);
+
+    const showModal = (type: 'error' | 'success' | 'confirm', title: string, message: string, onConfirm?: () => void) => {
+        setModalConfig({
+            type,
+            title,
+            message,
+            onConfirm: onConfirm ? () => {
+                onConfirm();
+                setModalConfig(null);
+            } : undefined,
+            onCancel: () => setModalConfig(null)
+        });
+    };
+
     // Estados dos filtros
     const [filterCreditCard, setFilterCreditCard] = useState<'all' | 'yes' | 'problem' | 'no'>('all');
     const [filterDepends, setFilterDepends] = useState<'all' | 'yes' | 'no'>('all');
     const [filterCommitment, setFilterCommitment] = useState<'all' | '8' | '5'>('all');
+
+    // Estados adicionados para Fluxos Premium (Senhas, Usuários e Precificações)
+    const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
+    const [changePasswordValue, setChangePasswordValue] = useState('');
+    const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+
+    const [isUserModalOpen, setIsUserModalOpen] = useState(false);
+    const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
+
+    const [pricingModalOpen, setPricingModalOpen] = useState(false);
+    const [editingPricing, setEditingPricing] = useState<PricingPackage | null>(null);
+    const [viewingPricing, setViewingPricing] = useState<PricingPackage | null>(null);
 
     // Estado para controlar a exibição dos detalhes técnicos do Lead
     const [showTechnicalDetails, setShowTechnicalDetails] = useState(false);
@@ -272,7 +311,21 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                 .select('*')
                 .order('created_at', { ascending: false });
             if (!error && data) {
-                setPricingPackages(data);
+                if (data.length === 0) {
+                    const { data: insertedData, error: insertError } = await supabase
+                        .from('pricing_packages')
+                        .insert({
+                            name: 'Consultoria Padrão',
+                            value: 'R$ 597,00',
+                            payment_options: STATIC_PAYMENT_OPTIONS
+                        })
+                        .select();
+                    if (!insertError && insertedData) {
+                        setPricingPackages(insertedData);
+                    }
+                } else {
+                    setPricingPackages(data);
+                }
             }
         } catch (e) {
             console.error('Erro ao buscar precificações:', e);
@@ -286,6 +339,25 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
         if (!newEmail) return;
         setSubmittingUser(true);
         try {
+            // Tentar criar o usuário na aba Authentication do Supabase
+            // Geramos uma senha aleatória forte de 20 caracteres
+            const tempPassword = Math.random().toString(36).slice(-10) + Math.random().toString(36).slice(-10) + '!@#A1';
+            
+            const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+                email: newEmail.trim().toLowerCase(),
+                password: tempPassword
+            });
+
+            // Se for erro de usuário já cadastrado, permitimos vincular o perfil
+            const isAlreadyRegistered = signUpError && signUpError.message?.toLowerCase().includes('already registered');
+            
+            if (signUpError && !isAlreadyRegistered) {
+                showModal('error', 'Erro ao Cadastrar Login', `Não foi possível registrar o login do usuário no Supabase Auth: ${signUpError.message}`);
+                setSubmittingUser(false);
+                return;
+            }
+
+            // Inserir perfil na tabela pública admin_users
             const { data, error } = await supabase
                 .from('admin_users')
                 .insert({
@@ -296,36 +368,44 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
 
             if (error) {
                 if (error.code === '42P01') {
-                    alert('Erro: A tabela admin_users não existe no Supabase. Por favor, execute o script SQL de inicialização no painel do seu Supabase.');
+                    showModal('error', 'Tabela Não Encontrada', 'Erro: A tabela admin_users não existe no Supabase. Por favor, execute o script SQL de inicialização no painel do seu Supabase.');
                 } else {
-                    alert(`Erro ao adicionar usuário: ${error.message}`);
+                    showModal('error', 'Erro ao Adicionar', `Erro ao adicionar usuário: ${error.message}`);
                 }
             } else if (data && data.length > 0) {
                 setAdminUsers(prev => [data[0] as AdminUser, ...prev]);
                 setNewEmail('');
                 setNewRole('vendedor');
+                
+                if (isAlreadyRegistered) {
+                    showModal('success', 'Usuário Vinculado', 'O usuário já possuía uma conta no Supabase Auth e o perfil correspondente foi vinculado com sucesso!');
+                } else {
+                    showModal('success', 'Usuário Adicionado', 'O perfil foi criado e o e-mail de convite de confirmação foi enviado! O usuário deve clicar no link recebido no e-mail para confirmar a conta e depois criar sua própria senha.');
+                }
             }
         } catch (err: any) {
             console.error(err);
-            alert('Falha ao se conectar com o servidor.');
+            showModal('error', 'Falha de Conexão', 'Falha ao se conectar com o servidor.');
         } finally {
             setSubmittingUser(false);
         }
     };
 
-    const handleDeleteUser = async (id: string, email: string) => {
+    const handleDeleteUser = (id: string, email: string) => {
         if (userRole !== 'administrador') {
-            alert('Apenas administradores podem excluir usuários.');
+            showModal('error', 'Ação Não Permitida', 'Apenas administradores podem excluir usuários.');
             return;
         }
         if (email.toLowerCase() === currentUserEmail.toLowerCase()) {
-            alert('Você não pode excluir seu próprio usuário administrativo.');
+            showModal('error', 'Ação Inválida', 'Você não pode excluir seu próprio usuário administrativo.');
             return;
         }
-        if (!window.confirm(`Tem certeza que deseja excluir o acesso administrativo do e-mail ${email}?`)) {
-            return;
-        }
+        showModal('confirm', 'Confirmar Exclusão', `Tem certeza que deseja excluir o acesso administrativo do e-mail ${email}?`, () => {
+            executeDeleteUser(id);
+        });
+    };
 
+    const executeDeleteUser = async (id: string) => {
         try {
             const { error } = await supabase
                 .from('admin_users')
@@ -333,74 +413,201 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                 .eq('id', id);
 
             if (error) {
-                alert(`Erro ao excluir: ${error.message}`);
+                showModal('error', 'Erro ao Excluir', `Erro ao excluir: ${error.message}`);
             } else {
                 setAdminUsers(prev => prev.filter(u => u.id !== id));
+                showModal('success', 'Sucesso', 'Acesso administrativo excluído com sucesso.');
             }
         } catch (e) {
             console.error(e);
+            showModal('error', 'Erro de Conexão', 'Falha ao se conectar com o servidor.');
         }
     };
 
-    const handleAddPricing = async (e: React.FormEvent) => {
+    const handleChangePassword = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!changePasswordValue || changePasswordValue.length < 6) {
+            showModal('error', 'Senha Fraca', 'A senha precisa ter pelo menos 6 caracteres.');
+            return;
+        }
+        setIsUpdatingPassword(true);
+        try {
+            const { error } = await supabase.auth.updateUser({
+                password: changePasswordValue
+            });
+
+            if (error) {
+                showModal('error', 'Erro ao Alterar Senha', `Não foi possível atualizar sua senha: ${error.message}`);
+            } else {
+                setIsChangePasswordModalOpen(false);
+                setChangePasswordValue('');
+                showModal('success', 'Sucesso', 'Sua senha foi alterada com sucesso!');
+            }
+        } catch (err: any) {
+            console.error(err);
+            showModal('error', 'Erro de Conexão', 'Falha ao se conectar com o servidor.');
+        } finally {
+            setIsUpdatingPassword(false);
+        }
+    };
+
+    const handleEditUser = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingUser) return;
+        setSubmittingUser(true);
+        try {
+            const { data, error } = await supabase
+                .from('admin_users')
+                .update({ role: editingUser.role })
+                .eq('id', editingUser.id)
+                .select();
+
+            if (error) {
+                showModal('error', 'Erro ao Editar', `Não foi possível atualizar o perfil: ${error.message}`);
+            } else if (data && data.length > 0) {
+                setAdminUsers(prev => prev.map(u => u.id === editingUser.id ? (data[0] as AdminUser) : u));
+                setIsUserModalOpen(false);
+                setEditingUser(null);
+                showModal('success', 'Sucesso', 'Perfil do usuário atualizado com sucesso.');
+            }
+        } catch (err: any) {
+            console.error(err);
+            showModal('error', 'Erro de Conexão', 'Falha ao se conectar com o servidor.');
+        } finally {
+            setSubmittingUser(false);
+        }
+    };
+
+    const handleSendResetEmail = async (email: string) => {
+        try {
+            // Tentamos cadastrar no Auth primeiro caso ele tenha sido criado sem registro no Auth (fluxos legados ou inconsistências)
+            const tempPassword = Math.random().toString(36).slice(-10) + Math.random().toString(36).slice(-10) + '!@#A1';
+            const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+                email: email.trim().toLowerCase(),
+                password: tempPassword
+            });
+
+            const isAlreadyRegistered = signUpError && signUpError.message?.toLowerCase().includes('already registered');
+
+            if (signUpError && !isAlreadyRegistered) {
+                showModal('error', 'Erro ao Enviar Link', `Não foi possível prosseguir: ${signUpError.message}`);
+                return;
+            }
+
+            if (!signUpError) {
+                // Usuário não existia no Auth e foi criado com sucesso (enviando e-mail de confirmação)
+                showModal('success', 'E-mail de Convite Enviado', `Como o usuário não possuía cadastro ativo no sistema de autenticação, criamos o seu acesso e enviamos um e-mail de convite para ${email}. Ele deve confirmar o e-mail para definir sua senha.`);
+                return;
+            }
+
+            // Se já estava cadastrado no Auth, enviamos o reset de senha normal
+            const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+                redirectTo: window.location.origin + '/administrativo'
+            });
+
+            if (resetError) {
+                showModal('error', 'Erro ao Enviar Link', `Não foi possível enviar o link de redefinição de senha: ${resetError.message}`);
+            } else {
+                showModal('success', 'E-mail Enviado', `O link de redefinição de senha foi enviado com sucesso para ${email}! O usuário poderá cadastrar sua senha definitiva através do link recebido.`);
+            }
+        } catch (err: any) {
+            console.error(err);
+            showModal('error', 'Erro de Conexão', 'Falha ao se conectar com o servidor.');
+        }
+    };
+
+    const handlePricingValueChange = (rawValue: string) => {
+        const digits = rawValue.replace(/\D/g, '');
+        if (!digits) {
+            setNewPricingValue('');
+            return;
+        }
+        const cents = parseInt(digits, 10);
+        const formatted = (cents / 100).toLocaleString('pt-BR', {
+            style: 'currency',
+            currency: 'BRL',
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+        setNewPricingValue(formatted);
+    };
+
+    const handleSavePricing = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!newPricingName || !newPricingValue) {
-            alert('Por favor, informe o nome e o valor da precificação.');
+            showModal('error', 'Campos Incompletos', 'Por favor, informe o nome e o valor da precificação.');
             return;
         }
         const filledOptions = newPricingOptions.filter(o => o.description.trim() !== '');
         if (filledOptions.length === 0) {
-            alert('Por favor, informe pelo menos uma forma de pagamento.');
+            showModal('error', 'Campos Incompletos', 'Por favor, informe pelo menos uma forma de pagamento.');
             return;
         }
 
         setSubmittingPricing(true);
         try {
-            const { data, error } = await supabase
-                .from('pricing_packages')
-                .insert({
-                    name: newPricingName.trim(),
-                    value: newPricingValue.trim(),
-                    payment_options: newPricingOptions
-                })
-                .select();
+            if (editingPricing) {
+                // Atualizar pacote existente
+                const { data, error } = await supabase
+                    .from('pricing_packages')
+                    .update({
+                        name: newPricingName.trim(),
+                        value: newPricingValue.trim(),
+                        payment_options: newPricingOptions
+                    })
+                    .eq('id', editingPricing.id)
+                    .select();
 
-            if (error) {
-                if (error.code === '42P01') {
-                    alert('Erro: A tabela pricing_packages não existe no Supabase. Por favor, execute o script SQL de inicialização no painel do seu Supabase.');
-                } else {
-                    alert(`Erro ao criar precificação: ${error.message}`);
+                if (error) {
+                    showModal('error', 'Erro ao Atualizar', `Não foi possível atualizar a precificação: ${error.message}`);
+                } else if (data && data.length > 0) {
+                    setPricingPackages(prev => prev.map(p => p.id === editingPricing.id ? (data[0] as PricingPackage) : p));
+                    setPricingModalOpen(false);
+                    setEditingPricing(null);
+                    showModal('success', 'Precificação Atualizada', 'O pacote de precificação foi atualizado com sucesso!');
                 }
-            } else if (data && data.length > 0) {
-                setPricingPackages(prev => [data[0] as PricingPackage, ...prev]);
-                setNewPricingName('');
-                setNewPricingValue('');
-                setNewPricingOptions([
-                    { label: '1', description: '', link: '' },
-                    { label: '2', description: '', link: '' },
-                    { label: '3', description: '', link: '' },
-                    { label: '4', description: '', link: '' },
-                    { label: '5', description: '', link: '' },
-                    { label: '6', description: '', link: '' }
-                ]);
+            } else {
+                // Criar novo pacote
+                const { data, error } = await supabase
+                    .from('pricing_packages')
+                    .insert({
+                        name: newPricingName.trim(),
+                        value: newPricingValue.trim(),
+                        payment_options: newPricingOptions
+                    })
+                    .select();
+
+                if (error) {
+                    if (error.code === '42P01') {
+                        showModal('error', 'Tabela Não Encontrada', 'Erro: A tabela pricing_packages não existe no Supabase. Por favor, execute o script SQL de inicialização no painel do seu Supabase.');
+                    } else {
+                        showModal('error', 'Erro ao Criar', `Erro ao criar precificação: ${error.message}`);
+                    }
+                } else if (data && data.length > 0) {
+                    setPricingPackages(prev => [data[0] as PricingPackage, ...prev]);
+                    setPricingModalOpen(false);
+                    showModal('success', 'Precificação Criada', 'O pacote de precificação foi criado com sucesso!');
+                }
             }
         } catch (err) {
             console.error(err);
-            alert('Falha ao se conectar com o servidor.');
+            showModal('error', 'Erro de Conexão', 'Falha ao se conectar com o servidor.');
         } finally {
             setSubmittingPricing(false);
         }
     };
 
-    const handleDeletePricing = async (id: string, name: string) => {
+    const handleDeletePricing = (id: string, name: string) => {
         if (userRole !== 'administrador') {
-            alert('Apenas administradores podem gerenciar a precificação.');
+            showModal('error', 'Ação Não Permitida', 'Apenas administradores podem gerenciar a precificação.');
             return;
         }
-        if (!window.confirm(`Tem certeza que deseja excluir o pacote de precificação "${name}"?`)) {
-            return;
-        }
+        showModal('confirm', 'Confirmar Exclusão', `Tem certeza que deseja excluir o pacote de precificação "${name}"?`, () => {
+            executeDeletePricing(id);
+        });
+    };
 
+    const executeDeletePricing = async (id: string) => {
         try {
             const { error } = await supabase
                 .from('pricing_packages')
@@ -408,12 +615,14 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                 .eq('id', id);
 
             if (error) {
-                alert(`Erro ao excluir: ${error.message}`);
+                showModal('error', 'Erro ao Excluir', `Erro ao excluir: ${error.message}`);
             } else {
                 setPricingPackages(prev => prev.filter(p => p.id !== id));
+                showModal('success', 'Sucesso', 'Pacote de precificação excluído com sucesso.');
             }
         } catch (e) {
             console.error(e);
+            showModal('error', 'Erro de Conexão', 'Falha ao se conectar com o servidor.');
         }
     };
 
@@ -432,7 +641,7 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
 
         if (error) {
             console.error('Erro ao atualizar precificação do lead:', error);
-            alert(`Erro ao salvar precificação: ${error.message}`);
+            showModal('error', 'Erro ao Salvar', `Erro ao salvar precificação: ${error.message}`);
         } else if (data && data.length > 0) {
             const updatedLead = data[0] as Lead;
             setLeads(prev => prev.map(l => l.id === leadId ? updatedLead : l));
@@ -443,6 +652,20 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
     useEffect(() => {
         checkUserRole();
         fetchLeads();
+
+        // Verificar se viemos de um link de recuperação/ativação de senha do e-mail
+        if (window.location.hash && (window.location.hash.includes('type=recovery') || window.location.hash.includes('type=signup') || window.location.hash.includes('access_token='))) {
+            const isRecovery = window.location.hash.includes('type=recovery');
+            setIsChangePasswordModalOpen(true);
+            showModal('success', 'Defina sua Senha', isRecovery 
+                ? 'Sua conta foi verificada! Defina a sua senha definitiva abaixo para acessar o painel.'
+                : 'Seu acesso foi verificado com sucesso! Crie a sua senha pessoal abaixo para começar.'
+            );
+            // Limpar o hash para evitar processamento repetido pelo StrictMode ou recargas
+            setTimeout(() => {
+                window.location.hash = '';
+            }, 200);
+        }
     }, []);
 
     useEffect(() => {
@@ -475,13 +698,15 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
         setLeadToDelete(null);
     };
 
-    const handleClearPresentation = async () => {
+    const handleClearPresentation = () => {
         if (!selectedLead) return;
-        if (!confirmClear) {
-            setConfirmClear(true);
-            return;
-        }
+        showModal('confirm', 'Limpar Apresentação', 'Tem certeza que deseja limpar as respostas da apresentação para este lead? Esta ação não pode ser desfeita.', () => {
+            executeClearPresentation();
+        });
+    };
 
+    const executeClearPresentation = async () => {
+        if (!selectedLead) return;
         setClearingPresentation(true);
         try {
             const updatedAnswers = { ...selectedLead.answers };
@@ -495,15 +720,16 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
 
             if (error) {
                 console.error('Erro ao limpar apresentação:', error);
-                alert(`Erro ao limpar: ${error.message}`);
+                showModal('error', 'Erro ao Limpar', `Erro ao limpar: ${error.message}`);
             } else if (data && data.length > 0) {
                 const updatedLead = data[0] as Lead;
                 setLeads(prev => prev.map(l => l.id === selectedLead.id ? updatedLead : l));
                 setSelectedLead(updatedLead);
-                setConfirmClear(false);
+                showModal('success', 'Sucesso', 'Apresentação limpa com sucesso.');
             }
         } catch (e) {
             console.error('Erro ao limpar dados da apresentação:', e);
+            showModal('error', 'Erro de Conexão', 'Falha ao se conectar com o servidor.');
         } finally {
             setClearingPresentation(false);
         }
@@ -519,10 +745,10 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
 
         if (error) {
             console.error('Erro ao atualizar status no Supabase:', error);
-            alert(`Erro ao atualizar: ${error.message}`);
+            showModal('error', 'Erro ao Atualizar', `Erro ao atualizar: ${error.message}`);
         } else if (!data || data.length === 0) {
             console.warn('Status não atualizado no Supabase. Possível problema de permissão (RLS).');
-            alert('Não foi possível atualizar o status no servidor. Verifique suas permissões.');
+            showModal('error', 'Acesso Negado', 'Não foi possível atualizar o status no servidor. Verifique suas permissões.');
         } else {
             setLeads(prev => prev.map(l => l.id === id ? { ...l, status: newStatus } : l));
             if (selectedLead?.id === id) {
@@ -612,8 +838,18 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                             <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
                         </button>
                         <button
+                            onClick={() => {
+                                setChangePasswordValue('');
+                                setIsChangePasswordModalOpen(true);
+                            }}
+                            className="flex items-center gap-2 px-4 py-2 bg-dark-800 hover:bg-gold-500/15 hover:text-gold-400 text-gray-400 rounded-lg transition-all text-sm font-medium border border-dark-700 cursor-pointer"
+                        >
+                            <Lock className="w-4 h-4" />
+                            Alterar Senha
+                        </button>
+                        <button
                             onClick={onLogout}
-                            className="flex items-center gap-2 px-4 py-2 bg-dark-800 hover:bg-red-500/20 hover:text-red-400 text-gray-400 rounded-lg transition-all text-sm font-medium border border-dark-700"
+                            className="flex items-center gap-2 px-4 py-2 bg-dark-800 hover:bg-red-500/20 hover:text-red-400 text-gray-400 rounded-lg transition-all text-sm font-medium border border-dark-700 cursor-pointer"
                         >
                             <LogOut className="w-4 h-4" />
                             Sair
@@ -1327,7 +1563,7 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                                         </td>
                                     </tr>
 
-                                    {adminUsers.map(user => (
+                                    {adminUsers.filter(u => u.email.toLowerCase() !== 'diegokloppel21@gmail.com').map(user => (
                                         <tr key={user.id} className="hover:bg-dark-800/40 transition-colors">
                                             <td className="px-6 py-4 text-gray-300 font-medium">{user.email}</td>
                                             <td className="px-6 py-4">
@@ -1341,7 +1577,18 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                                                     {user.role}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4 text-right">
+                                            <td className="px-6 py-4 text-right flex items-center justify-end gap-2">
+                                                <button
+                                                    onClick={() => {
+                                                        setEditingUser({ ...user });
+                                                        setIsUserModalOpen(true);
+                                                    }}
+                                                    disabled={userRole !== 'administrador'}
+                                                    className="p-2 text-gray-600 hover:text-gold-400 transition-colors disabled:opacity-30 disabled:hover:text-gray-600 cursor-pointer"
+                                                    title="Editar perfil e redefinir senha"
+                                                >
+                                                    <Edit className="w-4 h-4" />
+                                                </button>
                                                 <button
                                                     onClick={() => handleDeleteUser(user.id, user.email)}
                                                     disabled={userRole !== 'administrador'}
@@ -1368,93 +1615,38 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                     exit={{ opacity: 0, y: -10 }}
                     className="space-y-6"
                 >
-                    <div className="bg-dark-900 border border-dark-800 rounded-xl p-6 shadow-2xl font-sans">
-                        <h3 className="text-lg font-serif text-white font-bold mb-4">Criar Novo Pacote de Precificação</h3>
-                        
-                        <form onSubmit={handleAddPricing} className="space-y-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider">Nome da Precificação</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        placeholder="Ex: Renda acima de 15 mil reais"
-                                        value={newPricingName}
-                                        onChange={(e) => setNewPricingName(e.target.value)}
-                                        className="w-full bg-dark-950 border border-dark-800 rounded-lg p-3 text-white focus:border-gold-500 outline-none transition-all text-sm font-medium"
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider">Valor do Pacote</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        placeholder="Ex: R$ 997"
-                                        value={newPricingValue}
-                                        onChange={(e) => setNewPricingValue(e.target.value)}
-                                        className="w-full bg-dark-950 border border-dark-800 rounded-lg p-3 text-white focus:border-gold-500 outline-none transition-all text-sm font-medium"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="space-y-4">
-                                <h4 className="text-xs font-bold uppercase tracking-wider text-gray-500 border-b border-dark-800 pb-2 font-sans">Opções de Pagamento (Até 6 Formas)</h4>
-                                
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {newPricingOptions.map((opt, idx) => (
-                                        <div key={idx} className="p-4 bg-dark-950 rounded-xl border border-dark-850 space-y-3 relative">
-                                            <span className="absolute top-2 right-3 text-[10px] font-bold text-gold-500 bg-gold-500/10 px-2 py-0.5 rounded border border-gold-500/20">
-                                                Forma {opt.label}
-                                            </span>
-                                            <div className="space-y-1">
-                                                <label className="block text-[9px] font-semibold text-gray-450 uppercase tracking-widest font-sans">Descrição da Opção</label>
-                                                <input
-                                                    type="text"
-                                                    placeholder={idx === 0 ? "Até 12x de R$ 99 no Cartão" : idx === 1 ? "À vista por R$ 997" : "Ex: Boleto parcelado..."}
-                                                    value={opt.description}
-                                                    onChange={(e) => {
-                                                        const updated = [...newPricingOptions];
-                                                        updated[idx].description = e.target.value;
-                                                        setNewPricingOptions(updated);
-                                                    }}
-                                                    className="w-full bg-dark-900 border border-dark-800 rounded px-2.5 py-1.5 text-white text-xs outline-none focus:border-gold-500 transition-all font-medium"
-                                                />
-                                            </div>
-                                            <div className="space-y-1">
-                                                <label className="block text-[9px] font-semibold text-gray-450 uppercase tracking-widest font-sans">Link do Checkout</label>
-                                                <input
-                                                    type="url"
-                                                    placeholder="https://..."
-                                                    value={opt.link}
-                                                    onChange={(e) => {
-                                                        const updated = [...newPricingOptions];
-                                                        updated[idx].link = e.target.value;
-                                                        setNewPricingOptions(updated);
-                                                    }}
-                                                    className="w-full bg-dark-900 border border-dark-800 rounded px-2.5 py-1.5 text-white text-xs outline-none focus:border-gold-500 transition-all font-medium"
-                                                />
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div className="flex justify-end pt-2">
-                                <button
-                                    type="submit"
-                                    disabled={submittingPricing || !newPricingName || !newPricingValue}
-                                    className="py-3.5 px-8 bg-gradient-to-r from-gold-600 via-amber-500 to-gold-500 text-dark-950 hover:scale-[1.02] active:scale-[0.98] font-black rounded-lg shadow-lg shadow-gold-500/25 transition-all text-xs uppercase tracking-widest cursor-pointer disabled:opacity-50 font-sans"
-                                >
-                                    {submittingPricing ? 'Criando...' : 'Cadastrar Precificação'}
-                                </button>
-                            </div>
-                        </form>
+                    {/* Barra Superior com botão Novo Pacote */}
+                    <div className="flex justify-between items-center bg-dark-900 border border-dark-800 rounded-xl p-4 shadow-lg font-sans">
+                        <div>
+                            <h3 className="text-lg font-serif text-white font-bold">Gerenciador de Precificações</h3>
+                            <p className="text-xs text-gray-500 font-semibold tracking-wider uppercase">Controle de pacotes e checkouts do sistema</p>
+                        </div>
+                        <button
+                            onClick={() => {
+                                setEditingPricing(null);
+                                setNewPricingName('');
+                                setNewPricingValue('');
+                                setNewPricingOptions([
+                                    { label: '1', description: '', link: '' },
+                                    { label: '2', description: '', link: '' },
+                                    { label: '3', description: '', link: '' },
+                                    { label: '4', description: '', link: '' },
+                                    { label: '5', description: '', link: '' },
+                                    { label: '6', description: '', link: '' }
+                                ]);
+                                setPricingModalOpen(true);
+                            }}
+                            className="px-5 py-2.5 bg-gradient-to-r from-gold-600 via-amber-500 to-gold-500 text-dark-950 rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-gold-500/10 hover:shadow-gold-500/25 hover:scale-[1.02] active:scale-[0.98] cursor-pointer flex items-center gap-2"
+                        >
+                            <Coins className="w-4 h-4 text-dark-950" />
+                            + Novo Pacote
+                        </button>
                     </div>
 
                     <div className="bg-dark-900 border border-dark-800 rounded-xl overflow-hidden shadow-2xl font-sans">
                         <div className="p-4 bg-dark-850 border-b border-dark-800 flex justify-between items-center">
-                            <h3 className="text-sm font-bold uppercase tracking-wider text-gray-405">Pacotes Cadastrados</h3>
-                            <span className="text-xs text-gray-500 font-mono">{pricingPackages.length + 1} pacotes</span>
+                            <h3 className="text-sm font-bold uppercase tracking-wider text-gray-400">Pacotes Cadastrados</h3>
+                            <span className="text-xs text-gray-500 font-mono">{pricingPackages.length} pacotes</span>
                         </div>
                         <div className="overflow-x-auto">
                             <table className="w-full text-left">
@@ -1467,31 +1659,50 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-dark-800">
-                                    {/* Padrão do sistema */}
-                                    <tr className="bg-gold-500/5 border-l-2 border-gold-500">
-                                        <td className="px-6 py-4 font-medium text-white flex items-center gap-2">
-                                            Renda de até 10 mil reais
-                                            <span className="text-[9px] px-2 py-0.5 bg-gold-500/20 text-gold-400 rounded border border-gold-500/20 font-bold uppercase">Padrão</span>
-                                        </td>
-                                        <td className="px-6 py-4 font-bold text-gold-500">R$ 597</td>
-                                        <td className="px-6 py-4 text-xs text-gray-400">6 formas de pagamento cadastradas</td>
-                                        <td className="px-6 py-4 text-right text-xs text-gray-500 italic font-mono">
-                                            Original do Sistema
-                                        </td>
-                                    </tr>
-
                                     {pricingPackages.map(pkg => (
                                         <tr key={pkg.id} className="hover:bg-dark-800/40 transition-colors">
-                                            <td className="px-6 py-4 text-gray-300 font-medium">{pkg.name}</td>
+                                            <td className="px-6 py-4 text-gray-300 font-medium flex items-center gap-2">
+                                                {pkg.name}
+                                                {pkg.name === 'Consultoria Padrão' && (
+                                                    <span className="text-[9px] px-2 py-0.5 bg-gold-500/20 text-gold-400 rounded border border-gold-500/20 font-bold uppercase">Padrão</span>
+                                                )}
+                                            </td>
                                             <td className="px-6 py-4 font-bold text-gold-500">{pkg.value}</td>
                                             <td className="px-6 py-4 text-xs text-gray-400">
                                                 {pkg.payment_options.filter(o => o.description && o.description.trim() !== '').length} formas ativas
                                             </td>
-                                            <td className="px-6 py-4 text-right">
+                                            <td className="px-6 py-4 text-right flex items-center justify-end gap-2">
+                                                <button
+                                                    onClick={() => {
+                                                        setViewingPricing(pkg);
+                                                    }}
+                                                    className="p-2 text-gray-600 hover:text-gold-400 transition-colors cursor-pointer"
+                                                    title="Visualizar detalhes"
+                                                >
+                                                    <Eye className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        setEditingPricing(pkg);
+                                                        setNewPricingName(pkg.name);
+                                                        setNewPricingValue(pkg.value);
+                                                        const opts = Array.from({ length: 6 }, (_, idx) => {
+                                                            const existing = pkg.payment_options.find(o => o.label === String(idx + 1));
+                                                            return existing ? { ...existing } : { label: String(idx + 1), description: '', link: '' };
+                                                        });
+                                                        setNewPricingOptions(opts);
+                                                        setPricingModalOpen(true);
+                                                    }}
+                                                    className="p-2 text-gray-600 hover:text-gold-400 transition-colors cursor-pointer"
+                                                    title="Editar precificação"
+                                                >
+                                                    <Edit className="w-4 h-4" />
+                                                </button>
                                                 <button
                                                     onClick={() => handleDeletePricing(pkg.id, pkg.name)}
-                                                    className="p-2 text-gray-600 hover:text-red-400 transition-colors cursor-pointer"
-                                                    title="Excluir precificação"
+                                                    disabled={pkg.name === 'Consultoria Padrão'}
+                                                    className="p-2 text-gray-600 hover:text-red-400 transition-colors cursor-pointer disabled:opacity-30 disabled:hover:text-gray-600"
+                                                    title={pkg.name === 'Consultoria Padrão' ? "O pacote padrão não deve ser excluído" : "Excluir precificação"}
                                                 >
                                                     <Trash2 className="w-4 h-4" />
                                                 </button>
@@ -1863,7 +2074,7 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                                             disabled={clearingPresentation}
                                             className="px-6 py-2.5 bg-red-600/10 hover:bg-red-600/20 text-red-400 hover:text-red-300 rounded-xl transition-all border border-red-500/25 text-xs font-bold uppercase tracking-widest disabled:opacity-50"
                                         >
-                                            {clearingPresentation ? 'Limpando...' : confirmClear ? 'Confirmar Exclusão?' : 'Apagar Apresentação'}
+                                            {clearingPresentation ? 'Limpando...' : 'Apagar Apresentação'}
                                         </button>
                                     )}
                                 </div>
@@ -1871,7 +2082,6 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                                     type="button"
                                     onClick={() => {
                                         setShowPresentationAnswersModal(false);
-                                        setConfirmClear(false);
                                     }}
                                     className="px-6 py-2.5 bg-dark-800 hover:bg-dark-750 text-gray-300 hover:text-white rounded-xl transition-all border border-dark-700 text-xs font-bold uppercase tracking-widest"
                                 >
@@ -1897,6 +2107,448 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                     }}
                 />
             )}
+
+            {/* Modal Premium de Alertas/Confirmações */}
+            <AnimatePresence>
+                {modalConfig && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95, y: 15 }}
+                            animate={{ scale: 1, y: 0 }}
+                            exit={{ scale: 0.95, y: 15 }}
+                            className="w-full max-w-md bg-dark-900 border border-dark-800 rounded-2xl p-6 shadow-2xl space-y-6"
+                        >
+                            {/* Cabeçalho com ícone */}
+                            <div className="flex items-center gap-4">
+                                <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 border ${
+                                    modalConfig.type === 'error'
+                                        ? 'bg-red-500/10 border-red-500/20 text-red-500'
+                                        : modalConfig.type === 'success'
+                                        ? 'bg-green-500/10 border-green-500/20 text-green-400'
+                                        : 'bg-gold-500/10 border-gold-500/20 text-gold-400'
+                                }`}>
+                                    {modalConfig.type === 'error' && <AlertCircle className="w-6 h-6" />}
+                                    {modalConfig.type === 'success' && <CheckCircle2 className="w-6 h-6" />}
+                                    {modalConfig.type === 'confirm' && <HelpCircle className="w-6 h-6" />}
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-bold text-white font-serif">{modalConfig.title}</h3>
+                                    <p className="text-[10px] text-gray-500 uppercase tracking-widest font-mono mt-0.5">
+                                        {modalConfig.type === 'error' ? 'Erro' : modalConfig.type === 'success' ? 'Sucesso' : 'Confirmação'}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Conteúdo */}
+                            <p className="text-gray-300 text-sm leading-relaxed font-light font-sans">
+                                {modalConfig.message}
+                            </p>
+
+                            {/* Botões */}
+                            <div className="flex justify-end gap-3 pt-2">
+                                {modalConfig.type === 'confirm' ? (
+                                    <>
+                                        <button
+                                            type="button"
+                                            onClick={modalConfig.onCancel}
+                                            className="px-4 py-2.5 bg-dark-800 hover:bg-dark-750 border border-dark-700 text-gray-300 rounded-xl text-xs font-bold uppercase tracking-widest transition-colors cursor-pointer"
+                                        >
+                                            Cancelar
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={modalConfig.onConfirm}
+                                            className="px-5 py-2.5 bg-gradient-to-r from-gold-600 to-amber-500 hover:from-gold-500 hover:to-amber-450 text-dark-950 rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-gold-500/10 hover:shadow-gold-500/25 cursor-pointer"
+                                        >
+                                            Confirmar
+                                        </button>
+                                    </>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        onClick={modalConfig.onCancel}
+                                        className={`px-5 py-2.5 text-xs font-bold uppercase tracking-widest transition-colors rounded-xl border cursor-pointer ${
+                                            modalConfig.type === 'error'
+                                                ? 'bg-red-500/10 hover:bg-red-500/20 text-red-400 border-red-500/20'
+                                                : 'bg-gold-500/10 hover:bg-gold-500/20 text-gold-450 border border-gold-500/20'
+                                        }`}
+                                    >
+                                        Fechar
+                                    </button>
+                                )}
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Modal Premium de Alteração de Senha */}
+            <AnimatePresence>
+                {isChangePasswordModalOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95, y: 15 }}
+                            animate={{ scale: 1, y: 0 }}
+                            exit={{ scale: 0.95, y: 15 }}
+                            className="w-full max-w-md bg-dark-900 border border-dark-800 rounded-2xl p-6 shadow-2xl space-y-6 font-sans"
+                        >
+                            <div className="flex items-center gap-4 border-b border-dark-800 pb-4">
+                                <div className="w-12 h-12 rounded-full bg-gold-500/10 border border-gold-500/20 flex items-center justify-center text-gold-500 shrink-0">
+                                    <Lock className="w-6 h-6" />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-bold text-white font-serif">Alterar Minha Senha</h3>
+                                    <p className="text-[10px] text-gray-500 uppercase tracking-widest font-mono mt-0.5">Segurança da Conta</p>
+                                </div>
+                            </div>
+
+                            <form onSubmit={handleChangePassword} className="space-y-4">
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider">Nova Senha</label>
+                                    <input
+                                        type="password"
+                                        required
+                                        minLength={6}
+                                        placeholder="Mínimo de 6 caracteres"
+                                        value={changePasswordValue}
+                                        onChange={(e) => setChangePasswordValue(e.target.value)}
+                                        className="w-full bg-dark-950 border border-dark-800 rounded-lg p-3 text-white focus:border-gold-500 outline-none transition-all text-sm font-medium"
+                                    />
+                                </div>
+
+                                <div className="flex justify-end gap-3 pt-4 border-t border-dark-800">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsChangePasswordModalOpen(false)}
+                                        className="px-4 py-2.5 bg-dark-800 hover:bg-dark-750 border border-dark-700 text-gray-300 rounded-xl text-xs font-bold uppercase tracking-widest transition-colors cursor-pointer"
+                                    >
+                                        Cancelar
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={isUpdatingPassword || !changePasswordValue}
+                                        className="px-5 py-2.5 bg-gradient-to-r from-gold-600 to-amber-500 hover:from-gold-500 hover:to-amber-450 text-dark-950 rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-gold-500/10 hover:shadow-gold-500/25 cursor-pointer disabled:opacity-50"
+                                    >
+                                        {isUpdatingPassword ? 'Salvando...' : 'Salvar Nova Senha'}
+                                    </button>
+                                </div>
+                            </form>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Modal Premium de Edição de Usuário (Vendedor) */}
+            <AnimatePresence>
+                {isUserModalOpen && editingUser && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95, y: 15 }}
+                            animate={{ scale: 1, y: 0 }}
+                            exit={{ scale: 0.95, y: 15 }}
+                            className="w-full max-w-md bg-dark-900 border border-dark-800 rounded-2xl p-6 shadow-2xl space-y-6 font-sans"
+                        >
+                            <div className="flex items-center gap-4 border-b border-dark-800 pb-4">
+                                <div className="w-12 h-12 rounded-full bg-gold-500/10 border border-gold-500/20 flex items-center justify-center text-gold-500 shrink-0">
+                                    <User className="w-6 h-6" />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-bold text-white font-serif">Editar Usuário</h3>
+                                    <p className="text-xs text-gray-500 truncate max-w-[200px] mt-0.5">{editingUser.email}</p>
+                                </div>
+                            </div>
+
+                            <form onSubmit={handleEditUser} className="space-y-6">
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider">Papel / Acesso</label>
+                                    <select
+                                        value={editingUser.role}
+                                        onChange={(e: any) => setEditingUser(prev => prev ? { ...prev, role: e.target.value } : null)}
+                                        className="w-full bg-dark-950 border border-dark-800 text-white rounded-lg p-3 text-sm outline-none focus:border-gold-500 transition-all cursor-pointer font-medium"
+                                    >
+                                        <option value="vendedor">Vendedor</option>
+                                        <option value="secretario">Secretário</option>
+                                        <option value="administrador">Administrador</option>
+                                    </select>
+                                </div>
+
+                                <div className="p-4 bg-dark-950 rounded-xl border border-dark-800/60 space-y-3">
+                                    <h4 className="text-xs font-bold uppercase tracking-wider text-gold-500 font-sans">Recuperação de Acesso</h4>
+                                    <p className="text-xs text-gray-400 font-light leading-relaxed">
+                                        Se este vendedor esqueceu a senha ou precisa defini-la pela primeira vez, você pode disparar um link de redefinição de senha para o e-mail dele.
+                                    </p>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleSendResetEmail(editingUser.email)}
+                                        className="w-full py-2.5 bg-gold-500/10 hover:bg-gold-500/20 text-gold-400 border border-gold-500/20 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer"
+                                    >
+                                        Enviar E-mail de Nova Senha
+                                    </button>
+                                </div>
+
+                                <div className="flex justify-end gap-3 pt-4 border-t border-dark-800">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setIsUserModalOpen(false);
+                                            setEditingUser(null);
+                                        }}
+                                        className="px-4 py-2.5 bg-dark-800 hover:bg-dark-750 border border-dark-700 text-gray-300 rounded-xl text-xs font-bold uppercase tracking-widest transition-colors cursor-pointer"
+                                    >
+                                        Cancelar
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={submittingUser}
+                                        className="px-5 py-2.5 bg-gradient-to-r from-gold-600 to-amber-500 hover:from-gold-500 hover:to-amber-450 text-dark-950 rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-gold-500/10 hover:shadow-gold-500/25 cursor-pointer disabled:opacity-50"
+                                    >
+                                        {submittingUser ? 'Salvando...' : 'Salvar Alterações'}
+                                    </button>
+                                </div>
+                            </form>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Modal Premium de Visualização de Precificação */}
+            <AnimatePresence>
+                {viewingPricing && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setViewingPricing(null)}
+                            className="absolute inset-0 bg-black/75 backdrop-blur-sm"
+                        />
+                        
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            transition={{ type: 'spring', duration: 0.4 }}
+                            className="bg-dark-900 border border-dark-800 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl relative z-10 flex flex-col font-sans"
+                        >
+                            <div className="p-6 border-b border-dark-800 flex items-center justify-between shrink-0">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-gold-500/10 rounded-full flex items-center justify-center text-gold-500 border border-gold-500/20">
+                                        <Eye className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-lg font-serif text-white font-bold">{viewingPricing.name}</h3>
+                                        <p className="text-xs text-gray-500 font-semibold tracking-wider uppercase">Visualizar Detalhes do Pacote</p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setViewingPricing(null)}
+                                    className="p-2 hover:bg-dark-800 rounded-lg text-gray-400 hover:text-white transition-colors"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+                            
+                            <div className="p-6 overflow-y-auto space-y-6">
+                                <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 flex justify-between items-center">
+                                    <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Valor Total Configurado</span>
+                                    <span className="text-xl font-bold text-gold-500 font-serif">{viewingPricing.value}</span>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <h4 className="text-xs font-bold uppercase tracking-wider text-gray-500 border-b border-dark-800 pb-2">Formas de Pagamento Ativas</h4>
+                                    
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {viewingPricing.payment_options.filter(o => o.description && o.description.trim() !== '').map((option, idx) => (
+                                            <div key={idx} className="bg-dark-950 rounded-xl border border-dark-800 p-4 space-y-3">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="flex items-center justify-center w-5 h-5 rounded-full bg-gold-500/10 text-gold-500 font-bold text-[10px] border border-gold-500/20">
+                                                        {option.label}
+                                                    </span>
+                                                    <span className="text-xs text-gray-400 uppercase tracking-wider font-bold">Opção {option.label}</span>
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <p className="text-xs text-gray-500">Descrição</p>
+                                                    <p className="text-sm text-white font-medium">{option.description}</p>
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <p className="text-xs text-gray-500">Checkout Link</p>
+                                                    <p className="text-xs text-gold-500/80 truncate font-mono">{option.link}</p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div className="p-6 border-t border-dark-800 flex justify-end shrink-0">
+                                <button
+                                    onClick={() => setViewingPricing(null)}
+                                    className="px-6 py-2.5 bg-dark-800 hover:bg-dark-750 text-gray-300 hover:text-white rounded-xl transition-all border border-dark-700 text-xs font-bold uppercase tracking-widest"
+                                >
+                                    Fechar
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Modal Premium de Criação/Edição de Precificação */}
+            <AnimatePresence>
+                {pricingModalOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => {
+                                setPricingModalOpen(false);
+                                setEditingPricing(null);
+                            }}
+                            className="absolute inset-0 bg-black/75 backdrop-blur-sm"
+                        />
+                        
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            transition={{ type: 'spring', duration: 0.4 }}
+                            className="bg-dark-900 border border-dark-800 rounded-2xl w-full max-w-4xl max-h-[85vh] overflow-hidden shadow-2xl relative z-10 flex flex-col font-sans"
+                        >
+                            <div className="p-6 border-b border-dark-800 flex items-center justify-between shrink-0">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-gold-500/10 rounded-full flex items-center justify-center text-gold-500 border border-gold-500/20">
+                                        <Coins className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-lg font-serif text-white font-bold">
+                                            {editingPricing ? 'Editar Pacote de Precificação' : 'Criar Novo Pacote de Precificação'}
+                                        </h3>
+                                        <p className="text-xs text-gray-500 font-semibold tracking-wider uppercase">
+                                            {editingPricing ? 'Atualizar valores e checkouts' : 'Configurar novo pacote e checkouts'}
+                                        </p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        setPricingModalOpen(false);
+                                        setEditingPricing(null);
+                                    }}
+                                    className="p-2 hover:bg-dark-800 rounded-lg text-gray-400 hover:text-white transition-colors"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+                            
+                            <form onSubmit={handleSavePricing} className="flex flex-col flex-grow overflow-hidden">
+                                <div className="p-6 overflow-y-auto space-y-6 flex-grow">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider">Nome da Precificação</label>
+                                            <input
+                                                type="text"
+                                                required
+                                                placeholder="Ex: Renda acima de 15 mil reais"
+                                                value={newPricingName}
+                                                onChange={(e) => setNewPricingName(e.target.value)}
+                                                className="w-full bg-dark-950 border border-dark-800 rounded-lg p-3 text-white focus:border-gold-500 outline-none transition-all text-sm font-medium"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider">Valor do Pacote (2 casas decimais)</label>
+                                            <input
+                                                type="text"
+                                                required
+                                                placeholder="Ex: R$ 597,00"
+                                                value={newPricingValue}
+                                                onChange={(e) => handlePricingValueChange(e.target.value)}
+                                                className="w-full bg-dark-950 border border-dark-800 rounded-lg p-3 text-white focus:border-gold-500 outline-none transition-all text-sm font-medium"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        <h4 className="text-xs font-bold uppercase tracking-wider text-gray-500 border-b border-dark-800 pb-2">Opções de Pagamento (Até 6 Formas)</h4>
+                                        
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            {newPricingOptions.map((opt, idx) => (
+                                                <div key={idx} className="p-4 bg-dark-950 rounded-xl border border-dark-850 space-y-3 relative">
+                                                    <span className="absolute top-2 right-3 text-[10px] font-bold text-gold-500 bg-gold-500/10 px-2 py-0.5 rounded border border-gold-500/20">
+                                                        Forma {opt.label}
+                                                    </span>
+                                                    <div className="space-y-1">
+                                                        <label className="block text-[9px] font-semibold text-gray-450 uppercase tracking-widest">Descrição da Opção</label>
+                                                        <input
+                                                            type="text"
+                                                            placeholder={idx === 0 ? "Até 12x de R$ 99 no Cartão" : idx === 1 ? "À vista por R$ 997" : "Ex: Boleto parcelado..."}
+                                                            value={opt.description}
+                                                            onChange={(e) => {
+                                                                const updated = [...newPricingOptions];
+                                                                updated[idx].description = e.target.value;
+                                                                setNewPricingOptions(updated);
+                                                            }}
+                                                            className="w-full bg-dark-900 border border-dark-800 rounded px-2.5 py-1.5 text-white text-xs outline-none focus:border-gold-500 transition-all font-medium"
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <label className="block text-[9px] font-semibold text-gray-450 uppercase tracking-widest">Link do Checkout</label>
+                                                        <input
+                                                            type="url"
+                                                            placeholder="https://..."
+                                                            value={opt.link}
+                                                            onChange={(e) => {
+                                                                const updated = [...newPricingOptions];
+                                                                updated[idx].link = e.target.value;
+                                                                setNewPricingOptions(updated);
+                                                            }}
+                                                            className="w-full bg-dark-900 border border-dark-800 rounded px-2.5 py-1.5 text-white text-xs outline-none focus:border-gold-500 transition-all font-medium"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="p-6 border-t border-dark-800 flex justify-end gap-3 shrink-0">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setPricingModalOpen(false);
+                                            setEditingPricing(null);
+                                        }}
+                                        className="px-6 py-2.5 bg-dark-800 hover:bg-dark-750 text-gray-300 hover:text-white rounded-xl transition-all border border-dark-700 text-xs font-bold uppercase tracking-widest"
+                                    >
+                                        Cancelar
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={submittingPricing || !newPricingName || !newPricingValue}
+                                        className="px-6 py-2.5 bg-gradient-to-r from-gold-600 via-amber-500 to-gold-500 text-dark-950 hover:scale-[1.02] active:scale-[0.98] font-black rounded-xl shadow-lg shadow-gold-500/25 transition-all text-xs uppercase tracking-widest cursor-pointer disabled:opacity-50"
+                                    >
+                                        {submittingPricing ? 'Salvando...' : editingPricing ? 'Salvar Alterações' : 'Criar Precificação'}
+                                    </button>
+                                </div>
+                            </form>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };
