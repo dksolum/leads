@@ -369,11 +369,15 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                   <h1 className="font-serif font-extrabold text-5xl md:text-7xl lg:text-8xl text-white tracking-tight drop-shadow-lg leading-none">
                     Consultoria <br />
                     <span className="text-transparent bg-clip-text bg-gradient-to-r from-gold-600 via-amber-500 to-gold-400">
-                      Financeira
+                      {lead.answers?.formType === 'business' ? 'Empresarial' : lead.answers?.formType === 'complete' ? 'Gestão Completa' : 'Financeira'}
                     </span>
                   </h1>
                   <p className="text-gray-350 text-base md:text-lg lg:text-xl max-w-xl font-light leading-relaxed">
-                    Uma experiência de transformação e controle patrimonial sob medida para sua realidade.
+                    {lead.answers?.formType === 'business'
+                      ? 'Uma experiência de transformação, organização de fluxo de caixa e crescimento sob medida para sua empresa.'
+                      : lead.answers?.formType === 'complete'
+                      ? 'Planejamento integrado de finanças pessoais e empresariais para maximizar seus lucros e patrimônio.'
+                      : 'Uma experiência de transformação e controle patrimonial sob medida para sua realidade.'}
                   </p>
                 </div>
 

@@ -30,7 +30,9 @@ import {
     ShieldAlert,
     HelpCircle,
     Edit,
-    Eye
+    Eye,
+    Presentation,
+    ArrowRight
 } from 'lucide-react';
 import { PresentationFlow } from './PresentationFlow';
 
@@ -179,12 +181,21 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
     const [confirmClear, setConfirmClear] = useState(false);
     const [clearingPresentation, setClearingPresentation] = useState(false);
 
+    // Novos estados para edição de leads
+    const [isEditLeadModalOpen, setIsEditLeadModalOpen] = useState(false);
+    const [editingLeadData, setEditingLeadData] = useState<Lead | null>(null);
+    const [editLeadTab, setEditLeadTab] = useState<'info' | 'answers'>('info');
+
+    // Novo estado para seleção de leads agendados para a aba Apresentações
+    const [activePresentationSelectType, setActivePresentationSelectType] = useState<'personal' | 'business' | 'complete' | null>(null);
+    const [showSimplePresentationInfo, setShowSimplePresentationInfo] = useState<string | null>(null);
+
     // Controle de papéis de usuários (RBAC) e abas
     const [userRole, setUserRole] = useState<'administrador' | 'vendedor' | 'secretario' | null>(null);
     const [currentUserEmail, setCurrentUserEmail] = useState<string>('');
     const [authLoading, setAuthLoading] = useState(true);
     const [accessDenied, setAccessDenied] = useState(false);
-    const [activeTab, setActiveTab] = useState<'leads' | 'users' | 'pricing'>('leads');
+    const [activeTab, setActiveTab] = useState<'leads' | 'presentations' | 'users' | 'pricing'>('leads');
 
     // Usuários e Precificação
     const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
@@ -239,6 +250,58 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
             setLeads(data);
         }
         setLoading(false);
+    };
+
+    const formatPhoneNumber = (value: string) => {
+        if (!value) return value;
+        const phoneNumber = value.replace(/\D/g, '');
+        const phoneNumberLength = phoneNumber.length;
+        if (phoneNumberLength <= 2) {
+            return phoneNumberLength > 0 ? `(${phoneNumber}` : '';
+        }
+        if (phoneNumberLength <= 6) {
+            return `(${phoneNumber.slice(0, 2)}) ${phoneNumber.slice(2)}`;
+        }
+        if (phoneNumberLength <= 10) {
+            return `(${phoneNumber.slice(0, 2)}) ${phoneNumber.slice(2, 6)}-${phoneNumber.slice(6)}`;
+        }
+        return `(${phoneNumber.slice(0, 2)}) ${phoneNumber.slice(2, 7)}-${phoneNumber.slice(7, 11)}`;
+    };
+
+    const handleEditLeadSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingLeadData) return;
+        try {
+            const { error } = await supabase
+                .from('leads')
+                .update({
+                    name: editingLeadData.name,
+                    email: editingLeadData.email,
+                    phone: editingLeadData.phone,
+                    profile: editingLeadData.profile,
+                    status: editingLeadData.status,
+                    answers: editingLeadData.answers
+                })
+                .eq('id', editingLeadData.id);
+
+            if (error) throw error;
+
+            setLeads(prev => prev.map(l => l.id === editingLeadData.id ? editingLeadData : l));
+            setSelectedLead(editingLeadData);
+            setIsEditLeadModalOpen(false);
+            showModal('success', 'Sucesso', 'Lead atualizado com sucesso.');
+        } catch (err: any) {
+            console.error('Erro ao atualizar lead:', err);
+            showModal('error', 'Erro ao Atualizar Lead', `Não foi possível atualizar o lead: ${err.message}`);
+        }
+    };
+
+    const getScheduledLeadsForPresentation = (type: 'personal' | 'business' | 'complete') => {
+        return leads.filter(lead => {
+            if (lead.status !== 'Agendado') return false;
+            const formType = lead.answers?.formType || 'personal';
+            return formType === type;
+        });
     };
 
     const checkUserRole = async () => {
@@ -874,6 +937,18 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                             <Users className="w-4 h-4" />
                             Leads
                         </button>
+                        <button
+                            type="button"
+                            onClick={() => { setActiveTab('presentations'); setSelectedLead(null); }}
+                            className={`px-5 py-3 border-b-2 text-sm font-bold transition-all flex items-center gap-2 ${
+                                activeTab === 'presentations'
+                                    ? 'border-gold-500 text-gold-400'
+                                    : 'border-transparent text-gray-500 hover:text-gray-400'
+                            }`}
+                        >
+                            <Presentation className="w-4 h-4" />
+                            Apresentações
+                        </button>
                         {(userRole === 'administrador' || userRole === 'secretario') && (
                             <button
                                 type="button"
@@ -1164,11 +1239,25 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                                                 
                                                 <button
                                                     onClick={() => setActivePresentationLead(selectedLead)}
-                                                    className="px-4 py-1.5 bg-gradient-to-r from-gold-600 via-amber-500 to-gold-500 text-dark-950 text-[10px] font-black rounded-lg shadow-xl shadow-gold-500/20 hover:shadow-gold-500/40 hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5 uppercase tracking-widest border border-gold-400/20"
+                                                    className="px-4 py-1.5 bg-gradient-to-r from-gold-600 via-amber-500 to-gold-500 text-dark-950 text-[10px] font-black rounded-lg shadow-xl shadow-gold-500/20 hover:shadow-gold-500/40 hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5 uppercase tracking-widest border border-gold-400/20 cursor-pointer"
                                                 >
                                                     <Sparkles className="w-3.5 h-3.5 text-dark-950 fill-current animate-pulse" />
                                                     Apresentação
                                                 </button>
+
+                                                {userRole === 'administrador' && (
+                                                    <button
+                                                        onClick={() => {
+                                                            setEditingLeadData(JSON.parse(JSON.stringify(selectedLead)));
+                                                            setEditLeadTab('info');
+                                                            setIsEditLeadModalOpen(true);
+                                                        }}
+                                                        className="px-4 py-1.5 bg-dark-800 hover:bg-dark-750 text-gray-300 hover:text-white text-[10px] font-bold rounded-lg border border-dark-700 transition-all flex items-center gap-1.5 uppercase tracking-widest cursor-pointer"
+                                                    >
+                                                        <Edit className="w-3.5 h-3.5 text-gold-500" />
+                                                        Editar Lead
+                                                    </button>
+                                                )}
                                             </div>
                                             <p className="text-sm text-gold-500 font-semibold tracking-wide">{selectedLead.profile}</p>
                                         </div>
@@ -1486,6 +1575,157 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                         </motion.div>
                     )}
                 </div>
+            )}
+
+            {activeTab === 'presentations' && (
+                <motion.div
+                    key="presentations-tab"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="space-y-8 font-sans animate-fade-in"
+                >
+                    {/* Apresentações Principais */}
+                    <div>
+                        <div className="flex flex-col gap-1 mb-6">
+                            <h2 className="text-xl font-serif text-white font-bold flex items-center gap-2">
+                                <Sparkles className="text-gold-500 w-5 h-5 animate-pulse" />
+                                Apresentações Principais (Diagnóstico)
+                            </h2>
+                            <p className="text-xs text-gray-500 font-light">
+                                Estas apresentações carregam dinamicamente as respostas de diagnóstico dos leads para conduzir a reunião estratégica.
+                            </p>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            {/* Card 1: Finanças Pessoais */}
+                            <div className="bg-dark-900 border border-dark-800 p-6 rounded-2xl flex flex-col justify-between hover:border-gold-500/30 transition-all hover:shadow-[0_0_20px_rgba(245,158,11,0.05)]">
+                                <div className="space-y-3">
+                                    <div className="w-10 h-10 bg-gold-500/10 rounded-xl flex items-center justify-center text-gold-500 border border-gold-500/20">
+                                        <User className="w-5 h-5" />
+                                    </div>
+                                    <h3 className="text-lg font-bold text-white font-serif">Finanças Pessoais</h3>
+                                    <p className="text-xs text-gray-400 font-light leading-relaxed">
+                                        Apresentação voltada para a organização financeira pessoal, definição de metas individuais ou familiares, e planejamento patrimonial.
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={() => setActivePresentationSelectType('personal')}
+                                    className="w-full mt-6 py-2.5 bg-gold-500 hover:bg-gold-400 text-black font-bold rounded-lg text-xs uppercase tracking-wider transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                                >
+                                    Ver Apresentação
+                                    <ArrowRight className="w-3.5 h-3.5 text-black font-bold" />
+                                </button>
+                            </div>
+
+                            {/* Card 2: Finanças Empresariais */}
+                            <div className="bg-dark-900 border border-dark-800 p-6 rounded-2xl flex flex-col justify-between hover:border-gold-500/30 transition-all hover:shadow-[0_0_20px_rgba(245,158,11,0.05)]">
+                                <div className="space-y-3">
+                                    <div className="w-10 h-10 bg-gold-500/10 rounded-xl flex items-center justify-center text-gold-500 border border-gold-500/20">
+                                        <DollarSign className="w-5 h-5" />
+                                    </div>
+                                    <h3 className="text-lg font-bold text-white font-serif">Finanças Empresariais</h3>
+                                    <p className="text-xs text-gray-400 font-light leading-relaxed">
+                                        Apresentação com foco no fluxo de caixa corporativo, margens de lucro, organização de contas da empresa e separação das finanças do sócio.
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={() => setActivePresentationSelectType('business')}
+                                    className="w-full mt-6 py-2.5 bg-gold-500 hover:bg-gold-400 text-black font-bold rounded-lg text-xs uppercase tracking-wider transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                                >
+                                    Ver Apresentação
+                                    <ArrowRight className="w-3.5 h-3.5 text-black font-bold" />
+                                </button>
+                            </div>
+
+                            {/* Card 3: Gestão Completa */}
+                            <div className="bg-dark-900 border border-dark-800 p-6 rounded-2xl flex flex-col justify-between hover:border-gold-500/30 transition-all hover:shadow-[0_0_20px_rgba(245,158,11,0.05)]">
+                                <div className="space-y-3">
+                                    <div className="w-10 h-10 bg-gold-500/10 rounded-xl flex items-center justify-center text-gold-500 border border-gold-500/20">
+                                        <Layers className="w-5 h-5" />
+                                    </div>
+                                    <h3 className="text-lg font-bold text-white font-serif">Gestão Completa</h3>
+                                    <p className="text-xs text-gray-400 font-light leading-relaxed">
+                                        Planejamento integrado que une finanças pessoais e empresariais. Indicado para empresários que desejam otimizar a distribuição de lucros.
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={() => setActivePresentationSelectType('complete')}
+                                    className="w-full mt-6 py-2.5 bg-gold-500 hover:bg-gold-400 text-black font-bold rounded-lg text-xs uppercase tracking-wider transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                                >
+                                    Ver Apresentação
+                                    <ArrowRight className="w-3.5 h-3.5 text-black font-bold" />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Apresentações Simples */}
+                    <div className="pt-6 border-t border-dark-800/60">
+                        <div className="flex flex-col gap-1 mb-6">
+                            <h2 className="text-xl font-serif text-white font-bold flex items-center gap-2">
+                                <Target className="text-gold-500 w-5 h-5" />
+                                Apresentações Simples
+                            </h2>
+                            <p className="text-xs text-gray-500 font-light">
+                                Apresentações informativas genéricas sem vinculação a questionários.
+                            </p>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            {/* Card 1: Planejamento de Metas */}
+                            <div className="bg-dark-900/40 border border-dark-800/80 p-6 rounded-2xl flex flex-col justify-between hover:border-dark-700 transition-all hover:shadow-[0_0_15px_rgba(255,255,255,0.01)]">
+                                <div className="space-y-2">
+                                    <span className="text-[9px] text-gold-500 font-black uppercase tracking-widest bg-gold-500/10 px-2 py-0.5 rounded border border-gold-500/20">Em Breve</span>
+                                    <h3 className="text-base font-bold text-white font-serif mt-2">Planejamento de Metas Rápidas</h3>
+                                    <p className="text-xs text-gray-500 font-light leading-relaxed">
+                                        Estrutura direta para desenhar prazos e valores para objetivos prioritários.
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={() => setShowSimplePresentationInfo('Planejamento de Metas Rápidas')}
+                                    className="w-full mt-6 py-2 bg-dark-800 hover:bg-dark-750 text-gray-400 hover:text-white rounded-lg text-xs uppercase tracking-wider transition-colors cursor-pointer border border-dark-700"
+                                >
+                                    Visualizar Roteiro
+                                </button>
+                            </div>
+
+                            {/* Card 2: Diagnóstico Expresso */}
+                            <div className="bg-dark-900/40 border border-dark-800/80 p-6 rounded-2xl flex flex-col justify-between hover:border-dark-700 transition-all hover:shadow-[0_0_15px_rgba(255,255,255,0.01)]">
+                                <div className="space-y-2">
+                                    <span className="text-[9px] text-gold-500 font-black uppercase tracking-widest bg-gold-500/10 px-2 py-0.5 rounded border border-gold-500/20">Em Breve</span>
+                                    <h3 className="text-base font-bold text-white font-serif mt-2">Diagnóstico Expresso de Investimentos</h3>
+                                    <p className="text-xs text-gray-500 font-light leading-relaxed">
+                                        Roteiro rápido focado em alocação de carteira básica e redução de riscos.
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={() => setShowSimplePresentationInfo('Diagnóstico Expresso de Investimentos')}
+                                    className="w-full mt-6 py-2 bg-dark-800 hover:bg-dark-750 text-gray-400 hover:text-white rounded-lg text-xs uppercase tracking-wider transition-colors cursor-pointer border border-dark-700"
+                                >
+                                    Visualizar Roteiro
+                                </button>
+                            </div>
+
+                            {/* Card 3: Mentalidade e Hábitos */}
+                            <div className="bg-dark-900/40 border border-dark-800/80 p-6 rounded-2xl flex flex-col justify-between hover:border-dark-700 transition-all hover:shadow-[0_0_15px_rgba(255,255,255,0.01)]">
+                                <div className="space-y-2">
+                                    <span className="text-[9px] text-gold-500 font-black uppercase tracking-widest bg-gold-500/10 px-2 py-0.5 rounded border border-gold-500/20">Em Breve</span>
+                                    <h3 className="text-base font-bold text-white font-serif mt-2">Mentalidade e Organização Diária</h3>
+                                    <p className="text-xs text-gray-500 font-light leading-relaxed">
+                                        Discussão simples sobre crenças financeiras e rotinas saudáveis de controle.
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={() => setShowSimplePresentationInfo('Mentalidade e Organização Diária')}
+                                    className="w-full mt-6 py-2 bg-dark-800 hover:bg-dark-750 text-gray-400 hover:text-white rounded-lg text-xs uppercase tracking-wider transition-colors cursor-pointer border border-dark-700"
+                                >
+                                    Visualizar Roteiro
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </motion.div>
             )}
 
             {activeTab === 'users' && (
@@ -2549,6 +2789,633 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                             </form>
                         </motion.div>
                     </div>
+                )}
+            </AnimatePresence>
+
+            {/* Modal Premium de Edição de Lead */}
+            <AnimatePresence>
+                {isEditLeadModalOpen && editingLeadData && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[160] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95, y: 15 }}
+                            animate={{ scale: 1, y: 0 }}
+                            exit={{ scale: 0.95, y: 15 }}
+                            className="w-full max-w-4xl bg-dark-900 border border-dark-800 rounded-2xl p-6 shadow-2xl space-y-4 font-sans max-h-[90vh] flex flex-col"
+                        >
+                            <div className="flex justify-between items-center border-b border-dark-800 pb-4 shrink-0">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-full bg-gold-500/10 border border-gold-500/20 flex items-center justify-center text-gold-500">
+                                        <Edit className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-lg font-bold text-white font-serif">Editar Respostas do Lead</h3>
+                                        <p className="text-xs text-gray-500 mt-0.5">{editingLeadData.name}</p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setIsEditLeadModalOpen(false)}
+                                    className="p-1.5 text-gray-500 hover:text-white rounded-lg transition-colors cursor-pointer"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+
+                            {/* Sub-abas de Edição */}
+                            <div className="flex border-b border-dark-800 gap-4 mb-2 shrink-0">
+                                <button
+                                    type="button"
+                                    onClick={() => setEditLeadTab('info')}
+                                    className={`px-4 py-2 border-b-2 text-xs font-bold transition-all uppercase tracking-wider cursor-pointer ${
+                                        editLeadTab === 'info'
+                                            ? 'border-gold-500 text-gold-400'
+                                            : 'border-transparent text-gray-500 hover:text-gray-400'
+                                    }`}
+                                >
+                                    Informações Básicas
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setEditLeadTab('answers')}
+                                    className={`px-4 py-2 border-b-2 text-xs font-bold transition-all uppercase tracking-wider cursor-pointer ${
+                                        editLeadTab === 'answers'
+                                            ? 'border-gold-500 text-gold-400'
+                                            : 'border-transparent text-gray-500 hover:text-gray-400'
+                                    }`}
+                                >
+                                    Respostas do Quiz
+                                </button>
+                            </div>
+
+                            <div className="flex-1 overflow-y-auto pr-2 space-y-6 py-2 min-h-0">
+                                {editLeadTab === 'info' && (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div className="space-y-2">
+                                            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider">Nome Completo</label>
+                                            <input
+                                                type="text"
+                                                required
+                                                value={editingLeadData.name}
+                                                onChange={(e) => setEditingLeadData({ ...editingLeadData, name: e.target.value })}
+                                                className="w-full bg-dark-950 border border-dark-800 rounded-lg p-3 text-sm outline-none focus:border-gold-500 transition-all font-medium text-slate-200"
+                                            />
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider">E-mail</label>
+                                            <input
+                                                type="email"
+                                                required
+                                                value={editingLeadData.email}
+                                                onChange={(e) => setEditingLeadData({ ...editingLeadData, email: e.target.value })}
+                                                className="w-full bg-dark-950 border border-dark-800 rounded-lg p-3 text-sm outline-none focus:border-gold-500 transition-all font-medium text-slate-200"
+                                            />
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider">Telefone</label>
+                                            <input
+                                                type="tel"
+                                                required
+                                                value={editingLeadData.phone}
+                                                onChange={(e) => setEditingLeadData({ ...editingLeadData, phone: formatPhoneNumber(e.target.value) })}
+                                                className="w-full bg-dark-950 border border-dark-800 rounded-lg p-3 text-sm outline-none focus:border-gold-500 transition-all font-medium text-slate-200"
+                                            />
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider">Status do Lead</label>
+                                            <select
+                                                value={editingLeadData.status}
+                                                onChange={(e: any) => setEditingLeadData({ ...editingLeadData, status: e.target.value })}
+                                                className="w-full bg-dark-950 border border-dark-800 rounded-lg p-3 text-sm outline-none focus:border-gold-500 transition-all font-medium cursor-pointer text-slate-200"
+                                            >
+                                                <option value="Verificar">Verificar</option>
+                                                <option value="Agendado">Agendado</option>
+                                                <option value="Consultoria">Consultoria</option>
+                                                <option value="Downsell">Downsell</option>
+                                                <option value="Perdido">Perdido</option>
+                                            </select>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider">Perfil Financeiro</label>
+                                            <select
+                                                value={editingLeadData.profile}
+                                                onChange={(e: any) => setEditingLeadData({ ...editingLeadData, profile: e.target.value })}
+                                                className="w-full bg-dark-950 border border-dark-800 rounded-lg p-3 text-sm outline-none focus:border-gold-500 transition-all font-medium cursor-pointer text-slate-200"
+                                            >
+                                                <option value="Desorganização Estrutural">Desorganização Estrutural</option>
+                                                <option value="Potencial Travado">Potencial Travado</option>
+                                                <option value="Executor Sem Direção">Executor Sem Direção</option>
+                                                <option value="Estruturado em Evolução">Estruturado em Evolução</option>
+                                            </select>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider">Tipo de Apresentação</label>
+                                            <select
+                                                value={editingLeadData.answers?.formType || 'personal'}
+                                                onChange={(e: any) => setEditingLeadData({
+                                                    ...editingLeadData,
+                                                    answers: {
+                                                        ...editingLeadData.answers,
+                                                        formType: e.target.value
+                                                    }
+                                                })}
+                                                className="w-full bg-dark-950 border border-dark-800 rounded-lg p-3 text-sm outline-none focus:border-gold-500 transition-all font-medium cursor-pointer text-slate-200"
+                                            >
+                                                <option value="personal">Finanças Pessoais</option>
+                                                <option value="business">Finanças Empresariais</option>
+                                                <option value="complete">Gestão Completa</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {editLeadTab === 'answers' && (
+                                    <div className="space-y-6">
+                                        {/* Pergunta 1 */}
+                                        <div className="space-y-2 border-b border-dark-800 pb-4">
+                                            <label className="block text-xs font-bold text-gold-500 uppercase tracking-wider">1. Principal Problema Financeiro</label>
+                                            <textarea
+                                                rows={2}
+                                                value={editingLeadData.answers.mainProblem || ''}
+                                                onChange={(e) => setEditingLeadData({
+                                                    ...editingLeadData,
+                                                    answers: { ...editingLeadData.answers, mainProblem: e.target.value }
+                                                })}
+                                                className="w-full bg-dark-950 border border-dark-800 rounded-lg p-3 text-sm outline-none focus:border-gold-500 transition-all font-medium resize-none text-slate-200"
+                                            />
+                                        </div>
+
+                                        {/* Pergunta 2 */}
+                                        <div className="space-y-4 border-b border-dark-800 pb-4">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div className="space-y-2">
+                                                    <label className="block text-xs font-bold text-gold-500 uppercase tracking-wider">2. Já tentou fazer algo para resolver?</label>
+                                                    <select
+                                                        value={editingLeadData.answers.triedSolution || ''}
+                                                        onChange={(e) => setEditingLeadData({
+                                                            ...editingLeadData,
+                                                            answers: {
+                                                                ...editingLeadData.answers,
+                                                                triedSolution: e.target.value as any,
+                                                                triedSolutionDescription: e.target.value === 'Não' ? '' : editingLeadData.answers.triedSolutionDescription
+                                                            }
+                                                        })}
+                                                        className="w-full bg-dark-950 border border-dark-800 rounded-lg p-3 text-sm outline-none focus:border-gold-500 transition-all font-medium cursor-pointer text-slate-200"
+                                                    >
+                                                        <option value="">Selecione...</option>
+                                                        <option value="Sim">Sim</option>
+                                                        <option value="Não">Não</option>
+                                                    </select>
+                                                </div>
+
+                                                {editingLeadData.answers.triedSolution === 'Sim' && (
+                                                    <div className="space-y-2">
+                                                        <label className="block text-xs font-bold text-gold-500 uppercase tracking-wider">O que você já tentou fazer?</label>
+                                                        <textarea
+                                                            rows={2}
+                                                            value={editingLeadData.answers.triedSolutionDescription || ''}
+                                                            onChange={(e) => setEditingLeadData({
+                                                                ...editingLeadData,
+                                                                answers: { ...editingLeadData.answers, triedSolutionDescription: e.target.value }
+                                                            })}
+                                                            className="w-full bg-dark-950 border border-dark-800 rounded-lg p-3 text-sm outline-none focus:border-gold-500 transition-all font-medium resize-none text-slate-200"
+                                                        />
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Pergunta 3 e 4 */}
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-b border-dark-800 pb-4">
+                                            <div className="space-y-2">
+                                                <label className="block text-xs font-bold text-gold-500 uppercase tracking-wider">3. Faixa de Renda Mensal</label>
+                                                <select
+                                                    value={editingLeadData.answers.incomeRange || ''}
+                                                    onChange={(e: any) => setEditingLeadData({
+                                                        ...editingLeadData,
+                                                        answers: { ...editingLeadData.answers, incomeRange: e.target.value }
+                                                    })}
+                                                    className="w-full bg-dark-950 border border-dark-800 rounded-lg p-3 text-sm outline-none focus:border-gold-500 transition-all font-medium cursor-pointer text-slate-200"
+                                                >
+                                                    <option value="">Selecione...</option>
+                                                    <option value="Até 10 mil reais">Até 10 mil reais</option>
+                                                    <option value="De 10 a 12 mil reais">De 10 a 12 mil reais</option>
+                                                    <option value="De 12 a 14 mil reais">De 12 a 14 mil reais</option>
+                                                    <option value="De 14 a 18 mil reais">De 14 a 18 mil reais</option>
+                                                    <option value="Acima de 18 mil reais">Acima de 18 mil reais</option>
+                                                </select>
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                <label className="block text-xs font-bold text-gold-500 uppercase tracking-wider">4. Profissão</label>
+                                                <input
+                                                    type="text"
+                                                    value={editingLeadData.answers.profession || ''}
+                                                    onChange={(e) => setEditingLeadData({
+                                                        ...editingLeadData,
+                                                        answers: { ...editingLeadData.answers, profession: e.target.value }
+                                                    })}
+                                                    className="w-full bg-dark-950 border border-dark-800 rounded-lg p-3 text-sm outline-none focus:border-gold-500 transition-all font-medium text-slate-200"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* Pergunta 5 e 6 */}
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-b border-dark-800 pb-4">
+                                            <div className="space-y-2">
+                                                <label className="block text-xs font-bold text-gold-500 uppercase tracking-wider">5. Possui Cônjuge?</label>
+                                                <select
+                                                    value={editingLeadData.answers.spouse || ''}
+                                                    onChange={(e: any) => setEditingLeadData({
+                                                        ...editingLeadData,
+                                                        answers: { ...editingLeadData.answers, spouse: e.target.value }
+                                                    })}
+                                                    className="w-full bg-dark-950 border border-dark-850 rounded-lg p-3 text-sm outline-none focus:border-gold-500 transition-all font-medium cursor-pointer text-slate-200"
+                                                >
+                                                    <option value="">Selecione...</option>
+                                                    <option value="Cônjuge">Cônjuge</option>
+                                                    <option value="Sem cônjuge">Sem cônjuge</option>
+                                                </select>
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                <label className="block text-xs font-bold text-gold-500 uppercase tracking-wider">6. Possui Filhos?</label>
+                                                <select
+                                                    value={editingLeadData.answers.children || ''}
+                                                    onChange={(e: any) => setEditingLeadData({
+                                                        ...editingLeadData,
+                                                        answers: { ...editingLeadData.answers, children: e.target.value }
+                                                    })}
+                                                    className="w-full bg-dark-950 border border-dark-800 rounded-lg p-3 text-sm outline-none focus:border-gold-500 transition-all font-medium cursor-pointer text-slate-200"
+                                                >
+                                                    <option value="">Selecione...</option>
+                                                    <option value="1 filho">1 filho</option>
+                                                    <option value="2 filhos">2 filhos</option>
+                                                    <option value="3 ou mais filhos">3 ou mais filhos</option>
+                                                    <option value="Não possuo filhos">Não possuo filhos</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        {/* Pergunta 7 */}
+                                        <div className="space-y-4 border-b border-dark-800 pb-4">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div className="space-y-2">
+                                                    <label className="block text-xs font-bold text-gold-500 uppercase tracking-wider">7. Possui outros dependentes?</label>
+                                                    <select
+                                                        value={editingLeadData.answers.otherDependents || ''}
+                                                        onChange={(e: any) => setEditingLeadData({
+                                                            ...editingLeadData,
+                                                            answers: {
+                                                                ...editingLeadData.answers,
+                                                                otherDependents: e.target.value,
+                                                                otherDependentsCount: e.target.value === 'Não possuo outros dependentes' ? undefined : editingLeadData.answers.otherDependentsCount
+                                                            }
+                                                        })}
+                                                        className="w-full bg-dark-950 border border-dark-800 text-white rounded-lg p-3 text-sm outline-none focus:border-gold-500 transition-all font-medium cursor-pointer"
+                                                    >
+                                                        <option value="">Selecione...</option>
+                                                        <option value="Possuo outros dependentes">Possuo outros dependentes</option>
+                                                        <option value="Não possuo outros dependentes">Não possuo outros dependentes</option>
+                                                    </select>
+                                                </div>
+
+                                                {editingLeadData.answers.otherDependents === 'Possuo outros dependentes' && (
+                                                    <div className="space-y-2">
+                                                        <label className="block text-xs font-bold text-gold-500 uppercase tracking-wider">Quantos outros dependentes?</label>
+                                                        <input
+                                                            type="number"
+                                                            min={0}
+                                                            value={editingLeadData.answers.otherDependentsCount || 0}
+                                                            onChange={(e) => setEditingLeadData({
+                                                                ...editingLeadData,
+                                                                answers: { ...editingLeadData.answers, otherDependentsCount: parseInt(e.target.value, 10) || 0 }
+                                                            })}
+                                                            className="w-full bg-dark-950 border border-dark-800 rounded-lg p-3 text-sm outline-none focus:border-gold-500 transition-all font-medium text-slate-200"
+                                                        />
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Pergunta 8 e 9 */}
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-b border-dark-800 pb-4">
+                                            <div className="space-y-2">
+                                                <label className="block text-xs font-bold text-gold-500 uppercase tracking-wider">8. Como está sua vida financeira hoje?</label>
+                                                <select
+                                                    value={editingLeadData.answers.financialState || ''}
+                                                    onChange={(e: any) => setEditingLeadData({
+                                                        ...editingLeadData,
+                                                        answers: { ...editingLeadData.answers, financialState: e.target.value }
+                                                    })}
+                                                    className="w-full bg-dark-950 border border-dark-800 text-white rounded-lg p-3 text-sm outline-none focus:border-gold-500 transition-all font-medium cursor-pointer"
+                                                >
+                                                    <option value="">Selecione...</option>
+                                                    <option value="Desorganizada e preocupante">Desorganizada e preocupante</option>
+                                                    <option value="Vivendo dia após dia">Vivendo dia após dia</option>
+                                                    <option value="Estável mas sem crescimento">Estável mas sem crescimento</option>
+                                                    <option value="Organizada mas quero evoluir">Organizada mas quero evoluir</option>
+                                                    <option value="Muito bem estruturada">Muito bem estruturada</option>
+                                                </select>
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                <label className="block text-xs font-bold text-gold-500 uppercase tracking-wider">9. Possui metas financeiras claras?</label>
+                                                <select
+                                                    value={editingLeadData.answers.goals || ''}
+                                                    onChange={(e: any) => setEditingLeadData({
+                                                        ...editingLeadData,
+                                                        answers: { ...editingLeadData.answers, goals: e.target.value }
+                                                    })}
+                                                    className="w-full bg-dark-950 border border-dark-800 text-white rounded-lg p-3 text-sm outline-none focus:border-gold-500 transition-all font-medium cursor-pointer"
+                                                >
+                                                    <option value="">Selecione...</option>
+                                                    <option value="Não tenho metas definidas">Não tenho metas definidas</option>
+                                                    <option value="Tenho metas mas não sei como alcançar">Tenho metas mas não sei como alcançar</option>
+                                                    <option value="Tenho metas e estou tentando executar">Tenho metas e estou tentando executar</option>
+                                                    <option value="Tenho metas e estratégia definida">Tenho metas e estratégia definida</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        {/* Pergunta 10 */}
+                                        <div className="space-y-4 border-b border-dark-800 pb-4">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div className="space-y-2">
+                                                    <label className="block text-xs font-bold text-gold-500 uppercase tracking-wider">10. Possui cartão de crédito?</label>
+                                                    <select
+                                                        value={editingLeadData.answers.hasCreditCard || ''}
+                                                        onChange={(e: any) => setEditingLeadData({
+                                                            ...editingLeadData,
+                                                            answers: {
+                                                                ...editingLeadData.answers,
+                                                                hasCreditCard: e.target.value,
+                                                                creditCardIsProblem: e.target.value === 'Não' ? '' : editingLeadData.answers.creditCardIsProblem
+                                                            }
+                                                        })}
+                                                        className="w-full bg-dark-950 border border-dark-800 text-white rounded-lg p-3 text-sm outline-none focus:border-gold-500 transition-all font-medium cursor-pointer"
+                                                    >
+                                                        <option value="">Selecione...</option>
+                                                        <option value="Sim">Sim</option>
+                                                        <option value="Não">Não</option>
+                                                    </select>
+                                                </div>
+
+                                                {editingLeadData.answers.hasCreditCard === 'Sim' && (
+                                                    <div className="space-y-2">
+                                                        <label className="block text-xs font-bold text-gold-500 uppercase tracking-wider">O cartão de crédito é um problema financeiro?</label>
+                                                        <select
+                                                            value={editingLeadData.answers.creditCardIsProblem || ''}
+                                                            onChange={(e: any) => setEditingLeadData({
+                                                                ...editingLeadData,
+                                                                answers: { ...editingLeadData.answers, creditCardIsProblem: e.target.value }
+                                                            })}
+                                                            className="w-full bg-dark-950 border border-dark-800 text-white rounded-lg p-3 text-sm outline-none focus:border-gold-500 transition-all font-medium cursor-pointer"
+                                                        >
+                                                            <option value="">Selecione...</option>
+                                                            <option value="Sim">Sim</option>
+                                                            <option value="Não">Não</option>
+                                                        </select>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Pergunta 11 */}
+                                        <div className="space-y-2 border-b border-dark-800 pb-4">
+                                            <label className="block text-xs font-bold text-gold-500 uppercase tracking-wider">11. Perspectiva da vida financeira daqui a 6 meses se nada mudar</label>
+                                            <select
+                                                value={editingLeadData.answers.futureOutlook || ''}
+                                                onChange={(e: any) => setEditingLeadData({
+                                                    ...editingLeadData,
+                                                    answers: { ...editingLeadData.answers, futureOutlook: e.target.value }
+                                                })}
+                                                className="w-full bg-dark-950 border border-dark-800 text-white rounded-lg p-3 text-sm outline-none focus:border-gold-500 transition-all font-medium cursor-pointer"
+                                            >
+                                                <option value="">Selecione...</option>
+                                                <option value="Pior do que hoje">Pior do que hoje</option>
+                                                <option value="Igual ao que está">Igual ao que está</option>
+                                                <option value="Um pouco melhor">Um pouco melhor</option>
+                                                <option value="Muito melhor">Muito melhor</option>
+                                                <option value="Não faço ideia">Não faço ideia</option>
+                                            </select>
+                                        </div>
+
+                                        {/* Pergunta 12 */}
+                                        <div className="space-y-4 border-b border-dark-800 pb-4">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div className="space-y-2">
+                                                    <label className="block text-xs font-bold text-gold-500 uppercase tracking-wider">12. Depende de outra pessoa para tomar decisões?</label>
+                                                    <select
+                                                        value={editingLeadData.answers.dependsOnOthers || ''}
+                                                        onChange={(e: any) => setEditingLeadData({
+                                                            ...editingLeadData,
+                                                            answers: {
+                                                                ...editingLeadData.answers,
+                                                                dependsOnOthers: e.target.value,
+                                                                dependsOnOthersReason: e.target.value === 'Não' ? '' : editingLeadData.answers.dependsOnOthersReason
+                                                            }
+                                                        })}
+                                                        className="w-full bg-dark-950 border border-dark-800 text-white rounded-lg p-3 text-sm outline-none focus:border-gold-500 transition-all font-medium cursor-pointer"
+                                                    >
+                                                        <option value="">Selecione...</option>
+                                                        <option value="Sim">Sim</option>
+                                                        <option value="Não">Não</option>
+                                                    </select>
+                                                </div>
+
+                                                {editingLeadData.answers.dependsOnOthers === 'Sim' && (
+                                                    <div className="space-y-2">
+                                                        <label className="block text-xs font-bold text-gold-500 uppercase tracking-wider">Se a pessoa falar NÃO, você desiste de investir em você?</label>
+                                                        <select
+                                                            value={editingLeadData.answers.dependsOnOthersReason || ''}
+                                                            onChange={(e: any) => setEditingLeadData({
+                                                                ...editingLeadData,
+                                                                answers: { ...editingLeadData.answers, dependsOnOthersReason: e.target.value }
+                                                            })}
+                                                            className="w-full bg-dark-950 border border-dark-800 text-white rounded-lg p-3 text-sm outline-none focus:border-gold-500 transition-all font-medium cursor-pointer"
+                                                        >
+                                                            <option value="">Selecione...</option>
+                                                            <option value="Sim">Sim</option>
+                                                            <option value="Não">Não</option>
+                                                        </select>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Pergunta 13 */}
+                                        <div className="space-y-2 pb-4">
+                                            <label className="block text-xs font-bold text-gold-500 uppercase tracking-wider">13. Nível de Comprometimento (0 a 10)</label>
+                                            <input
+                                                type="number"
+                                                min={0}
+                                                max={10}
+                                                value={editingLeadData.answers.commitmentScale || '0'}
+                                                onChange={(e) => setEditingLeadData({
+                                                    ...editingLeadData,
+                                                    answers: { ...editingLeadData.answers, commitmentScale: e.target.value }
+                                                })}
+                                                className="w-full bg-dark-950 border border-dark-800 rounded-lg p-3 text-sm outline-none focus:border-gold-500 transition-all font-medium text-slate-200"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="flex justify-end gap-3 border-t border-dark-800 pt-4 shrink-0">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsEditLeadModalOpen(false)}
+                                    className="px-6 py-2.5 bg-dark-800 hover:bg-dark-750 text-gray-300 hover:text-white rounded-xl transition-all border border-dark-700 text-xs font-bold uppercase tracking-widest cursor-pointer"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleEditLeadSubmit}
+                                    className="px-6 py-2.5 bg-gradient-to-r from-gold-600 via-amber-500 to-gold-500 text-dark-950 font-black rounded-xl shadow-lg shadow-gold-500/25 transition-all text-xs uppercase tracking-widest cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
+                                >
+                                    Salvar Alterações
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Modal de Seleção de Lead para Apresentação Principal */}
+            <AnimatePresence>
+                {activePresentationSelectType && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95, y: 15 }}
+                            animate={{ scale: 1, y: 0 }}
+                            exit={{ scale: 0.95, y: 15 }}
+                            className="w-full max-w-lg bg-dark-900 border border-dark-800 rounded-2xl p-6 shadow-2xl space-y-4 font-sans max-h-[85vh] flex flex-col"
+                        >
+                            <div className="flex justify-between items-center border-b border-dark-800 pb-4 shrink-0">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-full bg-gold-500/10 border border-gold-500/20 flex items-center justify-center text-gold-500">
+                                        <Presentation className="w-5 h-5 animate-pulse" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-lg font-bold text-white font-serif">
+                                            {activePresentationSelectType === 'personal' && 'Apresentação: Finanças Pessoais'}
+                                            {activePresentationSelectType === 'business' && 'Apresentação: Finanças Empresariais'}
+                                            {activePresentationSelectType === 'complete' && 'Apresentação: Gestão Completa'}
+                                        </h3>
+                                        <p className="text-xs text-gray-500 mt-0.5">Selecione um lead agendado compatível para apresentar</p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setActivePresentationSelectType(null)}
+                                    className="p-1.5 text-gray-500 hover:text-white rounded-lg transition-colors cursor-pointer"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+
+                            <div className="flex-1 overflow-y-auto pr-2 space-y-2 py-2 min-h-0">
+                                {(() => {
+                                    const filtered = getScheduledLeadsForPresentation(activePresentationSelectType);
+                                    if (filtered.length === 0) {
+                                        return (
+                                            <div className="py-12 text-center text-gray-500 space-y-3">
+                                                <AlertCircle className="w-10 h-10 text-gray-600 mx-auto animate-pulse" />
+                                                <div className="space-y-1">
+                                                    <p className="text-sm font-semibold text-gray-400">Nenhum lead agendado compatível</p>
+                                                    <p className="text-xs text-gray-500 font-light max-w-xs mx-auto leading-relaxed">
+                                                        Não existem leads com status <strong className="text-gray-400">"Agendado"</strong> classificados com o perfil desta apresentação no momento.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        );
+                                    }
+
+                                    return filtered.map((lead) => (
+                                        <button
+                                            key={lead.id}
+                                            onClick={() => {
+                                                setActivePresentationLead(lead);
+                                                setActivePresentationSelectType(null);
+                                            }}
+                                            className="w-full text-left p-4 bg-dark-950 border border-dark-800/80 hover:border-gold-500/40 rounded-xl transition-all flex justify-between items-center group cursor-pointer"
+                                        >
+                                            <div className="space-y-1">
+                                                <p className="text-sm font-bold text-white group-hover:text-gold-400 transition-colors">{lead.name}</p>
+                                                <p className="text-xs text-gray-400 font-light truncate max-w-[200px] sm:max-w-xs">{lead.email}</p>
+                                                <p className="text-[10px] text-gray-500">{lead.phone}</p>
+                                            </div>
+                                            <ArrowRight className="w-4 h-4 text-gray-600 group-hover:text-gold-500 transition-all transform group-hover:translate-x-1" />
+                                        </button>
+                                    ));
+                                })()}
+                            </div>
+
+                            <div className="flex justify-end border-t border-dark-800 pt-4 shrink-0">
+                                <button
+                                    onClick={() => setActivePresentationSelectType(null)}
+                                    className="px-5 py-2 bg-dark-800 hover:bg-dark-750 text-gray-300 hover:text-white rounded-lg text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer"
+                                >
+                                    Fechar
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Modal Premium de Aviso para Apresentações Simples */}
+            <AnimatePresence>
+                {showSimplePresentationInfo && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95, y: 15 }}
+                            animate={{ scale: 1, y: 0 }}
+                            exit={{ scale: 0.95, y: 15 }}
+                            className="w-full max-w-md bg-dark-900 border border-dark-800 rounded-2xl p-6 shadow-2xl space-y-6 text-center font-sans"
+                        >
+                            <div className="w-16 h-16 bg-gold-500/10 rounded-full flex items-center justify-center mx-auto border border-gold-500/20 text-gold-500">
+                                <Sparkles className="w-8 h-8 animate-bounce text-gold-500" />
+                            </div>
+
+                            <div className="space-y-2">
+                                <h3 className="text-xl font-bold text-white font-serif">{showSimplePresentationInfo}</h3>
+                                <p className="text-sm text-gray-400 leading-relaxed font-light">
+                                    Esta apresentação simples está sendo preparada e será disponibilizada no sistema em breve.
+                                </p>
+                                <p className="text-xs text-gray-500 italic font-light pt-2">
+                                    Você poderá utilizar roteiros customizados de slides rápidos para conversar com seus leads.
+                                </p>
+                            </div>
+
+                            <button
+                                onClick={() => setShowSimplePresentationInfo(null)}
+                                className="w-full py-3 bg-gold-500 hover:bg-gold-400 text-black font-black rounded-lg text-xs uppercase tracking-widest transition-colors cursor-pointer"
+                            >
+                                Entendido
+                            </button>
+                        </motion.div>
+                    </motion.div>
                 )}
             </AnimatePresence>
         </div>
