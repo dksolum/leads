@@ -5,6 +5,22 @@ import { calculateProfile, generateReportText } from '../utils/logic';
 import { Calendar, MessageCircle, Lock, TrendingUp, Check, ArrowRight, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
+const formatPhoneNumber = (value: string) => {
+    if (!value) return value;
+    const phoneNumber = value.replace(/\D/g, '');
+    const phoneNumberLength = phoneNumber.length;
+    if (phoneNumberLength <= 2) {
+        return phoneNumberLength > 0 ? `(${phoneNumber}` : '';
+    }
+    if (phoneNumberLength <= 6) {
+        return `(${phoneNumber.slice(0, 2)}) ${phoneNumber.slice(2)}`;
+    }
+    if (phoneNumberLength <= 10) {
+        return `(${phoneNumber.slice(0, 2)}) ${phoneNumber.slice(2, 6)}-${phoneNumber.slice(6)}`;
+    }
+    return `(${phoneNumber.slice(0, 2)}) ${phoneNumber.slice(2, 7)}-${phoneNumber.slice(7, 11)}`;
+};
+
 interface Props {
     answers: UserAnswers;
 }
@@ -234,7 +250,7 @@ export const Result: React.FC<Props> = ({ answers }) => {
                                                         type="tel"
                                                         required
                                                         value={strategyPhone}
-                                                        onChange={(e) => setStrategyPhone(e.target.value)}
+                                                        onChange={(e) => setStrategyPhone(formatPhoneNumber(e.target.value))}
                                                         className="w-full bg-dark-900 border border-dark-600 rounded p-3 text-white focus:border-gold-500 outline-none"
                                                         placeholder="(XX) 99999-9999"
                                                     />
@@ -331,7 +347,7 @@ export const Result: React.FC<Props> = ({ answers }) => {
                                                         type="tel"
                                                         required
                                                         value={directWhatsappNumber}
-                                                        onChange={(e) => setDirectWhatsappNumber(e.target.value)}
+                                                        onChange={(e) => setDirectWhatsappNumber(formatPhoneNumber(e.target.value))}
                                                         className="w-full bg-dark-900 border border-dark-600 rounded p-3 text-white focus:border-yellow-500 outline-none"
                                                         placeholder="(XX) 99999-9999"
                                                     />
@@ -408,7 +424,7 @@ export const Result: React.FC<Props> = ({ answers }) => {
                                                 type="tel"
                                                 required
                                                 value={whatsappNumber}
-                                                onChange={(e) => setWhatsappNumber(e.target.value)}
+                                                onChange={(e) => setWhatsappNumber(formatPhoneNumber(e.target.value))}
                                                 className="w-full bg-dark-900 border border-dark-600 rounded p-3 text-white focus:border-red-500 outline-none"
                                                 placeholder="(XX) 99999-9999"
                                             />
