@@ -1174,16 +1174,18 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm font-medium border-t lg:border-t-0 border-dark-800/60 pt-4 lg:pt-0">
-                                        <div className="flex items-center gap-2 text-gray-300">
-                                            <Mail className="w-4 h-4 text-gold-500" />
-                                            <span>{selectedLead.email}</span>
+                                    <div className="flex flex-col sm:flex-row sm:flex-wrap lg:justify-end gap-x-6 gap-y-3 text-sm font-medium border-t lg:border-t-0 border-dark-800/60 pt-4 lg:pt-0 max-w-full">
+                                        <div className="flex items-center gap-2 text-gray-300 min-w-0">
+                                            <Mail className="w-4 h-4 text-gold-500 shrink-0" />
+                                            <span className="truncate max-w-[220px] sm:max-w-xs md:max-w-sm" title={selectedLead.email}>
+                                                {selectedLead.email}
+                                            </span>
                                         </div>
-                                        <div className="flex items-center gap-2 text-gray-300">
+                                        <div className="flex items-center gap-2 text-gray-300 shrink-0">
                                             <Phone className="w-4 h-4 text-gold-500" />
                                             <span>{selectedLead.phone}</span>
                                         </div>
-                                        <div className="flex items-center gap-2 text-gray-300">
+                                        <div className="flex items-center gap-2 text-gray-300 shrink-0">
                                             <Layers className="w-4 h-4 text-gold-500" />
                                             <span>Origem: {selectedLead.action_type}</span>
                                         </div>

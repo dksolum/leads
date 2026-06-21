@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UserAnswers, QuestionStep, DependentType } from '../types';
 import { ProgressBar } from './ProgressBar';
@@ -147,6 +147,12 @@ export const Quiz: React.FC<Props> = ({ onComplete }) => {
     dependsOnOthersReason: '',
     commitmentScale: '',
   });
+  const answersRef = useRef(answers);
+
+  useEffect(() => {
+    answersRef.current = answers;
+  }, [answers]);
+
   const [error, setError] = useState('');
 
   const currentQ = questions[step];
@@ -184,7 +190,7 @@ export const Quiz: React.FC<Props> = ({ onComplete }) => {
     if (step < questions.length - 1) {
       setStep(prev => prev + 1);
     } else {
-      onComplete(answers);
+      onComplete(answersRef.current);
     }
   };
 
@@ -204,7 +210,7 @@ export const Quiz: React.FC<Props> = ({ onComplete }) => {
         if (step < questions.length - 1) {
           setStep(prev => prev + 1);
         } else {
-          onComplete({ ...answers, [currentQ.field]: value });
+          onComplete({ ...answersRef.current, [currentQ.field]: value });
         }
       }, 350);
     }
