@@ -1304,7 +1304,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                     onClick={handleColetaNext}
                     className="px-8 py-4 bg-gradient-to-r from-gold-600 to-amber-500 hover:from-gold-500 hover:to-amber-400 text-dark-950 font-black rounded-xl shadow-lg transition-all duration-300 uppercase tracking-widest text-xs flex items-center justify-center gap-2"
                   >
-                    {coletaStep === 6 ? 'Ir para Parte 2' : 'Próxima Pergunta'}
+                    {coletaStep === 6 ? 'Continuar' : 'Próxima Pergunta'}
                     <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
@@ -1454,10 +1454,10 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                       >
                         <div className="flex items-center gap-2 text-gold-500 font-bold text-sm">
                           <Sparkle className="w-4 h-4 fill-current animate-spin-slow" />
-                          A Consultoria cabe na sua rotina corrida
+                          Saiba que a consultoria cabe na sua rotina
                         </div>
                         <p className="text-xs text-gray-300 font-light leading-relaxed">
-                          Nosso método é direto ao ponto e focado em alta eficiência. Você precisará de apenas **1 a 2 reuniões mensais** e pequenas tarefas práticas de **15 minutos por semana**. Nós fazemos todo o trabalho pesado de consolidação e análise para que você dedique seu tempo apenas às decisões estratégicas de crescimento.
+                          Você precisa de apenas 5 a 15 minutos por dia (isso para os dias que, realmente, tiver necessidade). É algo que vai tomar pouco tempo agora para que você tenha mais tempo depois.
                         </p>
                       </motion.div>
                     )}
@@ -1471,10 +1471,10 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                       >
                         <div className="flex items-center gap-2 text-emerald-400 font-bold text-sm">
                           <Sparkles className="w-4 h-4 text-emerald-400 fill-current animate-pulse" />
-                          Excelente! O processo acelerará seus resultados
+                          Excelente! Saiba que a consultoria vai acelerar os seus resultados
                         </div>
                         <p className="text-xs text-gray-300 font-light leading-relaxed">
-                          Como você tem disponibilidade de tempo, o processo de consultoria será ainda mais dinâmico e integrado. Conseguiremos focar na consolidação de metas com maior rapidez, sem que isso interfira ou atrapalhe a rotina que você já tem estabelecida.
+                          Você precisa de apenas 5 a 15 minutos por dia (isso para os dias que, realmente, tiver necessidade). É algo que vai tomar pouco tempo agora para que você tenha mais tempo depois.
                         </p>
                       </motion.div>
                     )}
@@ -1490,7 +1490,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                     }}
                     className="px-6 py-3 bg-dark-850 hover:bg-dark-800 border border-dark-800 text-gray-300 rounded-xl text-xs font-bold uppercase tracking-widest transition-all"
                   >
-                    Voltar para Parte 1
+                    Retornar
                   </button>
                   <button
                     onClick={() => handleSaveAndNavigate('adequacao')}
@@ -1508,9 +1508,9 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
               <div className="space-y-8">
                 <div className="text-center space-y-3">
                   <h3 className="text-xs font-bold uppercase tracking-widest text-gold-500 font-mono">Público Alvo</h3>
-                  <h1 className="font-serif font-bold text-3xl md:text-5xl text-white">A Consultoria é adequada para você?</h1>
+                  <h1 className="font-serif font-bold text-3xl md:text-5xl text-white">Para quem a Consultoria gera mais resultado?</h1>
                   <p className="text-gray-400 text-sm md:text-base max-w-xl mx-auto font-light">
-                    Buscamos trabalhar com clientes focados na transformação de longo prazo. Entenda onde a solução gera maior valor.
+                    A consultoria foi criada para pessoas que desejam mais clareza, organização e crescimento patrimonial.
                   </p>
                 </div>
 
@@ -1521,7 +1521,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                     <div className="absolute top-0 right-0 w-24 h-24 bg-gold-500/5 rounded-full filter blur-2xl"></div>
                     <h3 className="text-lg font-bold text-gold-400 flex items-center gap-2">
                       <Check className="w-5 h-5 text-gold-500 animate-pulse" />
-                      A Consultoria é perfeita para você se:
+                      A Consultoria é ideal para:
                     </h3>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1531,7 +1531,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                           <HelpCircle className="w-4 h-4" />
                         </div>
                         <p className="text-xs text-gray-300 font-light leading-relaxed">
-                          Você tem dúvidas do quanto gasta por mês e para onde está indo seu dinheiro.
+                          Quem tem uma boa renda, mas sente que poderia administrar melhor os seus recursos.
                         </p>
                       </div>
 
@@ -1541,7 +1541,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                           <Target className="w-4 h-4" />
                         </div>
                         <p className="text-xs text-gray-300 font-light leading-relaxed">
-                          Você sente que não estão bem definidos seus objetivos de vida com prazos e valores.
+                          Quem tem objetivos importantes, mas ainda não transformou tudo em um plano claro (com prazos e valores).
                         </p>
                       </div>
 
@@ -1551,7 +1551,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                           <TrendingDown className="w-4 h-4" />
                         </div>
                         <p className="text-xs text-gray-300 font-light leading-relaxed">
-                          Você possui dívidas que estão pesando seu orçamento ou deixando seu gastos durante o mês muito altos.
+                          Quem sente que algumas decisões financeiras do passado ainda limitam o seu crescimento.
                         </p>
                       </div>
 
@@ -1561,7 +1561,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                           <TrendingUp className="w-4 h-4" />
                         </div>
                         <p className="text-xs text-gray-300 font-light leading-relaxed">
-                          Você já investe ou gostaria de começar a investir, mas tem medo de fazer algo errado e perder dinheiro.
+                          Quem quer fazer seu patrimônio crescer com mais segurança e estratégia.
                         </p>
                       </div>
                     </div>
@@ -1571,42 +1571,42 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                   <div className="lg:col-span-5 bg-dark-900 border border-dark-800 p-6 md:p-8 rounded-3xl space-y-6 shadow-lg">
                     <h3 className="text-lg font-bold text-white flex items-center gap-2">
                       <AlertCircle className="w-5 h-5 text-gray-500" />
-                      Principais gargalos que eliminamos:
+                      Desafios mais comuns dos meus clientes:
                     </h3>
                     <ul className="space-y-4 text-sm text-gray-300 font-light">
                       <li className="flex items-start gap-3">
                         <span className="text-gold-500 font-bold shrink-0 mt-0.5">•</span>
                         <div>
-                          <strong className="block text-white text-sm font-semibold">Desorganização Invisível</strong>
+                          <strong className="block text-white text-sm font-semibold">Falta de clareza financeira</strong>
                           <span className="text-gray-400 text-xs font-light block mt-0.5">
-                            Falta de rastreabilidade de gastos e limites no cartão de crédito.
+                            Recebe o dinheiro, mas não tem uma visão completa de para onde ele está sendo direcionado.
                           </span>
                         </div>
                       </li>
                       <li className="flex items-start gap-3">
                         <span className="text-gold-500 font-bold shrink-0 mt-0.5">•</span>
                         <div>
-                          <strong className="block text-white text-sm font-semibold">Insegurança Futura</strong>
+                          <strong className="block text-white text-sm font-semibold">Incerteza sobre o futuro</strong>
                           <span className="text-gray-400 text-xs font-light block mt-0.5">
-                            Ausência de uma reserva sólida para imprevistos de saúde ou trabalho.
+                            Dificuldade para saber se o patrimônio atual será suficiente para seus planos e imprevistos.
                           </span>
                         </div>
                       </li>
                       <li className="flex items-start gap-3">
                         <span className="text-gold-500 font-bold shrink-0 mt-0.5">•</span>
                         <div>
-                          <strong className="block text-white text-sm font-semibold">Paralisia de Análise</strong>
+                          <strong className="block text-white text-sm font-semibold">Excesso de dúvidas nas decisões</strong>
                           <span className="text-gray-400 text-xs font-light block mt-0.5">
-                            Não saber qual investimento escolher para as metas prioritárias.
+                            Muitas opções, informações e decisões importantes sem saber qual o melhor caminho deveria seguir.
                           </span>
                         </div>
                       </li>
                       <li className="flex items-start gap-3">
                         <span className="text-gold-500 font-bold shrink-0 mt-0.5">•</span>
                         <div>
-                          <strong className="block text-white text-sm font-semibold">Procrastinação Financeira</strong>
+                          <strong className="block text-white text-sm font-semibold">Falta de execução e acompanhamento</strong>
                           <span className="text-gray-400 text-xs font-light block mt-0.5">
-                            Adiar a organização por falta de cobrança positiva e suporte.
+                            Saber o que deveria ser feito, mas não conseguir transformar isso em ação.
                           </span>
                         </div>
                       </li>
@@ -1619,7 +1619,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                     onClick={() => navigateTo('provas_sociais')}
                     className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-gold-600 to-amber-500 hover:from-gold-500 hover:to-amber-400 text-dark-950 font-black rounded-xl shadow-lg transition-all duration-300 uppercase tracking-widest text-xs flex items-center justify-center gap-2"
                   >
-                    Ver Provas Sociais
+                    Veja alguns resultados
                     <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>

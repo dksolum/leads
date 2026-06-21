@@ -48,6 +48,7 @@ export const Result: React.FC<Props> = ({ answers }) => {
 
     const [isSubmittingStrategy, setIsSubmittingStrategy] = useState(false);
     const [isSubmittingDirect, setIsSubmittingDirect] = useState(false);
+    const [isSubmittingWhatsapp, setIsSubmittingWhatsapp] = useState(false);
     const [strategyRedirectionUrl, setStrategyRedirectionUrl] = useState<string | null>(null);
     const [directRedirectionUrl, setDirectRedirectionUrl] = useState<string | null>(null);
 
@@ -107,10 +108,13 @@ export const Result: React.FC<Props> = ({ answers }) => {
 
     const handleWhatsappSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (isSubmittingWhatsapp) return;
+        setIsSubmittingWhatsapp(true);
         if (whatsappName && whatsappEmail && whatsappNumber) {
             const success = await saveLead(whatsappName, whatsappEmail, whatsappNumber, 'WhatsApp Contact');
             if (success) setSentWhatsapp(true);
         }
+        setIsSubmittingWhatsapp(false);
     };
 
     const handleDirectWhatsappSubmit = async (e: React.FormEvent) => {
@@ -431,11 +435,14 @@ export const Result: React.FC<Props> = ({ answers }) => {
                                         </div>
                                         <button
                                             type="submit"
-                                            disabled={isSubmittingDirect || isSubmittingStrategy}
+                                            disabled={isSubmittingWhatsapp || isSubmittingDirect || isSubmittingStrategy}
                                             className="w-full bg-dark-700 hover:bg-dark-600 text-white p-3 rounded border border-dark-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                                         >
-                                            Enviar Solicitação
-                                            <ArrowRight className="w-4 h-4" />
+                                            {isSubmittingWhatsapp ? (
+                                                <Loader2 className="w-4 h-4 animate-spin" />
+                                            ) : null}
+                                            {isSubmittingWhatsapp ? 'Enviando...' : 'Enviar Solicitação'}
+                                            {!isSubmittingWhatsapp && <ArrowRight className="w-4 h-4" />}
                                         </button>
                                     </div>
                                 </motion.form>

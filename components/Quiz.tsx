@@ -153,6 +153,12 @@ export const Quiz: React.FC<Props> = ({ onComplete }) => {
     answersRef.current = answers;
   }, [answers]);
 
+  const [isTransitioning, setIsTransitioning] = useState(false);
+
+  useEffect(() => {
+    setIsTransitioning(false);
+  }, [step]);
+
   const [error, setError] = useState('');
 
   const currentQ = questions[step];
@@ -165,6 +171,7 @@ export const Quiz: React.FC<Props> = ({ onComplete }) => {
   };
 
   const handleNext = () => {
+    if (isTransitioning) return;
     // Validation
     const val = answers[currentQ.field];
 
@@ -188,6 +195,7 @@ export const Quiz: React.FC<Props> = ({ onComplete }) => {
 
     setError('');
     if (step < questions.length - 1) {
+      setIsTransitioning(true);
       setStep(prev => prev + 1);
     } else {
       onComplete(answersRef.current);
@@ -206,6 +214,8 @@ export const Quiz: React.FC<Props> = ({ onComplete }) => {
     const triggersConditional = currentQ.conditional && value === currentQ.conditional.triggerValue;
 
     if (!triggersConditional) {
+      if (isTransitioning) return;
+      setIsTransitioning(true);
       setTimeout(() => {
         if (step < questions.length - 1) {
           setStep(prev => prev + 1);
@@ -239,6 +249,12 @@ export const Quiz: React.FC<Props> = ({ onComplete }) => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }); // Removed dependency array to capture latest state, careful with performance but ok here
+
+  const showNextButton =
+    step === questions.length - 1 ||
+    currentQ.type === 'text' ||
+    currentQ.type === 'textarea' ||
+    (currentQ.type === 'radio' && currentQ.conditional && answers[currentQ.field] === currentQ.conditional.triggerValue);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 max-w-2xl mx-auto">
@@ -409,13 +425,15 @@ export const Quiz: React.FC<Props> = ({ onComplete }) => {
               </button>
             ) : <div />}
 
-            <button
-              onClick={handleNext}
-              className="flex items-center gap-2 px-8 py-3 bg-white text-dark-950 font-bold rounded-lg hover:bg-gray-100 transition-colors"
-            >
-              {step === questions.length - 1 ? 'Ver Resultado' : 'Próxima'}
-              <ArrowRight className="w-5 h-5" />
-            </button>
+            {showNextButton && (
+              <button
+                onClick={handleNext}
+                className="flex items-center gap-2 px-8 py-3 bg-white text-dark-950 font-bold rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                {step === questions.length - 1 ? 'Ver Resultado' : 'Próxima'}
+                <ArrowRight className="w-5 h-5" />
+              </button>
+            )}
           </div>
         </motion.div>
       </AnimatePresence>
