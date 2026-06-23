@@ -27,6 +27,8 @@ CREATE TABLE IF NOT EXISTS public.pricing_packages (
     name TEXT NOT NULL,
     value TEXT NOT NULL,
     payment_options JSONB NOT NULL,
+    presentation_type TEXT DEFAULT 'personal' CHECK (presentation_type IN ('personal', 'business', 'complete')),
+    product_moment TEXT DEFAULT 'consultoria' CHECK (product_moment IN ('consultoria', 'especial', 'entrada')),
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -106,12 +108,88 @@ ON CONFLICT (email) DO UPDATE
 SET role = 'administrador';
 
 -- ---------------------------------------------------------------------
--- 8. INSERIR O PACOTE DE PRECIFICAÇÃO PADRÃO
+-- 8. INSERIR OS PACOTES DE PRECIFICAÇÃO PADRÕES E ESTRUTURADOS
 -- ---------------------------------------------------------------------
--- Insere o pacote padrão do sistema apenas se a tabela de precificações estiver vazia.
-INSERT INTO public.pricing_packages (name, value, payment_options)
+-- Insere os pacotes estruturados do sistema apenas se a tabela de precificações estiver vazia.
+INSERT INTO public.pricing_packages (name, value, presentation_type, product_moment, payment_options)
 SELECT 
-    'Consultoria Padrão', 
+    'Consultoria Estruturada (Pessoal)', 
     'R$ 597,00', 
-    '[{"label":"1","description":"Até 12x de R$ 61,74 no Cartão de Crédito","link":"https://hotm.io/solum-consultoria"},{"label":"2","description":"À vista por R$ 597","link":"https://hotm.io/solum-consultoria"},{"label":"3","description":"Até 2x de R$ 314,22 no Boleto Parcelado","link":"https://hotm.io/solum-consultoria-parcelado"},{"label":"4","description":"Entrada de R$ 147 + 1x de R$ 450","link":"https://mpago.li/2PY7vuj"},{"label":"5","description":"Boleto Parcelado (PARCELEX) - Última tentativa","link":"https://hotm.io/solum-consultoria-parcelex"},{"label":"6","description":"R$ 47 (GARANTIR A VAGA) + 1x de R$ 550 (NO DIA DO FECHAMENTO)","link":"https://mpago.li/2gVs1Rb"}]'::jsonb
+    'personal',
+    'consultoria',
+    '[{"label":"1","value":"R$ 61,74","isCard":true,"description":"Até 12x de R$ 61,74 no Cartão de Crédito","installments":12,"installmentValue":"R$ 61,74","link":"https://hotm.io/solum-consultoria"},{"label":"2","value":"R$ 597,00","isCard":false,"description":"À vista por R$ 597,00","link":"https://hotm.io/solum-consultoria"}]'::jsonb
 WHERE NOT EXISTS (SELECT 1 FROM public.pricing_packages LIMIT 1);
+
+INSERT INTO public.pricing_packages (name, value, presentation_type, product_moment, payment_options)
+SELECT 
+    'Condição Especial (Pessoal)', 
+    'R$ 450,00', 
+    'personal',
+    'especial',
+    '[{"label":"1","value":"R$ 46,55","isCard":true,"description":"Até 12x de R$ 46,55 no Cartão de Crédito","installments":12,"installmentValue":"R$ 46,55","link":"https://hotm.io/solum-consultoria-especial"},{"label":"2","value":"R$ 450,00","isCard":false,"description":"À vista por R$ 450,00","link":"https://hotm.io/solum-consultoria-especial"}]'::jsonb
+WHERE NOT EXISTS (SELECT 1 FROM public.pricing_packages WHERE presentation_type = 'personal' AND product_moment = 'especial');
+
+INSERT INTO public.pricing_packages (name, value, presentation_type, product_moment, payment_options)
+SELECT 
+    'Produto de Entrada (Pessoal)', 
+    'R$ 147,00', 
+    'personal',
+    'entrada',
+    '[{"label":"1","value":"R$ 15,20","isCard":true,"description":"Até 12x de R$ 15,20 no Cartão de Crédito","installments":12,"installmentValue":"R$ 15,20","link":"https://hotm.io/solum-entrada"},{"label":"2","value":"R$ 147,00","isCard":false,"description":"À vista por R$ 147,00","link":"https://hotm.io/solum-entrada"}]'::jsonb
+WHERE NOT EXISTS (SELECT 1 FROM public.pricing_packages WHERE presentation_type = 'personal' AND product_moment = 'entrada');
+
+-- 9.2 Finanças Empresariais
+INSERT INTO public.pricing_packages (name, value, presentation_type, product_moment, payment_options)
+SELECT 
+    'Consultoria Estruturada (Empresarial)', 
+    'R$ 1.500,00', 
+    'business',
+    'consultoria',
+    '[{"label":"1","value":"R$ 155,15","isCard":true,"description":"Até 12x de R$ 155,15 no Cartão de Crédito","installments":12,"installmentValue":"R$ 155,15","link":"https://hotm.io/solum-business"},{"label":"2","value":"R$ 1.500,00","isCard":false,"description":"À vista por R$ 1.500,00","link":"https://hotm.io/solum-business"}]'::jsonb
+WHERE NOT EXISTS (SELECT 1 FROM public.pricing_packages WHERE presentation_type = 'business' AND product_moment = 'consultoria');
+
+INSERT INTO public.pricing_packages (name, value, presentation_type, product_moment, payment_options)
+SELECT 
+    'Condição Especial (Empresarial)', 
+    'R$ 1.200,00', 
+    'business',
+    'especial',
+    '[{"label":"1","value":"R$ 124,12","isCard":true,"description":"Até 12x de R$ 124,12 no Cartão de Crédito","installments":12,"installmentValue":"R$ 124,12","link":"https://hotm.io/solum-business-especial"},{"label":"2","value":"R$ 1.200,00","isCard":false,"description":"À vista por R$ 1.200,00","link":"https://hotm.io/solum-business-especial"}]'::jsonb
+WHERE NOT EXISTS (SELECT 1 FROM public.pricing_packages WHERE presentation_type = 'business' AND product_moment = 'especial');
+
+INSERT INTO public.pricing_packages (name, value, presentation_type, product_moment, payment_options)
+SELECT 
+    'Produto de Entrada (Empresarial)', 
+    'R$ 250,00', 
+    'business',
+    'entrada',
+    '[{"label":"1","value":"R$ 25,85","isCard":true,"description":"Até 12x de R$ 25,85 no Cartão de Crédito","installments":12,"installmentValue":"R$ 25,85","link":"https://hotm.io/solum-business-entrada"},{"label":"2","value":"R$ 250,00","isCard":false,"description":"À vista por R$ 250,00","link":"https://hotm.io/solum-business-entrada"}]'::jsonb
+WHERE NOT EXISTS (SELECT 1 FROM public.pricing_packages WHERE presentation_type = 'business' AND product_moment = 'entrada');
+
+-- 9.3 Finanças Empresariais + Pessoais
+INSERT INTO public.pricing_packages (name, value, presentation_type, product_moment, payment_options)
+SELECT 
+    'Consultoria Estruturada (Empresarial + Pessoal)', 
+    'R$ 2.200,00', 
+    'complete',
+    'consultoria',
+    '[{"label":"1","value":"R$ 227,55","isCard":true,"description":"Até 12x de R$ 227,55 no Cartão de Crédito","installments":12,"installmentValue":"R$ 227,55","link":"https://hotm.io/solum-hybrid"},{"label":"2","value":"R$ 2.200,00","isCard":false,"description":"À vista por R$ 2.200,00","link":"https://hotm.io/solum-hybrid"}]'::jsonb
+WHERE NOT EXISTS (SELECT 1 FROM public.pricing_packages WHERE presentation_type = 'complete' AND product_moment = 'consultoria');
+
+INSERT INTO public.pricing_packages (name, value, presentation_type, product_moment, payment_options)
+SELECT 
+    'Condição Especial (Empresarial + Pessoal)', 
+    'R$ 1.800,00', 
+    'complete',
+    'especial',
+    '[{"label":"1","value":"R$ 186,18","isCard":true,"description":"Até 12x de R$ 186,18 no Cartão de Crédito","installments":12,"installmentValue":"R$ 186,18","link":"https://hotm.io/solum-hybrid-especial"},{"label":"2","value":"R$ 1.800,00","isCard":false,"description":"À vista por R$ 1.800,00","link":"https://hotm.io/solum-hybrid-especial"}]'::jsonb
+WHERE NOT EXISTS (SELECT 1 FROM public.pricing_packages WHERE presentation_type = 'complete' AND product_moment = 'especial');
+
+INSERT INTO public.pricing_packages (name, value, presentation_type, product_moment, payment_options)
+SELECT 
+    'Produto de Entrada (Empresarial + Pessoal)', 
+    'R$ 350,00', 
+    'complete',
+    'entrada',
+    '[{"label":"1","value":"R$ 36,20","isCard":true,"description":"Até 12x de R$ 36,20 no Cartão de Crédito","installments":12,"installmentValue":"R$ 36,20","link":"https://hotm.io/solum-hybrid-entrada"},{"label":"2","value":"R$ 350,00","isCard":false,"description":"À vista por R$ 350,00","link":"https://hotm.io/solum-hybrid-entrada"}]'::jsonb
+WHERE NOT EXISTS (SELECT 1 FROM public.pricing_packages WHERE presentation_type = 'complete' AND product_moment = 'entrada');

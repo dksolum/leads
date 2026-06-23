@@ -32,7 +32,8 @@ import {
     Edit,
     Eye,
     Presentation,
-    ArrowRight
+    ArrowRight,
+    Plus
 } from 'lucide-react';
 import { PresentationFlow } from './PresentationFlow';
 
@@ -189,6 +190,7 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
     // Novo estado para seleção de leads agendados para a aba Apresentações
     const [activePresentationSelectType, setActivePresentationSelectType] = useState<'personal' | 'business' | 'complete' | null>(null);
     const [showSimplePresentationInfo, setShowSimplePresentationInfo] = useState<string | null>(null);
+    const [selectedPricingLead, setSelectedPricingLead] = useState<Lead | null>(null);
 
     // Controle de papéis de usuários (RBAC) e abas
     const [userRole, setUserRole] = useState<'administrador' | 'vendedor' | 'secretario' | null>(null);
@@ -211,15 +213,25 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
     // Form Nova Precificação
     const [newPricingName, setNewPricingName] = useState('');
     const [newPricingValue, setNewPricingValue] = useState('');
+    const [newPricingPresentationType, setNewPricingPresentationType] = useState<'personal' | 'business' | 'complete'>('personal');
+    const [newPricingProductMoment, setNewPricingProductMoment] = useState<'consultoria' | 'especial' | 'entrada'>('consultoria');
     const [newPricingOptions, setNewPricingOptions] = useState<PaymentOption[]>([
-        { label: '1', description: '', link: '' },
-        { label: '2', description: '', link: '' },
-        { label: '3', description: '', link: '' },
-        { label: '4', description: '', link: '' },
-        { label: '5', description: '', link: '' },
-        { label: '6', description: '', link: '' }
+        { label: '1', description: '', link: '', checkoutType: 'link' }
     ]);
     const [submittingPricing, setSubmittingPricing] = useState(false);
+
+    // Estado para armazenar as seleções de precificação do lead
+    const [leadPricingSelections, setLeadPricingSelections] = useState({
+        consultoriaPackageId: '',
+        consultoriaVista: '',
+        consultoriaParcelado: '',
+        especialPackageId: '',
+        especialVista: '',
+        especialParcelado: '',
+        entradaPackageId: '',
+        entradaVista: '',
+        entradaParcelado: '',
+    });
 
     const handleCopyLink = async (link: string, idx: number) => {
         try {
@@ -405,7 +417,7 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
             // Tentar criar o usuário na aba Authentication do Supabase
             // Geramos uma senha aleatória forte de 20 caracteres
             const tempPassword = Math.random().toString(36).slice(-10) + Math.random().toString(36).slice(-10) + '!@#A1';
-            
+
             const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
                 email: newEmail.trim().toLowerCase(),
                 password: tempPassword
@@ -413,7 +425,7 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
 
             // Se for erro de usuário já cadastrado, permitimos vincular o perfil
             const isAlreadyRegistered = signUpError && signUpError.message?.toLowerCase().includes('already registered');
-            
+
             if (signUpError && !isAlreadyRegistered) {
                 showModal('error', 'Erro ao Cadastrar Login', `Não foi possível registrar o login do usuário no Supabase Auth: ${signUpError.message}`);
                 setSubmittingUser(false);
@@ -439,7 +451,7 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                 setAdminUsers(prev => [data[0] as AdminUser, ...prev]);
                 setNewEmail('');
                 setNewRole('vendedor');
-                
+
                 if (isAlreadyRegistered) {
                     showModal('success', 'Usuário Vinculado', 'O usuário já possuía uma conta no Supabase Auth e o perfil correspondente foi vinculado com sucesso!');
                 } else {
@@ -595,16 +607,116 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
         setNewPricingValue(formatted);
     };
 
+    const handleOptionCurrencyChange = (idx: number, rawValue: string, isCardInstallment: boolean) => {
+        const digits = rawValue.replace(/\D/g, '');
+        const updated = [...newPricingOptions];
+        if (!digits) {
+            if (isCardInstallment) {
+                updated[idx].installmentValue = '';
+            } else {
+                updated[idx].value = '';
+            }
+            setNewPricingOptions(updated);
+            return;
+        }
+        const cents = parseInt(digits, 10);
+        const formatted = (cents / 100).toLocaleString('pt-BR', {
+            style: 'currency',
+            currency: 'BRL',
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+        if (isCardInstallment) {
+            updated[idx].installmentValue = formatted;
+        } else {
+            updated[idx].value = formatted;
+        }
+        setNewPricingOptions(updated);
+    };
+
+    const handleAddPricingOption = () => {
+        const nextLabel = String(newPricingOptions.length + 1);
+        setNewPricingOptions([
+            ...newPricingOptions,
+            { label: nextLabel, description: '', link: '', isCard: false, installments: 12, installmentValue: '', checkoutType: 'link' }
+        ]);
+    };
+
+    const handleDeletePricingOption = (idxToDelete: number) => {
+        if (newPricingOptions.length <= 1) {
+            showModal('error', 'Ação Inválida', 'O pacote precisa de pelo menos 1 forma de pagamento.');
+            return;
+        }
+        const updated = newPricingOptions.filter((_, idx) => idx !== idxToDelete);
+        const remapped = updated.map((opt, idx) => ({
+            ...opt,
+            label: String(idx + 1)
+        }));
+        setNewPricingOptions(remapped);
+    };
+
     const handleSavePricing = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!newPricingName || !newPricingValue) {
             showModal('error', 'Campos Incompletos', 'Por favor, informe o nome e o valor da precificação.');
             return;
         }
-        const filledOptions = newPricingOptions.filter(o => o.description.trim() !== '');
-        if (filledOptions.length === 0) {
-            showModal('error', 'Campos Incompletos', 'Por favor, informe pelo menos uma forma de pagamento.');
+
+        const mappedOptions = newPricingOptions.map(opt => {
+            if (opt.isCard) {
+                const finalDescription = opt.description && opt.description.trim() !== ''
+                    ? opt.description.trim()
+                    : `Até ${opt.installments || 12}x de ${opt.installmentValue || 'R$ 0,00'} no Cartão de Crédito`;
+                return {
+                    ...opt,
+                    description: finalDescription
+                };
+            } else {
+                const finalDescription = opt.description && opt.description.trim() !== ''
+                    ? opt.description.trim()
+                    : `À vista por ${opt.value || 'R$ 0,00'}`;
+                return {
+                    ...opt,
+                    description: finalDescription
+                };
+            }
+        });
+
+        if (mappedOptions.length === 0) {
+            showModal('error', 'Campos Incompletos', 'Por favor, adicione pelo menos uma forma de pagamento.');
             return;
+        }
+
+        // Validação dos campos
+        for (let i = 0; i < mappedOptions.length; i++) {
+            const opt = mappedOptions[i];
+            
+            // Garantir que o checkoutType exista (se for undefined, assume 'link')
+            if (!opt.checkoutType) {
+                opt.checkoutType = 'link';
+            }
+
+            if (opt.isCard) {
+                if (!opt.installmentValue || opt.installmentValue.trim() === '') {
+                    showModal('error', 'Campos Incompletos', `Por favor, informe o valor da parcela para a Forma ${opt.label}.`);
+                    return;
+                }
+            } else {
+                if (!opt.value || opt.value.trim() === '') {
+                    showModal('error', 'Campos Incompletos', `Por favor, informe o valor à vista para a Forma ${opt.label}.`);
+                    return;
+                }
+            }
+
+            if (opt.checkoutType !== 'maquininha') {
+                if (!opt.link || opt.link.trim() === '') {
+                    const fieldName = opt.checkoutType === 'pix' ? 'chave Pix' : 'link do checkout';
+                    showModal('error', 'Campos Incompletos', `Por favor, informe a ${fieldName} para a Forma ${opt.label}.`);
+                    return;
+                }
+            } else {
+                opt.link = '';
+            }
         }
 
         setSubmittingPricing(true);
@@ -616,7 +728,9 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                     .update({
                         name: newPricingName.trim(),
                         value: newPricingValue.trim(),
-                        payment_options: newPricingOptions
+                        payment_options: mappedOptions,
+                        presentation_type: newPricingPresentationType,
+                        product_moment: newPricingProductMoment
                     })
                     .eq('id', editingPricing.id)
                     .select();
@@ -636,7 +750,9 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                     .insert({
                         name: newPricingName.trim(),
                         value: newPricingValue.trim(),
-                        payment_options: newPricingOptions
+                        payment_options: mappedOptions,
+                        presentation_type: newPricingPresentationType,
+                        product_moment: newPricingProductMoment
                     })
                     .select();
 
@@ -712,6 +828,191 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
         }
     };
 
+    // Efeito para carregar e pré-selecionar as opções de precificação para o lead com base em heurísticas
+    useEffect(() => {
+        if (selectedPricingLead) {
+            const answers = selectedPricingLead.answers || {};
+            const selections = answers.pricingSelections || {};
+            const leadFormType = answers.formType || 'personal';
+
+            // 1. Resolver Pacote e Opções da Consultoria
+            const consultoriaPkgId = selections.consultoriaPackageId ||
+                (pricingPackages.find(p => p.presentation_type === leadFormType && p.product_moment === 'consultoria')?.id || '');
+            const consultoriaPkg = pricingPackages.find(p => p.id === consultoriaPkgId);
+
+            let consultoriaVista = selections.consultoriaVista || '';
+            let consultoriaParcelado = selections.consultoriaParcelado || '';
+
+            if (consultoriaPkg && consultoriaPkg.payment_options) {
+                const options = consultoriaPkg.payment_options;
+                if (!consultoriaVista) {
+                    const opt = options.find(o => !o.isCard && !o.description?.toLowerCase().includes('cartão'));
+                    consultoriaVista = opt ? opt.label : (options[0]?.label || '');
+                }
+                if (!consultoriaParcelado) {
+                    const opt = options.find(o => o.isCard || o.description?.toLowerCase().includes('cartão'));
+                    consultoriaParcelado = opt ? opt.label : (options[1]?.label || options[0]?.label || '');
+                }
+            }
+
+            // 2. Resolver Pacote e Opções da Condição Especial
+            const especialPkgId = selections.especialPackageId ||
+                (pricingPackages.find(p => p.presentation_type === leadFormType && p.product_moment === 'especial')?.id || '');
+            const especialPkg = pricingPackages.find(p => p.id === especialPkgId);
+
+            let especialVista = selections.especialVista || '';
+            let especialParcelado = selections.especialParcelado || '';
+
+            if (especialPkg && especialPkg.payment_options) {
+                const options = especialPkg.payment_options;
+                if (!especialVista) {
+                    const opt = options.find(o => !o.isCard && !o.description?.toLowerCase().includes('cartão'));
+                    especialVista = opt ? opt.label : (options[0]?.label || '');
+                }
+                if (!especialParcelado) {
+                    const opt = options.find(o => o.isCard || o.description?.toLowerCase().includes('cartão'));
+                    especialParcelado = opt ? opt.label : (options[1]?.label || options[0]?.label || '');
+                }
+            }
+
+            // 3. Resolver Pacote e Opções do Produto de Entrada
+            const entradaPkgId = selections.entradaPackageId ||
+                (pricingPackages.find(p => p.presentation_type === leadFormType && p.product_moment === 'entrada')?.id || '');
+            const entradaPkg = pricingPackages.find(p => p.id === entradaPkgId);
+
+            let entradaVista = selections.entradaVista || '';
+            let entradaParcelado = selections.entradaParcelado || '';
+
+            if (entradaPkg && entradaPkg.payment_options) {
+                const options = entradaPkg.payment_options;
+                if (!entradaVista) {
+                    const opt = options.find(o => !o.isCard && !o.description?.toLowerCase().includes('cartão'));
+                    entradaVista = opt ? opt.label : (options[0]?.label || '');
+                }
+                if (!entradaParcelado) {
+                    const opt = options.find(o => o.isCard || o.description?.toLowerCase().includes('cartão'));
+                    entradaParcelado = opt ? opt.label : (options[1]?.label || options[0]?.label || '');
+                }
+            }
+
+            setLeadPricingSelections({
+                consultoriaPackageId: consultoriaPkgId,
+                consultoriaVista,
+                consultoriaParcelado,
+                especialPackageId: especialPkgId,
+                especialVista,
+                especialParcelado,
+                entradaPackageId: entradaPkgId,
+                entradaVista,
+                entradaParcelado
+            });
+        }
+    }, [selectedPricingLead, pricingPackages]);
+
+    // Trata a alteração do pacote de precificação do lead para um momento específico
+    const handleLeadPricingPackageChangeForMoment = (moment: 'consultoria' | 'especial' | 'entrada', packageId: string) => {
+        const pkg = pricingPackages.find(p => p.id === packageId);
+        if (!pkg || !pkg.payment_options) {
+            setLeadPricingSelections(prev => ({
+                ...prev,
+                [`${moment}PackageId`]: packageId,
+                [`${moment}Vista`]: '',
+                [`${moment}Parcelado`]: ''
+            }));
+            return;
+        }
+        const options = pkg.payment_options;
+        const vistaOpt = options.find(o => !o.isCard && !o.description?.toLowerCase().includes('cartão'));
+        const parceladaOpt = options.find(o => o.isCard || o.description?.toLowerCase().includes('cartão'));
+
+        setLeadPricingSelections(prev => ({
+            ...prev,
+            [`${moment}PackageId`]: packageId,
+            [`${moment}Vista`]: vistaOpt ? vistaOpt.label : (options[0]?.label || ''),
+            [`${moment}Parcelado`]: parceladaOpt ? parceladaOpt.label : (options[1]?.label || options[0]?.label || '')
+        }));
+    };
+
+    // Salva as seleções de precificação do lead no Supabase e atualiza o status para Agendado
+    const handleSaveLeadPricingSelections = async (startPresentationImmediate = false) => {
+        if (!selectedPricingLead) return;
+        if (
+            !leadPricingSelections.consultoriaPackageId ||
+            !leadPricingSelections.especialPackageId ||
+            !leadPricingSelections.entradaPackageId
+        ) {
+            showModal('error', 'Seleção Incompleta', 'Por favor, selecione um pacote de precificação para cada um dos 3 momentos.');
+            return;
+        }
+
+        const updatedAnswers = {
+            ...selectedPricingLead.answers,
+            selectedPricingId: leadPricingSelections.consultoriaPackageId,
+            pricingSelections: {
+                consultoriaPackageId: leadPricingSelections.consultoriaPackageId,
+                consultoriaVista: leadPricingSelections.consultoriaVista,
+                consultoriaParcelado: leadPricingSelections.consultoriaParcelado,
+                especialPackageId: leadPricingSelections.especialPackageId,
+                especialVista: leadPricingSelections.especialVista,
+                especialParcelado: leadPricingSelections.especialParcelado,
+                entradaPackageId: leadPricingSelections.entradaPackageId,
+                entradaVista: leadPricingSelections.entradaVista,
+                entradaParcelado: leadPricingSelections.entradaParcelado
+            }
+        };
+
+        setUpdatingStatus(selectedPricingLead.id);
+        try {
+            const { data, error } = await supabase
+                .from('leads')
+                .update({
+                    answers: updatedAnswers,
+                    status: 'Agendado'
+                })
+                .eq('id', selectedPricingLead.id)
+                .select();
+
+            if (error) {
+                console.error('Erro ao salvar precificação do lead:', error);
+                showModal('error', 'Erro ao Salvar', `Não foi possível salvar a precificação: ${error.message}`);
+            } else if (data && data.length > 0) {
+                const updatedLead = data[0] as Lead;
+                setLeads(prev => prev.map(l => l.id === selectedPricingLead.id ? updatedLead : l));
+                if (selectedLead?.id === selectedPricingLead.id) {
+                    setSelectedLead(updatedLead);
+                }
+
+                setSelectedPricingLead(null);
+
+                if (startPresentationImmediate) {
+                    // Inicia a apresentação imediatamente
+                    setActivePresentationLead(updatedLead);
+                } else {
+                    showModal('success', 'Precificação Configurada', 'O lead foi atualizado para "Agendado" e a precificação foi vinculada com sucesso!');
+                    // Abre confirmação se deseja iniciar a apresentação
+                    showModal('confirm', 'Abrir Apresentação', 'Deseja iniciar a apresentação estratégica para este cliente agora?', () => {
+                        setActivePresentationLead(updatedLead);
+                    });
+                }
+            }
+        } catch (err: any) {
+            console.error(err);
+            showModal('error', 'Erro de Conexão', 'Falha ao se conectar com o servidor.');
+        } finally {
+            setUpdatingStatus(null);
+        }
+    };
+
+    // Valida se o lead pode abrir a apresentação, abrindo a precificação/agendamento se necessário
+    const handleStartPresentation = (lead: Lead) => {
+        const hasPricing = lead.answers?.selectedPricingId && lead.answers?.pricingSelections;
+        if (lead.status !== 'Agendado' || !hasPricing) {
+            setSelectedPricingLead(lead);
+        } else {
+            setActivePresentationLead(lead);
+        }
+    };
+
     useEffect(() => {
         checkUserRole();
         fetchLeads();
@@ -720,7 +1021,7 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
         if (window.location.hash && (window.location.hash.includes('type=recovery') || window.location.hash.includes('type=signup') || window.location.hash.includes('access_token='))) {
             const isRecovery = window.location.hash.includes('type=recovery');
             setIsChangePasswordModalOpen(true);
-            showModal('success', 'Defina sua Senha', isRecovery 
+            showModal('success', 'Defina sua Senha', isRecovery
                 ? 'Sua conta foi verificada! Defina a sua senha definitiva abaixo para acessar o painel.'
                 : 'Seu acesso foi verificado com sucesso! Crie a sua senha pessoal abaixo para começar.'
             );
@@ -824,7 +1125,7 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
     const filteredLeads = leads.filter(lead => {
         const matchesSearch = lead.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             lead.email?.toLowerCase().includes(searchTerm.toLowerCase());
-        
+
         if (!matchesSearch) return false;
 
         // Filtro por tipo de formulário (lead)
@@ -928,11 +1229,10 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                         <button
                             type="button"
                             onClick={() => { setActiveTab('leads'); setSelectedLead(null); }}
-                            className={`px-5 py-3 border-b-2 text-sm font-bold transition-all flex items-center gap-2 ${
-                                activeTab === 'leads'
-                                    ? 'border-gold-500 text-gold-400'
-                                    : 'border-transparent text-gray-500 hover:text-gray-400'
-                            }`}
+                            className={`px-5 py-3 border-b-2 text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'leads'
+                                ? 'border-gold-500 text-gold-400'
+                                : 'border-transparent text-gray-500 hover:text-gray-400'
+                                }`}
                         >
                             <Users className="w-4 h-4" />
                             Leads
@@ -940,11 +1240,10 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                         <button
                             type="button"
                             onClick={() => { setActiveTab('presentations'); setSelectedLead(null); }}
-                            className={`px-5 py-3 border-b-2 text-sm font-bold transition-all flex items-center gap-2 ${
-                                activeTab === 'presentations'
-                                    ? 'border-gold-500 text-gold-400'
-                                    : 'border-transparent text-gray-500 hover:text-gray-400'
-                            }`}
+                            className={`px-5 py-3 border-b-2 text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'presentations'
+                                ? 'border-gold-500 text-gold-400'
+                                : 'border-transparent text-gray-500 hover:text-gray-400'
+                                }`}
                         >
                             <Presentation className="w-4 h-4" />
                             Apresentações
@@ -953,11 +1252,10 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                             <button
                                 type="button"
                                 onClick={() => { setActiveTab('users'); setSelectedLead(null); }}
-                                className={`px-5 py-3 border-b-2 text-sm font-bold transition-all flex items-center gap-2 ${
-                                    activeTab === 'users'
-                                        ? 'border-gold-500 text-gold-400'
-                                        : 'border-transparent text-gray-500 hover:text-gray-400'
-                                }`}
+                                className={`px-5 py-3 border-b-2 text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'users'
+                                    ? 'border-gold-500 text-gold-400'
+                                    : 'border-transparent text-gray-500 hover:text-gray-400'
+                                    }`}
                             >
                                 <Shield className="w-4 h-4" />
                                 Usuários
@@ -967,11 +1265,10 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                             <button
                                 type="button"
                                 onClick={() => { setActiveTab('pricing'); setSelectedLead(null); }}
-                                className={`px-5 py-3 border-b-2 text-sm font-bold transition-all flex items-center gap-2 ${
-                                    activeTab === 'pricing'
-                                        ? 'border-gold-500 text-gold-400'
-                                        : 'border-transparent text-gray-500 hover:text-gray-400'
-                                }`}
+                                className={`px-5 py-3 border-b-2 text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'pricing'
+                                    ? 'border-gold-500 text-gold-400'
+                                    : 'border-transparent text-gray-500 hover:text-gray-400'
+                                    }`}
                             >
                                 <DollarSign className="w-4 h-4" />
                                 Precificação
@@ -1014,952 +1311,1021 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                         {activeTab === 'leads' && (
                             <div className="space-y-6">
                                 {!selectedLead ? (
-                        <motion.div
-                            key="list-view"
-                            initial={{ opacity: 0, y: 15 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -15 }}
-                            transition={{ duration: 0.3 }}
-                            className="space-y-6"
-                        >
-                            {/* Seleção do Tipo de Lead (Formulário) */}
-                            <div className="flex flex-wrap gap-2 border-b border-dark-800 pb-4">
-                                {(['all', 'personal', 'business', 'complete'] as const).map((type) => {
-                                    const labels = {
-                                        all: 'Todos os Formulários',
-                                        personal: 'Finanças Pessoais',
-                                        business: 'Finanças Empresariais',
-                                        complete: 'Gestão Completa'
-                                    };
-                                    const active = selectedFormType === type;
-                                    return (
-                                        <button
-                                            key={type}
-                                            onClick={() => setSelectedFormType(type)}
-                                            className={`relative px-4 py-2.5 rounded-lg text-xs md:text-sm font-bold transition-all duration-200 border ${
-                                                active 
-                                                    ? 'bg-gold-500 text-black border-gold-500 shadow-[0_0_15px_rgba(245,158,11,0.25)]' 
-                                                    : 'bg-dark-900 border-dark-800 text-gray-400 hover:text-white hover:border-dark-700'
-                                            }`}
-                                        >
-                                            {labels[type]}
-                                        </button>
-                                    );
-                                })}
-                            </div>
+                                    <motion.div
+                                        key="list-view"
+                                        initial={{ opacity: 0, y: 15 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: -15 }}
+                                        transition={{ duration: 0.3 }}
+                                        className="space-y-6"
+                                    >
+                                        {/* Seleção do Tipo de Lead (Formulário) */}
+                                        <div className="flex flex-wrap gap-2 border-b border-dark-800 pb-4">
+                                            {(['all', 'personal', 'business', 'complete'] as const).map((type) => {
+                                                const labels = {
+                                                    all: 'Todos os Formulários',
+                                                    personal: 'Finanças Pessoais',
+                                                    business: 'Finanças Empresariais',
+                                                    complete: 'Gestão Completa'
+                                                };
+                                                const active = selectedFormType === type;
+                                                return (
+                                                    <button
+                                                        key={type}
+                                                        onClick={() => setSelectedFormType(type)}
+                                                        className={`relative px-4 py-2.5 rounded-lg text-xs md:text-sm font-bold transition-all duration-200 border ${active
+                                                            ? 'bg-gold-500 text-black border-gold-500 shadow-[0_0_15px_rgba(245,158,11,0.25)]'
+                                                            : 'bg-dark-900 border-dark-800 text-gray-400 hover:text-white hover:border-dark-700'
+                                                            }`}
+                                                    >
+                                                        {labels[type]}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
 
-                            {/* Filtro Rápido por Status */}
-                            <div className="flex flex-wrap gap-2 items-center bg-dark-900/50 p-4 border border-dark-800 rounded-xl">
-                                <span className="text-xs font-semibold tracking-wider text-gray-500 uppercase mr-2 font-sans">Status:</span>
-                                {(['all', 'Agendado', 'Verificar', 'Consultoria', 'Downsell', 'Perdido'] as const).map((status) => {
-                                    const active = selectedStatusTab === status;
-                                    
-                                    const colors: Record<typeof status, string> = {
-                                        all: active 
-                                            ? 'bg-slate-700 text-white border-slate-600 shadow-sm' 
-                                            : 'bg-dark-800 border-dark-700 text-gray-400 hover:text-white hover:border-dark-600',
-                                        Agendado: active 
-                                            ? 'bg-yellow-500 text-black border-yellow-500 shadow-[0_0_10px_rgba(234,179,8,0.2)]' 
-                                            : 'bg-dark-800 border-dark-750 text-yellow-500/80 hover:text-yellow-500 hover:border-yellow-500/30',
-                                        Verificar: active 
-                                            ? 'bg-blue-500 text-white border-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.2)]' 
-                                            : 'bg-dark-800 border-dark-750 text-blue-400/80 hover:text-blue-400 hover:border-blue-500/30',
-                                        Consultoria: active 
-                                            ? 'bg-green-500 text-white border-green-500 shadow-[0_0_10px_rgba(34,197,94,0.2)]' 
-                                            : 'bg-dark-800 border-dark-750 text-green-400/80 hover:text-green-400 hover:border-green-500/30',
-                                        Downsell: active 
-                                            ? 'bg-purple-500 text-white border-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.2)]' 
-                                            : 'bg-dark-800 border-dark-750 text-purple-400/80 hover:text-purple-400 hover:border-purple-500/30',
-                                        Perdido: active 
-                                            ? 'bg-red-500 text-white border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.2)]' 
-                                            : 'bg-dark-800 border-dark-750 text-red-400/80 hover:text-red-400 hover:border-red-500/30'
-                                    };
+                                        {/* Filtro Rápido por Status */}
+                                        <div className="flex flex-wrap gap-2 items-center bg-dark-900/50 p-4 border border-dark-800 rounded-xl">
+                                            <span className="text-xs font-semibold tracking-wider text-gray-500 uppercase mr-2 font-sans">Status:</span>
+                                            {(['all', 'Agendado', 'Verificar', 'Consultoria', 'Downsell', 'Perdido'] as const).map((status) => {
+                                                const active = selectedStatusTab === status;
 
-                                    return (
-                                        <button
-                                            key={status}
-                                            onClick={() => setSelectedStatusTab(status)}
-                                            className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all duration-150 ${colors[status]}`}
-                                        >
-                                            {status === 'all' ? 'Ver Todos' : status}
-                                        </button>
-                                    );
-                                })}
-                            </div>
+                                                const colors: Record<typeof status, string> = {
+                                                    all: active
+                                                        ? 'bg-slate-700 text-white border-slate-600 shadow-sm'
+                                                        : 'bg-dark-800 border-dark-700 text-gray-400 hover:text-white hover:border-dark-600',
+                                                    Agendado: active
+                                                        ? 'bg-yellow-500 text-black border-yellow-500 shadow-[0_0_10px_rgba(234,179,8,0.2)]'
+                                                        : 'bg-dark-800 border-dark-750 text-yellow-500/80 hover:text-yellow-500 hover:border-yellow-500/30',
+                                                    Verificar: active
+                                                        ? 'bg-blue-500 text-white border-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.2)]'
+                                                        : 'bg-dark-800 border-dark-750 text-blue-400/80 hover:text-blue-400 hover:border-blue-500/30',
+                                                    Consultoria: active
+                                                        ? 'bg-green-500 text-white border-green-500 shadow-[0_0_10px_rgba(34,197,94,0.2)]'
+                                                        : 'bg-dark-800 border-dark-750 text-green-400/80 hover:text-green-400 hover:border-green-500/30',
+                                                    Downsell: active
+                                                        ? 'bg-purple-500 text-white border-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.2)]'
+                                                        : 'bg-dark-800 border-dark-750 text-purple-400/80 hover:text-purple-400 hover:border-purple-500/30',
+                                                    Perdido: active
+                                                        ? 'bg-red-500 text-white border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.2)]'
+                                                        : 'bg-dark-800 border-dark-750 text-red-400/80 hover:text-red-400 hover:border-red-500/30'
+                                                };
 
-                            <div className="space-y-4">
-                                <div className="relative">
-                                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5" />
-                                    <input
-                                        type="text"
-                                        placeholder="Buscar por nome ou e-mail..."
-                                        className="w-full bg-dark-900 border border-dark-800 rounded-xl py-4 pl-12 pr-4 outline-none focus:border-gold-500 transition-all text-white"
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                    />
-                                </div>
-                                
-                                {/* Filtros de respostas do quiz */}
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-dark-900 border border-dark-800 rounded-xl">
-                                    <div className="space-y-1">
-                                        <label className="text-[9px] font-semibold text-gray-500 uppercase tracking-widest">Cartão de Crédito</label>
-                                        <select
-                                            value={filterCreditCard}
-                                            onChange={(e: any) => setFilterCreditCard(e.target.value)}
-                                            className="w-full bg-dark-800 border border-dark-700 text-slate-300 rounded-lg p-2.5 text-xs outline-none focus:border-gold-500 transition-all cursor-pointer font-medium"
-                                        >
-                                            <option value="all">Todos</option>
-                                            <option value="yes">Possui Cartão</option>
-                                            <option value="problem">Cartão é um Problema</option>
-                                            <option value="no">Não Possui Cartão</option>
-                                        </select>
-                                    </div>
-                                    <div className="space-y-1">
-                                        <label className="text-[9px] font-semibold text-gray-500 uppercase tracking-widest">Dependência de Decisão</label>
-                                        <select
-                                            value={filterDepends}
-                                            onChange={(e: any) => setFilterDepends(e.target.value)}
-                                            className="w-full bg-dark-800 border border-dark-700 text-slate-300 rounded-lg p-2.5 text-xs outline-none focus:border-gold-500 transition-all cursor-pointer font-medium"
-                                        >
-                                            <option value="all">Todos</option>
-                                            <option value="yes">Depende de outra pessoa</option>
-                                            <option value="no">Decide sozinho</option>
-                                        </select>
-                                    </div>
-                                    <div className="space-y-1">
-                                        <label className="text-[9px] font-semibold text-gray-500 uppercase tracking-widest">Comprometimento</label>
-                                        <select
-                                            value={filterCommitment}
-                                            onChange={(e: any) => setFilterCommitment(e.target.value)}
-                                            className="w-full bg-dark-800 border border-dark-700 text-slate-300 rounded-lg p-2.5 text-xs outline-none focus:border-gold-500 transition-all cursor-pointer font-medium"
-                                        >
-                                            <option value="all">Todos</option>
-                                            <option value="8">Comprometimento (8 a 10)</option>
-                                            <option value="5">Comprometimento (5 a 10)</option>
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
+                                                return (
+                                                    <button
+                                                        key={status}
+                                                        onClick={() => setSelectedStatusTab(status)}
+                                                        className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all duration-150 ${colors[status]}`}
+                                                    >
+                                                        {status === 'all' ? 'Ver Todos' : status}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
 
-                            <div className="bg-dark-900 border border-dark-800 rounded-xl overflow-hidden shadow-2xl">
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-left">
-                                        <thead className="bg-dark-800/50 text-xs uppercase tracking-widest text-gray-500">
-                                            <tr>
-                                                <th className="px-6 py-4 font-semibold">Lead</th>
-                                                <th className="px-6 py-4 font-semibold">Perfil</th>
-                                                <th className="px-6 py-4 font-semibold">Status</th>
-                                                <th className="px-6 py-4 font-semibold text-right">Ações</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-dark-800">
-                                            {sortedLeads.map(lead => (
-                                                <tr
-                                                    key={lead.id}
-                                                    onClick={() => setSelectedLead(lead)}
-                                                    className="hover:bg-dark-800/50 cursor-pointer transition-all duration-200"
-                                                >
-                                                    <td className="px-6 py-4">
-                                                        <div className="flex flex-col">
-                                                            <span className="text-white font-medium text-base">{lead.name}</span>
-                                                            <span className="text-xs text-gray-500 mt-0.5">{lead.email}</span>
+                                        <div className="space-y-4">
+                                            <div className="relative">
+                                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5" />
+                                                <input
+                                                    type="text"
+                                                    placeholder="Buscar por nome ou e-mail..."
+                                                    className="w-full bg-dark-900 border border-dark-800 rounded-xl py-4 pl-12 pr-4 outline-none focus:border-gold-500 transition-all text-white"
+                                                    value={searchTerm}
+                                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                                />
+                                            </div>
+
+                                            {/* Filtros de respostas do quiz */}
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-dark-900 border border-dark-800 rounded-xl">
+                                                <div className="space-y-1">
+                                                    <label className="text-[9px] font-semibold text-gray-500 uppercase tracking-widest">Cartão de Crédito</label>
+                                                    <select
+                                                        value={filterCreditCard}
+                                                        onChange={(e: any) => setFilterCreditCard(e.target.value)}
+                                                        className="w-full bg-dark-800 border border-dark-700 text-slate-300 rounded-lg p-2.5 text-xs outline-none focus:border-gold-500 transition-all cursor-pointer font-medium"
+                                                    >
+                                                        <option value="all">Todos</option>
+                                                        <option value="yes">Possui Cartão</option>
+                                                        <option value="problem">Cartão é um Problema</option>
+                                                        <option value="no">Não Possui Cartão</option>
+                                                    </select>
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <label className="text-[9px] font-semibold text-gray-500 uppercase tracking-widest">Dependência de Decisão</label>
+                                                    <select
+                                                        value={filterDepends}
+                                                        onChange={(e: any) => setFilterDepends(e.target.value)}
+                                                        className="w-full bg-dark-800 border border-dark-700 text-slate-300 rounded-lg p-2.5 text-xs outline-none focus:border-gold-500 transition-all cursor-pointer font-medium"
+                                                    >
+                                                        <option value="all">Todos</option>
+                                                        <option value="yes">Depende de outra pessoa</option>
+                                                        <option value="no">Decide sozinho</option>
+                                                    </select>
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <label className="text-[9px] font-semibold text-gray-500 uppercase tracking-widest">Comprometimento</label>
+                                                    <select
+                                                        value={filterCommitment}
+                                                        onChange={(e: any) => setFilterCommitment(e.target.value)}
+                                                        className="w-full bg-dark-800 border border-dark-700 text-slate-300 rounded-lg p-2.5 text-xs outline-none focus:border-gold-500 transition-all cursor-pointer font-medium"
+                                                    >
+                                                        <option value="all">Todos</option>
+                                                        <option value="8">Comprometimento (8 a 10)</option>
+                                                        <option value="5">Comprometimento (5 a 10)</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="bg-dark-900 border border-dark-800 rounded-xl overflow-hidden shadow-2xl">
+                                            <div className="overflow-x-auto">
+                                                <table className="w-full text-left">
+                                                    <thead className="bg-dark-800/50 text-xs uppercase tracking-widest text-gray-500">
+                                                        <tr>
+                                                            <th className="px-6 py-4 font-semibold">Lead</th>
+                                                            <th className="px-6 py-4 font-semibold">Perfil</th>
+                                                            <th className="px-6 py-4 font-semibold">Status</th>
+                                                            <th className="px-6 py-4 font-semibold text-right">Ações</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-dark-800">
+                                                        {sortedLeads.map(lead => (
+                                                            <tr
+                                                                key={lead.id}
+                                                                onClick={() => setSelectedLead(lead)}
+                                                                className="hover:bg-dark-800/50 cursor-pointer transition-all duration-200"
+                                                            >
+                                                                <td className="px-6 py-4">
+                                                                    <div className="flex flex-col">
+                                                                        <span className="text-white font-medium text-base">{lead.name}</span>
+                                                                        <span className="text-xs text-gray-500 mt-0.5">{lead.email}</span>
+                                                                    </div>
+                                                                </td>
+                                                                <td className="px-6 py-4 text-sm font-medium text-gold-500">
+                                                                    {lead.profile}
+                                                                </td>
+                                                                <td className="px-6 py-4">
+                                                                    <span className={`text-[10px] px-2.5 py-1 rounded-full border font-semibold tracking-wider uppercase ${statusColors[lead.status || 'Verificar']}`}>
+                                                                        {lead.status || 'Verificar'}
+                                                                    </span>
+                                                                </td>
+                                                                <td className="px-6 py-4 text-right">
+                                                                    {userRole === 'administrador' && (
+                                                                        <button
+                                                                            onClick={(e) => { e.stopPropagation(); handleDelete(lead); }}
+                                                                            className="p-2 text-gray-655 hover:text-red-400 transition-colors cursor-pointer"
+                                                                        >
+                                                                            <Trash2 className="w-4 h-4" />
+                                                                        </button>
+                                                                    )}
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                        {sortedLeads.length === 0 && !loading && (
+                                                            <tr>
+                                                                <td colSpan={4} className="px-6 py-12 text-center text-gray-500 font-medium text-sm">
+                                                                    Nenhum lead encontrado.
+                                                                </td>
+                                                            </tr>
+                                                        )}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                ) : (
+                                    /* Se houver lead selecionado, exibe os detalhes em largura total e oculta a lista */
+                                    <motion.div
+                                        key="details-view"
+                                        initial={{ opacity: 0, y: 15 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: -15 }}
+                                        transition={{ duration: 0.3 }}
+                                        className="space-y-6"
+                                    >
+                                        {/* Barra Superior de Navegação dos Detalhes */}
+                                        <div className="flex justify-between items-center bg-dark-900 border border-dark-800 rounded-xl p-4 shadow-lg">
+                                            <button
+                                                onClick={() => {
+                                                    setSelectedLead(null);
+                                                    setShowTechnicalDetails(false);
+                                                }}
+                                                className="flex items-center gap-2 px-4 py-2 bg-dark-800 hover:bg-dark-700/80 border border-dark-700 text-gray-300 hover:text-white rounded-lg transition-all text-xs md:text-sm font-semibold shadow-sm"
+                                            >
+                                                <ArrowLeft className="w-4 h-4" />
+                                                Voltar para a Lista de Leads
+                                            </button>
+                                            <span className="text-xs text-gray-500 uppercase tracking-widest font-semibold hidden sm:inline">
+                                                Lead selecionado
+                                            </span>
+                                        </div>
+
+                                        <div className="bg-dark-900 border border-dark-800 rounded-xl p-6 md:p-8 space-y-8 shadow-2xl">
+
+                                            {/* Linha 1: Dados Principais do Lead */}
+                                            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 bg-dark-850 p-6 rounded-xl border border-dark-800">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-14 h-14 bg-gold-500/10 rounded-full flex items-center justify-center text-gold-500 border border-gold-500/20 shrink-0 shadow-inner">
+                                                        <User className="w-7 h-7" />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        {/* Nome e Botão de Apresentação em Destaque */}
+                                                        <div className="flex flex-wrap items-center gap-3">
+                                                            <p className="text-white font-serif font-bold text-xl md:text-2xl tracking-wide">{selectedLead.name}</p>
+
+                                                            <button
+                                                                onClick={() => handleStartPresentation(selectedLead)}
+                                                                className="px-4 py-1.5 bg-gradient-to-r from-gold-600 via-amber-500 to-gold-500 text-dark-950 text-[10px] font-black rounded-lg shadow-xl shadow-gold-500/20 hover:shadow-gold-500/40 hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5 uppercase tracking-widest border border-gold-400/20 cursor-pointer"
+                                                            >
+                                                                <Sparkles className="w-3.5 h-3.5 text-dark-950 fill-current animate-pulse" />
+                                                                Apresentação
+                                                            </button>
+
+                                                            {userRole === 'administrador' && (
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setEditingLeadData(JSON.parse(JSON.stringify(selectedLead)));
+                                                                        setEditLeadTab('info');
+                                                                        setIsEditLeadModalOpen(true);
+                                                                    }}
+                                                                    className="px-4 py-1.5 bg-dark-800 hover:bg-dark-750 text-gray-300 hover:text-white text-[10px] font-bold rounded-lg border border-dark-700 transition-all flex items-center gap-1.5 uppercase tracking-widest cursor-pointer"
+                                                                >
+                                                                    <Edit className="w-3.5 h-3.5 text-gold-500" />
+                                                                    Editar Lead
+                                                                </button>
+                                                            )}
                                                         </div>
-                                                    </td>
-                                                    <td className="px-6 py-4 text-sm font-medium text-gold-500">
-                                                        {lead.profile}
+                                                        <p className="text-sm text-gold-500 font-semibold tracking-wide">{selectedLead.profile}</p>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex flex-col sm:flex-row sm:flex-wrap lg:justify-end gap-x-6 gap-y-3 text-sm font-medium border-t lg:border-t-0 border-dark-800/60 pt-4 lg:pt-0 max-w-full">
+                                                    <div className="flex items-center gap-2 text-gray-300 min-w-0">
+                                                        <Mail className="w-4 h-4 text-gold-500 shrink-0" />
+                                                        <span className="truncate max-w-[220px] sm:max-w-xs md:max-w-sm" title={selectedLead.email}>
+                                                            {selectedLead.email}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 text-gray-300 shrink-0">
+                                                        <Phone className="w-4 h-4 text-gold-500" />
+                                                        <span>{selectedLead.phone}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 text-gray-300 shrink-0">
+                                                        <Layers className="w-4 h-4 text-gold-500" />
+                                                        <span>Origem: {selectedLead.action_type}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Linha 2: Respostas do Quiz (Sempre Visíveis) */}
+                                            <div className="space-y-4">
+                                                <h4 className="text-xs font-semibold uppercase tracking-widest text-gray-500 border-b border-dark-800 pb-2">
+                                                    Respostas Completas do Quiz
+                                                </h4>
+
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
+                                                        <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">1. Principal Problema</p>
+                                                        <p className="text-sm text-white leading-relaxed font-light">{selectedLead.answers.mainProblem}</p>
+                                                    </div>
+
+                                                    <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
+                                                        <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">2. Já tentou resolver?</p>
+                                                        <p className="text-sm text-white font-medium">{selectedLead.answers.triedSolution}</p>
+                                                        {selectedLead.answers.triedSolutionDescription && (
+                                                            <p className="text-xs text-gray-400 mt-2.5 p-2.5 bg-dark-950 rounded border border-dark-850 italic font-light leading-relaxed">
+                                                                "{selectedLead.answers.triedSolutionDescription}"
+                                                            </p>
+                                                        )}
+                                                    </div>
+
+                                                    <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
+                                                        <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">3. Renda Mensal</p>
+                                                        <p className="text-sm text-white font-medium">{selectedLead.answers.incomeRange}</p>
+                                                    </div>
+
+                                                    <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
+                                                        <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">4. Profissão</p>
+                                                        <p className="text-sm text-white font-medium">{selectedLead.answers.profession}</p>
+                                                    </div>
+
+                                                    <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
+                                                        <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">5. Estado Civil</p>
+                                                        <p className="text-sm text-white font-medium">{selectedLead.answers.spouse}</p>
+                                                    </div>
+
+                                                    <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
+                                                        <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">6. Filhos</p>
+                                                        <p className="text-sm text-white font-medium">{selectedLead.answers.children}</p>
+                                                    </div>
+
+                                                    <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
+                                                        <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">7. Dependentes</p>
+                                                        <p className="text-sm text-white font-medium">{selectedLead.answers.otherDependents}</p>
+                                                        {selectedLead.answers.otherDependentsCount !== undefined && (
+                                                            <p className="text-xs text-gray-400 mt-1.5 font-medium">Quantidade informada: {selectedLead.answers.otherDependentsCount}</p>
+                                                        )}
+                                                    </div>
+
+                                                    <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
+                                                        <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">8. Vida Financeira Atual</p>
+                                                        <p className="text-sm text-white font-medium">{selectedLead.answers.financialState}</p>
+                                                    </div>
+
+                                                    <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
+                                                        <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">9. Metas Claras</p>
+                                                        <p className="text-sm text-white font-medium">{selectedLead.answers.goals}</p>
+                                                    </div>
+
+                                                    <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
+                                                        <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">10. Possui Cartão de Crédito?</p>
+                                                        <p className="text-sm text-white font-medium">{selectedLead.answers.hasCreditCard || 'Não respondido'}</p>
+                                                        {selectedLead.answers.hasCreditCard === 'Sim' && (
+                                                            <p className="text-xs text-gray-400 mt-1.5 font-medium">
+                                                                Hoje é um problema financeiro? <span className="text-white font-bold">{selectedLead.answers.creditCardIsProblem || 'Não informado'}</span>
+                                                            </p>
+                                                        )}
+                                                    </div>
+
+                                                    <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
+                                                        <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">11. Perspectiva (6 meses)</p>
+                                                        <p className="text-sm text-white font-medium">{selectedLead.answers.futureOutlook}</p>
+                                                    </div>
+
+                                                    <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
+                                                        <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">12. Depende de outra pessoa para tomar decisão?</p>
+                                                        <p className="text-sm text-white font-medium">{selectedLead.answers.dependsOnOthers || 'Não respondido'}</p>
+                                                        {selectedLead.answers.dependsOnOthers === 'Sim' && (
+                                                            <p className="text-xs text-gray-400 mt-1.5 font-medium">
+                                                                Investe mesmo se falar não? <span className="text-white font-bold">{selectedLead.answers.dependsOnOthersReason || 'Não informado'}</span>
+                                                            </p>
+                                                        )}
+                                                    </div>
+
+                                                    <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors md:col-span-2">
+                                                        <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">13. Nível de Comprometimento (0 a 10)</p>
+                                                        <div className="flex items-center gap-4 mt-2">
+                                                            <div className="flex-grow bg-dark-950 rounded-full h-3 overflow-hidden border border-dark-850">
+                                                                <div
+                                                                    className="bg-gradient-to-r from-gold-600 to-gold-400 h-full rounded-full transition-all duration-700"
+                                                                    style={{ width: `${(parseInt(selectedLead.answers.commitmentScale || '0', 10) / 10) * 100}%` }}
+                                                                ></div>
+                                                            </div>
+                                                            <span className="text-sm font-bold text-gold-500 shrink-0 bg-gold-500/10 px-2.5 py-1 rounded border border-gold-500/20">
+                                                                {selectedLead.answers.commitmentScale || '0'} / 10
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Botões de Ação: Detalhes Técnicos e Respostas da Apresentação */}
+                                            <div className="pt-8 border-t border-dark-800 flex flex-wrap justify-center gap-4">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowTechnicalDetails(!showTechnicalDetails)}
+                                                    className="inline-flex items-center gap-2.5 px-8 py-3.5 rounded-xl border border-gold-500/20 hover:border-gold-500/40 bg-gold-500/5 hover:bg-gold-500/10 text-gold-400 hover:text-gold-300 transition-all font-bold text-xs md:text-sm tracking-widest uppercase shadow-lg shadow-black/20"
+                                                >
+                                                    {showTechnicalDetails ? 'Ocultar Detalhes Técnicos' : 'Mostrar Detalhes Técnicos'}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowPresentationAnswersModal(true)}
+                                                    className="inline-flex items-center gap-2.5 px-8 py-3.5 rounded-xl bg-gradient-to-r from-gold-600 via-amber-500 to-gold-500 text-dark-950 hover:from-gold-500 hover:to-amber-400 hover:scale-[1.02] active:scale-[0.98] transition-all font-bold text-xs md:text-sm tracking-widest uppercase shadow-lg shadow-gold-500/20 border border-gold-400/20"
+                                                >
+                                                    <Target className="w-4 h-4 text-dark-950" />
+                                                    Ver Respostas da Apresentação
+                                                </button>
+                                            </div>
+
+                                            {/* Seção de Detalhes Técnicos (Ocultada/Liberada pelo botão acima) */}
+                                            <AnimatePresence>
+                                                {showTechnicalDetails && (
+                                                    <motion.div
+                                                        initial={{ opacity: 0, height: 0 }}
+                                                        animate={{ opacity: 1, height: 'auto' }}
+                                                        exit={{ opacity: 0, height: 0 }}
+                                                        transition={{ duration: 0.3 }}
+                                                        className="space-y-8 pt-8 border-t border-dark-800 overflow-hidden"
+                                                    >
+
+                                                        {/* Bloco de Status do Lead */}
+                                                        <div className="bg-dark-850 p-6 rounded-xl border border-dark-800 space-y-4">
+                                                            <h4 className="text-xs font-semibold uppercase tracking-widest text-gray-500">
+                                                                Status do Lead
+                                                            </h4>
+                                                            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                                                                {(['Agendado', 'Verificar', 'Consultoria', 'Downsell', 'Perdido'] as const).map((s) => (
+                                                                    <button
+                                                                        key={s}
+                                                                        onClick={() => {
+                                                                            if (s === 'Agendado') {
+                                                                                setSelectedPricingLead(selectedLead);
+                                                                            } else {
+                                                                                handleStatusUpdate(selectedLead.id, s);
+                                                                            }
+                                                                        }}
+                                                                        disabled={updatingStatus === selectedLead.id || userRole === 'secretario'}
+                                                                        className={`px-4 py-3 rounded-lg text-xs md:text-sm font-semibold border transition-all ${selectedLead.status === s
+                                                                            ? statusColors[s] + ' shadow-md'
+                                                                            : 'bg-dark-900 border-dark-800 text-gray-500 hover:border-dark-700 hover:text-gray-400'
+                                                                            } ${userRole === 'secretario' ? 'opacity-65 cursor-not-allowed' : 'cursor-pointer'}`}
+                                                                        title={userRole === 'secretario' ? 'Secretários não podem alterar o status' : ''}
+                                                                    >
+                                                                        {s}
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Bloco de Objeções (Scripts de Venda) */}
+                                                        <div className="bg-dark-850 p-6 rounded-xl border border-dark-800 space-y-4">
+                                                            <div className="flex items-center gap-2">
+                                                                <MessageSquare className="w-4 h-4 text-gold-500" />
+                                                                <h4 className="text-xs font-semibold uppercase tracking-widest text-gray-500">Script de Objeções</h4>
+                                                            </div>
+
+                                                            <div className="flex flex-wrap gap-2">
+                                                                {OBJECTIONS_LIST.map((objection) => (
+                                                                    <button
+                                                                        key={objection}
+                                                                        onClick={() => setSelectedObjection(selectedObjection === objection ? null : objection)}
+                                                                        className={`text-[11px] px-3.5 py-2 rounded-full border transition-all ${selectedObjection === objection
+                                                                            ? 'bg-gold-500 text-black border-gold-500 font-extrabold shadow-md'
+                                                                            : 'bg-dark-900 border-dark-800 text-gray-400 hover:border-gold-500/30 hover:text-gray-300'
+                                                                            }`}
+                                                                    >
+                                                                        {objection}
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+
+                                                            <AnimatePresence mode="wait">
+                                                                {selectedObjection && OBJECTIONS_MAPPING[selectedObjection] && (
+                                                                    <motion.div
+                                                                        key={selectedObjection}
+                                                                        initial={{ opacity: 0, height: 0, y: -10 }}
+                                                                        animate={{ opacity: 1, height: 'auto', y: 0 }}
+                                                                        exit={{ opacity: 0, height: 0, y: -10 }}
+                                                                        className="overflow-hidden mt-4"
+                                                                    >
+                                                                        <div className="p-4 bg-dark-900 rounded-lg border border-gold-500/10 space-y-4 shadow-inner">
+                                                                            <div>
+                                                                                <div className="flex items-center gap-2 mb-1">
+                                                                                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                                                                                    <p className="text-[10px] text-blue-400 uppercase font-bold tracking-widest">1. Acolher</p>
+                                                                                </div>
+                                                                                <p className="text-sm text-gray-300 pl-3.5 leading-relaxed font-light">{OBJECTIONS_MAPPING[selectedObjection].acolher.replace('NOME', selectedLead.name)}</p>
+                                                                            </div>
+                                                                            <div>
+                                                                                <div className="flex items-center gap-2 mb-1">
+                                                                                    <span className="w-1.5 h-1.5 rounded-full bg-yellow-500"></span>
+                                                                                    <p className="text-[10px] text-yellow-400 uppercase font-bold tracking-widest">2. Reenquadrar</p>
+                                                                                </div>
+                                                                                <p className="text-sm text-gray-300 pl-3.5 leading-relaxed font-light">{OBJECTIONS_MAPPING[selectedObjection].reenquadrar.replace('NOME', selectedLead.name)}</p>
+                                                                            </div>
+                                                                            <div>
+                                                                                <div className="flex items-center gap-2 mb-1">
+                                                                                    <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                                                                                    <p className="text-[10px] text-green-400 uppercase font-bold tracking-widest">3. Solucionar 1</p>
+                                                                                </div>
+                                                                                <p className="text-sm text-gray-300 pl-3.5 leading-relaxed font-light">{OBJECTIONS_MAPPING[selectedObjection].solucionar1.replace('NOME', selectedLead.name)}</p>
+                                                                            </div>
+                                                                            <div>
+                                                                                <div className="flex items-center gap-2 mb-1">
+                                                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                                                                    <p className="text-[10px] text-emerald-400 uppercase font-bold tracking-widest">4. Solucionar 2</p>
+                                                                                </div>
+                                                                                <p className="text-sm text-gray-300 pl-3.5 leading-relaxed font-light">{OBJECTIONS_MAPPING[selectedObjection].solucionar2.replace('NOME', selectedLead.name)}</p>
+                                                                            </div>
+                                                                        </div>
+                                                                    </motion.div>
+                                                                )}
+                                                            </AnimatePresence>
+                                                        </div>
+
+                                                        {/* Bloco de Opções de Pagamento */}
+                                                        <div className="bg-dark-850 p-6 rounded-xl border border-dark-800 space-y-4">
+                                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-dark-800 pb-4">
+                                                                <div className="flex items-center gap-2">
+                                                                    <CreditCard className="w-4 h-4 text-gold-500" />
+                                                                    <h4 className="text-xs font-semibold uppercase tracking-widest text-gray-500 font-sans">Opções de Pagamento</h4>
+                                                                </div>
+
+                                                                {/* Dropdown de Precificação */}
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="text-[10px] text-gray-450 uppercase font-bold tracking-wider shrink-0 font-sans">Precificação:</span>
+                                                                    <select
+                                                                        value={selectedLead.answers.selectedPricingId || 'default'}
+                                                                        onChange={(e) => handleUpdateLeadPricing(selectedLead.id, e.target.value)}
+                                                                        disabled={userRole !== 'administrador'}
+                                                                        className="bg-dark-900 border border-dark-800 text-white rounded-lg px-3 py-1.5 text-xs outline-none focus:border-gold-500 transition-all cursor-pointer font-medium disabled:opacity-60 disabled:cursor-not-allowed"
+                                                                    >
+                                                                        <option value="default">Renda de até 10 mil reais (R$ 597) - Padrão</option>
+                                                                        {pricingPackages.map(pkg => (
+                                                                            <option key={pkg.id} value={pkg.id}>{pkg.name} ({pkg.value})</option>
+                                                                        ))}
+                                                                    </select>
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                                {(() => {
+                                                                    const currentPricingId = selectedLead.answers.selectedPricingId;
+                                                                    const currentPkg = currentPricingId && pricingPackages.find(p => p.id === currentPricingId);
+                                                                    const options = currentPkg ? currentPkg.payment_options : STATIC_PAYMENT_OPTIONS;
+                                                                    const activeOptions = options.filter(o => o && o.description && o.description.trim() !== '');
+
+                                                                    return activeOptions.map((option, idx) => (
+                                                                        <div key={idx} className="bg-dark-900 rounded-lg border border-dark-800 hover:border-gold-500/20 transition-all overflow-hidden flex flex-col justify-between">
+                                                                            <div className="p-4 flex items-start gap-3">
+                                                                                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-gold-500/10 text-gold-500 font-bold text-[11px] shrink-0 border border-gold-500/20">
+                                                                                    {option.label}
+                                                                                </span>
+                                                                                <span className="text-sm text-gray-300 font-medium leading-snug">{option.description}</span>
+                                                                            </div>
+                                                                            <div className="flex items-center justify-between px-4 py-2 bg-dark-950/40 border-t border-dark-800/40">
+                                                                                <span className="text-[10px] text-gray-500 truncate max-w-[150px] md:max-w-xs">{option.link}</span>
+                                                                                <button
+                                                                                    onClick={() => handleCopyLink(option.link, idx)}
+                                                                                    className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 bg-dark-800 hover:bg-dark-750 text-gold-500 hover:text-gold-400 rounded-md transition-colors border border-dark-700"
+                                                                                    title="Copiar link"
+                                                                                >
+                                                                                    {copiedIndex === idx ? (
+                                                                                        <>
+                                                                                            <CheckCircle2 className="w-3 h-3 text-green-500" />
+                                                                                            <span className="text-green-500 text-[9px]">Copiado</span>
+                                                                                        </>
+                                                                                    ) : (
+                                                                                        <>
+                                                                                            <Copy className="w-3 h-3" />
+                                                                                            <span className="text-[9px]">Copiar Link</span>
+                                                                                        </>
+                                                                                    )}
+                                                                                </button>
+                                                                            </div>
+                                                                        </div>
+                                                                    ));
+                                                                })()}
+                                                            </div>
+                                                        </div>
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
+
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </div>
+                        )}
+
+                        {activeTab === 'presentations' && (
+                            <motion.div
+                                key="presentations-tab"
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                className="space-y-8 font-sans animate-fade-in"
+                            >
+                                {/* Apresentações Principais */}
+                                <div>
+                                    <div className="flex flex-col gap-1 mb-6">
+                                        <h2 className="text-xl font-serif text-white font-bold flex items-center gap-2">
+                                            <Sparkles className="text-gold-500 w-5 h-5 animate-pulse" />
+                                            Apresentações Principais (Diagnóstico)
+                                        </h2>
+                                        <p className="text-xs text-gray-500 font-light">
+                                            Estas apresentações carregam dinamicamente as respostas de diagnóstico dos leads para conduzir a reunião estratégica.
+                                        </p>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                        {/* Card 1: Finanças Pessoais */}
+                                        <div className="bg-dark-900 border border-dark-800 p-6 rounded-2xl flex flex-col justify-between hover:border-gold-500/30 transition-all hover:shadow-[0_0_20px_rgba(245,158,11,0.05)]">
+                                            <div className="space-y-3">
+                                                <div className="w-10 h-10 bg-gold-500/10 rounded-xl flex items-center justify-center text-gold-500 border border-gold-500/20">
+                                                    <User className="w-5 h-5" />
+                                                </div>
+                                                <h3 className="text-lg font-bold text-white font-serif">Finanças Pessoais</h3>
+                                                <p className="text-xs text-gray-400 font-light leading-relaxed">
+                                                    Apresentação voltada para a organização financeira pessoal, definição de metas individuais ou familiares, e planejamento patrimonial.
+                                                </p>
+                                            </div>
+                                            <button
+                                                onClick={() => setActivePresentationSelectType('personal')}
+                                                className="w-full mt-6 py-2.5 bg-gold-500 hover:bg-gold-400 text-black font-bold rounded-lg text-xs uppercase tracking-wider transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                                            >
+                                                Ver Apresentação
+                                                <ArrowRight className="w-3.5 h-3.5 text-black font-bold" />
+                                            </button>
+                                        </div>
+
+                                        {/* Card 2: Finanças Empresariais */}
+                                        <div className="bg-dark-900 border border-dark-800 p-6 rounded-2xl flex flex-col justify-between hover:border-gold-500/30 transition-all hover:shadow-[0_0_20px_rgba(245,158,11,0.05)]">
+                                            <div className="space-y-3">
+                                                <div className="w-10 h-10 bg-gold-500/10 rounded-xl flex items-center justify-center text-gold-500 border border-gold-500/20">
+                                                    <DollarSign className="w-5 h-5" />
+                                                </div>
+                                                <h3 className="text-lg font-bold text-white font-serif">Finanças Empresariais</h3>
+                                                <p className="text-xs text-gray-400 font-light leading-relaxed">
+                                                    Apresentação com foco no fluxo de caixa corporativo, margens de lucro, organização de contas da empresa e separação das finanças do sócio.
+                                                </p>
+                                            </div>
+                                            <button
+                                                onClick={() => setActivePresentationSelectType('business')}
+                                                className="w-full mt-6 py-2.5 bg-gold-500 hover:bg-gold-400 text-black font-bold rounded-lg text-xs uppercase tracking-wider transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                                            >
+                                                Ver Apresentação
+                                                <ArrowRight className="w-3.5 h-3.5 text-black font-bold" />
+                                            </button>
+                                        </div>
+
+                                        {/* Card 3: Gestão Completa */}
+                                        <div className="bg-dark-900 border border-dark-800 p-6 rounded-2xl flex flex-col justify-between hover:border-gold-500/30 transition-all hover:shadow-[0_0_20px_rgba(245,158,11,0.05)]">
+                                            <div className="space-y-3">
+                                                <div className="w-10 h-10 bg-gold-500/10 rounded-xl flex items-center justify-center text-gold-500 border border-gold-500/20">
+                                                    <Layers className="w-5 h-5" />
+                                                </div>
+                                                <h3 className="text-lg font-bold text-white font-serif">Gestão Completa</h3>
+                                                <p className="text-xs text-gray-400 font-light leading-relaxed">
+                                                    Planejamento integrado que une finanças pessoais e empresariais. Indicado para empresários que desejam otimizar a distribuição de lucros.
+                                                </p>
+                                            </div>
+                                            <button
+                                                onClick={() => setActivePresentationSelectType('complete')}
+                                                className="w-full mt-6 py-2.5 bg-gold-500 hover:bg-gold-400 text-black font-bold rounded-lg text-xs uppercase tracking-wider transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                                            >
+                                                Ver Apresentação
+                                                <ArrowRight className="w-3.5 h-3.5 text-black font-bold" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Apresentações Simples */}
+                                <div className="pt-6 border-t border-dark-800/60">
+                                    <div className="flex flex-col gap-1 mb-6">
+                                        <h2 className="text-xl font-serif text-white font-bold flex items-center gap-2">
+                                            <Target className="text-gold-500 w-5 h-5" />
+                                            Apresentações Simples
+                                        </h2>
+                                        <p className="text-xs text-gray-500 font-light">
+                                            Apresentações informativas genéricas sem vinculação a questionários.
+                                        </p>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                        {/* Card 1: Planejamento de Metas */}
+                                        <div className="bg-dark-900/40 border border-dark-800/80 p-6 rounded-2xl flex flex-col justify-between hover:border-dark-700 transition-all hover:shadow-[0_0_15px_rgba(255,255,255,0.01)]">
+                                            <div className="space-y-2">
+                                                <span className="text-[9px] text-gold-500 font-black uppercase tracking-widest bg-gold-500/10 px-2 py-0.5 rounded border border-gold-500/20">Em Breve</span>
+                                                <h3 className="text-base font-bold text-white font-serif mt-2">Planejamento de Metas Rápidas</h3>
+                                                <p className="text-xs text-gray-500 font-light leading-relaxed">
+                                                    Estrutura direta para desenhar prazos e valores para objetivos prioritários.
+                                                </p>
+                                            </div>
+                                            <button
+                                                onClick={() => setShowSimplePresentationInfo('Planejamento de Metas Rápidas')}
+                                                className="w-full mt-6 py-2 bg-dark-800 hover:bg-dark-750 text-gray-400 hover:text-white rounded-lg text-xs uppercase tracking-wider transition-colors cursor-pointer border border-dark-700"
+                                            >
+                                                Visualizar Roteiro
+                                            </button>
+                                        </div>
+
+                                        {/* Card 2: Diagnóstico Expresso */}
+                                        <div className="bg-dark-900/40 border border-dark-800/80 p-6 rounded-2xl flex flex-col justify-between hover:border-dark-700 transition-all hover:shadow-[0_0_15px_rgba(255,255,255,0.01)]">
+                                            <div className="space-y-2">
+                                                <span className="text-[9px] text-gold-500 font-black uppercase tracking-widest bg-gold-500/10 px-2 py-0.5 rounded border border-gold-500/20">Em Breve</span>
+                                                <h3 className="text-base font-bold text-white font-serif mt-2">Diagnóstico Expresso de Investimentos</h3>
+                                                <p className="text-xs text-gray-500 font-light leading-relaxed">
+                                                    Roteiro rápido focado em alocação de carteira básica e redução de riscos.
+                                                </p>
+                                            </div>
+                                            <button
+                                                onClick={() => setShowSimplePresentationInfo('Diagnóstico Expresso de Investimentos')}
+                                                className="w-full mt-6 py-2 bg-dark-800 hover:bg-dark-750 text-gray-400 hover:text-white rounded-lg text-xs uppercase tracking-wider transition-colors cursor-pointer border border-dark-700"
+                                            >
+                                                Visualizar Roteiro
+                                            </button>
+                                        </div>
+
+                                        {/* Card 3: Mentalidade e Hábitos */}
+                                        <div className="bg-dark-900/40 border border-dark-800/80 p-6 rounded-2xl flex flex-col justify-between hover:border-dark-700 transition-all hover:shadow-[0_0_15px_rgba(255,255,255,0.01)]">
+                                            <div className="space-y-2">
+                                                <span className="text-[9px] text-gold-500 font-black uppercase tracking-widest bg-gold-500/10 px-2 py-0.5 rounded border border-gold-500/20">Em Breve</span>
+                                                <h3 className="text-base font-bold text-white font-serif mt-2">Mentalidade e Organização Diária</h3>
+                                                <p className="text-xs text-gray-500 font-light leading-relaxed">
+                                                    Discussão simples sobre crenças financeiras e rotinas saudáveis de controle.
+                                                </p>
+                                            </div>
+                                            <button
+                                                onClick={() => setShowSimplePresentationInfo('Mentalidade e Organização Diária')}
+                                                className="w-full mt-6 py-2 bg-dark-800 hover:bg-dark-750 text-gray-400 hover:text-white rounded-lg text-xs uppercase tracking-wider transition-colors cursor-pointer border border-dark-700"
+                                            >
+                                                Visualizar Roteiro
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        )}
+
+                        {activeTab === 'users' && (
+                            <motion.div
+                                key="users-tab"
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                className="space-y-6"
+                            >
+                                <div className="bg-dark-900 border border-dark-800 rounded-xl p-6 shadow-2xl font-sans">
+                                    <h3 className="text-lg font-serif text-white font-bold mb-4">Adicionar Novo Usuário Administrativo</h3>
+
+                                    <form onSubmit={handleAddUser} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                                        <div className="space-y-2">
+                                            <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider">E-mail do Usuário</label>
+                                            <input
+                                                type="email"
+                                                required
+                                                placeholder="email@dominio.com"
+                                                value={newEmail}
+                                                onChange={(e) => setNewEmail(e.target.value)}
+                                                className="w-full bg-dark-950 border border-dark-800 rounded-lg p-3 text-white focus:border-gold-500 outline-none transition-all text-sm font-medium"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider">Papel / Acesso</label>
+                                            <select
+                                                value={newRole}
+                                                onChange={(e: any) => setNewRole(e.target.value)}
+                                                className="w-full bg-dark-950 border border-dark-800 text-white rounded-lg p-3 text-sm outline-none focus:border-gold-500 transition-all cursor-pointer font-medium"
+                                            >
+                                                <option value="vendedor">Vendedor</option>
+                                                <option value="secretario">Secretário</option>
+                                                <option value="administrador">Administrador</option>
+                                            </select>
+                                        </div>
+                                        <button
+                                            type="submit"
+                                            disabled={submittingUser || !newEmail}
+                                            className="py-3 px-6 bg-gold-500 hover:bg-gold-400 text-black font-bold rounded-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50 text-sm cursor-pointer"
+                                        >
+                                            <UserPlus className="w-4 h-4 text-black" />
+                                            {submittingUser ? 'Adicionando...' : 'Adicionar Usuário'}
+                                        </button>
+                                    </form>
+                                </div>
+
+                                <div className="bg-dark-900 border border-dark-800 rounded-xl overflow-hidden shadow-2xl font-sans">
+                                    <div className="p-4 bg-dark-850 border-b border-dark-800 flex justify-between items-center">
+                                        <h3 className="text-sm font-bold uppercase tracking-wider text-gray-400">Usuários Cadastrados</h3>
+                                        <span className="text-xs text-gray-500 font-mono">{adminUsers.length + 1} usuários</span>
+                                    </div>
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-left">
+                                            <thead className="bg-dark-800/50 text-xs uppercase tracking-widest text-gray-500">
+                                                <tr>
+                                                    <th className="px-6 py-4 font-semibold">E-mail</th>
+                                                    <th className="px-6 py-4 font-semibold">Papel</th>
+                                                    <th className="px-6 py-4 font-semibold text-right">Ações</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-dark-800">
+                                                {/* Super Admin fixo no topo */}
+                                                <tr className="bg-gold-500/5 border-l-2 border-gold-500">
+                                                    <td className="px-6 py-4 font-medium text-white flex items-center gap-2">
+                                                        diegokloppel21@gmail.com
+                                                        <span className="text-[9px] px-2 py-0.5 bg-gold-500/20 text-gold-400 rounded border border-gold-500/20 font-bold uppercase">Criador</span>
                                                     </td>
                                                     <td className="px-6 py-4">
-                                                        <span className={`text-[10px] px-2.5 py-1 rounded-full border font-semibold tracking-wider uppercase ${statusColors[lead.status || 'Verificar']}`}>
-                                                            {lead.status || 'Verificar'}
+                                                        <span className="text-[10px] px-2.5 py-1 rounded-full bg-red-500/10 text-red-400 border border-red-500/20 font-semibold uppercase tracking-wider">
+                                                            Administrador
                                                         </span>
                                                     </td>
-                                                    <td className="px-6 py-4 text-right">
-                                                        {userRole === 'administrador' && (
+                                                    <td className="px-6 py-4 text-right text-xs text-gray-500 italic font-mono">
+                                                        Acesso Mestre
+                                                    </td>
+                                                </tr>
+
+                                                {adminUsers.filter(u => u.email.toLowerCase() !== 'diegokloppel21@gmail.com').map(user => (
+                                                    <tr key={user.id} className="hover:bg-dark-800/40 transition-colors">
+                                                        <td className="px-6 py-4 text-gray-300 font-medium">{user.email}</td>
+                                                        <td className="px-6 py-4">
+                                                            <span className={`text-[10px] px-2.5 py-1 rounded-full border font-semibold uppercase tracking-wider ${user.role === 'administrador'
+                                                                ? 'bg-red-500/10 text-red-400 border-red-500/20'
+                                                                : user.role === 'secretario'
+                                                                    ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                                                                    : 'bg-green-500/10 text-green-400 border-green-500/20'
+                                                                }`}>
+                                                                {user.role}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-6 py-4 text-right flex items-center justify-end gap-2">
                                                             <button
-                                                                onClick={(e) => { e.stopPropagation(); handleDelete(lead); }}
-                                                                className="p-2 text-gray-655 hover:text-red-400 transition-colors cursor-pointer"
+                                                                onClick={() => {
+                                                                    setEditingUser({ ...user });
+                                                                    setIsUserModalOpen(true);
+                                                                }}
+                                                                disabled={userRole !== 'administrador'}
+                                                                className="p-2 text-gray-600 hover:text-gold-400 transition-colors disabled:opacity-30 disabled:hover:text-gray-600 cursor-pointer"
+                                                                title="Editar perfil e redefinir senha"
+                                                            >
+                                                                <Edit className="w-4 h-4" />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDeleteUser(user.id, user.email)}
+                                                                disabled={userRole !== 'administrador'}
+                                                                className="p-2 text-gray-600 hover:text-red-400 transition-colors disabled:opacity-30 disabled:hover:text-gray-600 cursor-pointer"
+                                                                title={userRole === 'administrador' ? "Remover acesso" : "Apenas administradores podem excluir"}
                                                             >
                                                                 <Trash2 className="w-4 h-4" />
                                                             </button>
-                                                        )}
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                            {sortedLeads.length === 0 && !loading && (
-                                                <tr>
-                                                    <td colSpan={4} className="px-6 py-12 text-center text-gray-500 font-medium text-sm">
-                                                        Nenhum lead encontrado.
-                                                    </td>
-                                                </tr>
-                                            )}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </motion.div>
-                    ) : (
-                        /* Se houver lead selecionado, exibe os detalhes em largura total e oculta a lista */
-                        <motion.div
-                            key="details-view"
-                            initial={{ opacity: 0, y: 15 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -15 }}
-                            transition={{ duration: 0.3 }}
-                            className="space-y-6"
-                        >
-                            {/* Barra Superior de Navegação dos Detalhes */}
-                            <div className="flex justify-between items-center bg-dark-900 border border-dark-800 rounded-xl p-4 shadow-lg">
-                                <button
-                                    onClick={() => {
-                                        setSelectedLead(null);
-                                        setShowTechnicalDetails(false);
-                                    }}
-                                    className="flex items-center gap-2 px-4 py-2 bg-dark-800 hover:bg-dark-700/80 border border-dark-700 text-gray-300 hover:text-white rounded-lg transition-all text-xs md:text-sm font-semibold shadow-sm"
-                                >
-                                    <ArrowLeft className="w-4 h-4" />
-                                    Voltar para a Lista de Leads
-                                </button>
-                                <span className="text-xs text-gray-500 uppercase tracking-widest font-semibold hidden sm:inline">
-                                    Lead selecionado
-                                </span>
-                            </div>
-
-                            <div className="bg-dark-900 border border-dark-800 rounded-xl p-6 md:p-8 space-y-8 shadow-2xl">
-                                
-                                {/* Linha 1: Dados Principais do Lead */}
-                                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 bg-dark-850 p-6 rounded-xl border border-dark-800">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-14 h-14 bg-gold-500/10 rounded-full flex items-center justify-center text-gold-500 border border-gold-500/20 shrink-0 shadow-inner">
-                                            <User className="w-7 h-7" />
-                                        </div>
-                                        <div className="space-y-1">
-                                            {/* Nome e Botão de Apresentação em Destaque */}
-                                            <div className="flex flex-wrap items-center gap-3">
-                                                <p className="text-white font-serif font-bold text-xl md:text-2xl tracking-wide">{selectedLead.name}</p>
-                                                
-                                                <button
-                                                    onClick={() => setActivePresentationLead(selectedLead)}
-                                                    className="px-4 py-1.5 bg-gradient-to-r from-gold-600 via-amber-500 to-gold-500 text-dark-950 text-[10px] font-black rounded-lg shadow-xl shadow-gold-500/20 hover:shadow-gold-500/40 hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5 uppercase tracking-widest border border-gold-400/20 cursor-pointer"
-                                                >
-                                                    <Sparkles className="w-3.5 h-3.5 text-dark-950 fill-current animate-pulse" />
-                                                    Apresentação
-                                                </button>
-
-                                                {userRole === 'administrador' && (
-                                                    <button
-                                                        onClick={() => {
-                                                            setEditingLeadData(JSON.parse(JSON.stringify(selectedLead)));
-                                                            setEditLeadTab('info');
-                                                            setIsEditLeadModalOpen(true);
-                                                        }}
-                                                        className="px-4 py-1.5 bg-dark-800 hover:bg-dark-750 text-gray-300 hover:text-white text-[10px] font-bold rounded-lg border border-dark-700 transition-all flex items-center gap-1.5 uppercase tracking-widest cursor-pointer"
-                                                    >
-                                                        <Edit className="w-3.5 h-3.5 text-gold-500" />
-                                                        Editar Lead
-                                                    </button>
-                                                )}
-                                            </div>
-                                            <p className="text-sm text-gold-500 font-semibold tracking-wide">{selectedLead.profile}</p>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex flex-col sm:flex-row sm:flex-wrap lg:justify-end gap-x-6 gap-y-3 text-sm font-medium border-t lg:border-t-0 border-dark-800/60 pt-4 lg:pt-0 max-w-full">
-                                        <div className="flex items-center gap-2 text-gray-300 min-w-0">
-                                            <Mail className="w-4 h-4 text-gold-500 shrink-0" />
-                                            <span className="truncate max-w-[220px] sm:max-w-xs md:max-w-sm" title={selectedLead.email}>
-                                                {selectedLead.email}
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center gap-2 text-gray-300 shrink-0">
-                                            <Phone className="w-4 h-4 text-gold-500" />
-                                            <span>{selectedLead.phone}</span>
-                                        </div>
-                                        <div className="flex items-center gap-2 text-gray-300 shrink-0">
-                                            <Layers className="w-4 h-4 text-gold-500" />
-                                            <span>Origem: {selectedLead.action_type}</span>
-                                        </div>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
                                     </div>
                                 </div>
+                            </motion.div>
+                        )}
 
-                                {/* Linha 2: Respostas do Quiz (Sempre Visíveis) */}
-                                <div className="space-y-4">
-                                    <h4 className="text-xs font-semibold uppercase tracking-widest text-gray-500 border-b border-dark-800 pb-2">
-                                        Respostas Completas do Quiz
-                                    </h4>
-                                    
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
-                                            <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">1. Principal Problema</p>
-                                            <p className="text-sm text-white leading-relaxed font-light">{selectedLead.answers.mainProblem}</p>
-                                        </div>
-
-                                        <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
-                                            <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">2. Já tentou resolver?</p>
-                                            <p className="text-sm text-white font-medium">{selectedLead.answers.triedSolution}</p>
-                                            {selectedLead.answers.triedSolutionDescription && (
-                                                <p className="text-xs text-gray-400 mt-2.5 p-2.5 bg-dark-950 rounded border border-dark-850 italic font-light leading-relaxed">
-                                                    "{selectedLead.answers.triedSolutionDescription}"
-                                                </p>
-                                            )}
-                                        </div>
-
-                                        <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
-                                            <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">3. Renda Mensal</p>
-                                            <p className="text-sm text-white font-medium">{selectedLead.answers.incomeRange}</p>
-                                        </div>
-
-                                        <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
-                                            <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">4. Profissão</p>
-                                            <p className="text-sm text-white font-medium">{selectedLead.answers.profession}</p>
-                                        </div>
-
-                                        <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
-                                            <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">5. Estado Civil</p>
-                                            <p className="text-sm text-white font-medium">{selectedLead.answers.spouse}</p>
-                                        </div>
-
-                                        <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
-                                            <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">6. Filhos</p>
-                                            <p className="text-sm text-white font-medium">{selectedLead.answers.children}</p>
-                                        </div>
-
-                                        <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
-                                            <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">7. Dependentes</p>
-                                            <p className="text-sm text-white font-medium">{selectedLead.answers.otherDependents}</p>
-                                            {selectedLead.answers.otherDependentsCount !== undefined && (
-                                                <p className="text-xs text-gray-400 mt-1.5 font-medium">Quantidade informada: {selectedLead.answers.otherDependentsCount}</p>
-                                            )}
-                                        </div>
-
-                                        <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
-                                            <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">8. Vida Financeira Atual</p>
-                                            <p className="text-sm text-white font-medium">{selectedLead.answers.financialState}</p>
-                                        </div>
-
-                                        <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
-                                            <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">9. Metas Claras</p>
-                                            <p className="text-sm text-white font-medium">{selectedLead.answers.goals}</p>
-                                        </div>
-
-                                        <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
-                                            <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">10. Possui Cartão de Crédito?</p>
-                                            <p className="text-sm text-white font-medium">{selectedLead.answers.hasCreditCard || 'Não respondido'}</p>
-                                            {selectedLead.answers.hasCreditCard === 'Sim' && (
-                                                <p className="text-xs text-gray-400 mt-1.5 font-medium">
-                                                    Hoje é um problema financeiro? <span className="text-white font-bold">{selectedLead.answers.creditCardIsProblem || 'Não informado'}</span>
-                                                </p>
-                                            )}
-                                        </div>
-
-                                        <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
-                                            <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">11. Perspectiva (6 meses)</p>
-                                            <p className="text-sm text-white font-medium">{selectedLead.answers.futureOutlook}</p>
-                                        </div>
-
-                                        <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
-                                            <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">12. Depende de outra pessoa para tomar decisão?</p>
-                                            <p className="text-sm text-white font-medium">{selectedLead.answers.dependsOnOthers || 'Não respondido'}</p>
-                                            {selectedLead.answers.dependsOnOthers === 'Sim' && (
-                                                <p className="text-xs text-gray-400 mt-1.5 font-medium">
-                                                    Investe mesmo se falar não? <span className="text-white font-bold">{selectedLead.answers.dependsOnOthersReason || 'Não informado'}</span>
-                                                </p>
-                                            )}
-                                        </div>
-
-                                        <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors md:col-span-2">
-                                            <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">13. Nível de Comprometimento (0 a 10)</p>
-                                            <div className="flex items-center gap-4 mt-2">
-                                                <div className="flex-grow bg-dark-950 rounded-full h-3 overflow-hidden border border-dark-850">
-                                                    <div 
-                                                        className="bg-gradient-to-r from-gold-600 to-gold-400 h-full rounded-full transition-all duration-700" 
-                                                        style={{ width: `${(parseInt(selectedLead.answers.commitmentScale || '0', 10) / 10) * 100}%` }}
-                                                    ></div>
-                                                </div>
-                                                <span className="text-sm font-bold text-gold-500 shrink-0 bg-gold-500/10 px-2.5 py-1 rounded border border-gold-500/20">
-                                                    {selectedLead.answers.commitmentScale || '0'} / 10
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Botões de Ação: Detalhes Técnicos e Respostas da Apresentação */}
-                                <div className="pt-8 border-t border-dark-800 flex flex-wrap justify-center gap-4">
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowTechnicalDetails(!showTechnicalDetails)}
-                                        className="inline-flex items-center gap-2.5 px-8 py-3.5 rounded-xl border border-gold-500/20 hover:border-gold-500/40 bg-gold-500/5 hover:bg-gold-500/10 text-gold-400 hover:text-gold-300 transition-all font-bold text-xs md:text-sm tracking-widest uppercase shadow-lg shadow-black/20"
-                                    >
-                                        {showTechnicalDetails ? 'Ocultar Detalhes Técnicos' : 'Mostrar Detalhes Técnicos'}
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowPresentationAnswersModal(true)}
-                                        className="inline-flex items-center gap-2.5 px-8 py-3.5 rounded-xl bg-gradient-to-r from-gold-600 via-amber-500 to-gold-500 text-dark-950 hover:from-gold-500 hover:to-amber-400 hover:scale-[1.02] active:scale-[0.98] transition-all font-bold text-xs md:text-sm tracking-widest uppercase shadow-lg shadow-gold-500/20 border border-gold-400/20"
-                                    >
-                                        <Target className="w-4 h-4 text-dark-950" />
-                                        Ver Respostas da Apresentação
-                                    </button>
-                                </div>
-
-                                {/* Seção de Detalhes Técnicos (Ocultada/Liberada pelo botão acima) */}
-                                <AnimatePresence>
-                                    {showTechnicalDetails && (
-                                        <motion.div
-                                            initial={{ opacity: 0, height: 0 }}
-                                            animate={{ opacity: 1, height: 'auto' }}
-                                            exit={{ opacity: 0, height: 0 }}
-                                            transition={{ duration: 0.3 }}
-                                            className="space-y-8 pt-8 border-t border-dark-800 overflow-hidden"
-                                        >
-                                            
-                                            {/* Bloco de Status do Lead */}
-                                            <div className="bg-dark-850 p-6 rounded-xl border border-dark-800 space-y-4">
-                                                <h4 className="text-xs font-semibold uppercase tracking-widest text-gray-500">
-                                                    Status do Lead
-                                                </h4>
-                                                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                                                    {(['Agendado', 'Verificar', 'Consultoria', 'Downsell', 'Perdido'] as const).map((s) => (
-                                                        <button
-                                                            key={s}
-                                                            onClick={() => handleStatusUpdate(selectedLead.id, s)}
-                                                            disabled={updatingStatus === selectedLead.id || userRole === 'secretario'}
-                                                            className={`px-4 py-3 rounded-lg text-xs md:text-sm font-semibold border transition-all ${selectedLead.status === s
-                                                                ? statusColors[s] + ' shadow-md'
-                                                                : 'bg-dark-900 border-dark-800 text-gray-500 hover:border-dark-700 hover:text-gray-400'
-                                                            } ${userRole === 'secretario' ? 'opacity-65 cursor-not-allowed' : 'cursor-pointer'}`}
-                                                            title={userRole === 'secretario' ? 'Secretários não podem alterar o status' : ''}
-                                                        >
-                                                            {s}
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </div>
-
-                                            {/* Bloco de Objeções (Scripts de Venda) */}
-                                            <div className="bg-dark-850 p-6 rounded-xl border border-dark-800 space-y-4">
-                                                <div className="flex items-center gap-2">
-                                                    <MessageSquare className="w-4 h-4 text-gold-500" />
-                                                    <h4 className="text-xs font-semibold uppercase tracking-widest text-gray-500">Script de Objeções</h4>
-                                                </div>
-
-                                                <div className="flex flex-wrap gap-2">
-                                                    {OBJECTIONS_LIST.map((objection) => (
-                                                        <button
-                                                            key={objection}
-                                                            onClick={() => setSelectedObjection(selectedObjection === objection ? null : objection)}
-                                                            className={`text-[11px] px-3.5 py-2 rounded-full border transition-all ${selectedObjection === objection
-                                                                ? 'bg-gold-500 text-black border-gold-500 font-extrabold shadow-md'
-                                                                : 'bg-dark-900 border-dark-800 text-gray-400 hover:border-gold-500/30 hover:text-gray-300'
-                                                            }`}
-                                                        >
-                                                            {objection}
-                                                        </button>
-                                                    ))}
-                                                </div>
-
-                                                <AnimatePresence mode="wait">
-                                                    {selectedObjection && OBJECTIONS_MAPPING[selectedObjection] && (
-                                                        <motion.div
-                                                            key={selectedObjection}
-                                                            initial={{ opacity: 0, height: 0, y: -10 }}
-                                                            animate={{ opacity: 1, height: 'auto', y: 0 }}
-                                                            exit={{ opacity: 0, height: 0, y: -10 }}
-                                                            className="overflow-hidden mt-4"
-                                                        >
-                                                            <div className="p-4 bg-dark-900 rounded-lg border border-gold-500/10 space-y-4 shadow-inner">
-                                                                <div>
-                                                                    <div className="flex items-center gap-2 mb-1">
-                                                                        <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-                                                                        <p className="text-[10px] text-blue-400 uppercase font-bold tracking-widest">1. Acolher</p>
-                                                                    </div>
-                                                                    <p className="text-sm text-gray-300 pl-3.5 leading-relaxed font-light">{OBJECTIONS_MAPPING[selectedObjection].acolher.replace('NOME', selectedLead.name)}</p>
-                                                                </div>
-                                                                <div>
-                                                                    <div className="flex items-center gap-2 mb-1">
-                                                                        <span className="w-1.5 h-1.5 rounded-full bg-yellow-500"></span>
-                                                                        <p className="text-[10px] text-yellow-400 uppercase font-bold tracking-widest">2. Reenquadrar</p>
-                                                                    </div>
-                                                                    <p className="text-sm text-gray-300 pl-3.5 leading-relaxed font-light">{OBJECTIONS_MAPPING[selectedObjection].reenquadrar.replace('NOME', selectedLead.name)}</p>
-                                                                </div>
-                                                                <div>
-                                                                    <div className="flex items-center gap-2 mb-1">
-                                                                        <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                                                                        <p className="text-[10px] text-green-400 uppercase font-bold tracking-widest">3. Solucionar 1</p>
-                                                                    </div>
-                                                                    <p className="text-sm text-gray-300 pl-3.5 leading-relaxed font-light">{OBJECTIONS_MAPPING[selectedObjection].solucionar1.replace('NOME', selectedLead.name)}</p>
-                                                                </div>
-                                                                <div>
-                                                                    <div className="flex items-center gap-2 mb-1">
-                                                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                                                        <p className="text-[10px] text-emerald-400 uppercase font-bold tracking-widest">4. Solucionar 2</p>
-                                                                    </div>
-                                                                    <p className="text-sm text-gray-300 pl-3.5 leading-relaxed font-light">{OBJECTIONS_MAPPING[selectedObjection].solucionar2.replace('NOME', selectedLead.name)}</p>
-                                                                </div>
-                                                            </div>
-                                                        </motion.div>
-                                                    )}
-                                                </AnimatePresence>
-                                            </div>
-
-                                            {/* Bloco de Opções de Pagamento */}
-                                            <div className="bg-dark-850 p-6 rounded-xl border border-dark-800 space-y-4">
-                                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-dark-800 pb-4">
-                                                    <div className="flex items-center gap-2">
-                                                        <CreditCard className="w-4 h-4 text-gold-500" />
-                                                        <h4 className="text-xs font-semibold uppercase tracking-widest text-gray-500 font-sans">Opções de Pagamento</h4>
-                                                    </div>
-                                                    
-                                                    {/* Dropdown de Precificação */}
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="text-[10px] text-gray-450 uppercase font-bold tracking-wider shrink-0 font-sans">Precificação:</span>
-                                                        <select
-                                                            value={selectedLead.answers.selectedPricingId || 'default'}
-                                                            onChange={(e) => handleUpdateLeadPricing(selectedLead.id, e.target.value)}
-                                                            disabled={userRole !== 'administrador'}
-                                                            className="bg-dark-900 border border-dark-800 text-white rounded-lg px-3 py-1.5 text-xs outline-none focus:border-gold-500 transition-all cursor-pointer font-medium disabled:opacity-60 disabled:cursor-not-allowed"
-                                                        >
-                                                            <option value="default">Renda de até 10 mil reais (R$ 597) - Padrão</option>
-                                                            {pricingPackages.map(pkg => (
-                                                                <option key={pkg.id} value={pkg.id}>{pkg.name} ({pkg.value})</option>
-                                                            ))}
-                                                        </select>
-                                                    </div>
-                                                </div>
-
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                    {(() => {
-                                                        const currentPricingId = selectedLead.answers.selectedPricingId;
-                                                        const currentPkg = currentPricingId && pricingPackages.find(p => p.id === currentPricingId);
-                                                        const options = currentPkg ? currentPkg.payment_options : STATIC_PAYMENT_OPTIONS;
-                                                        const activeOptions = options.filter(o => o && o.description && o.description.trim() !== '');
-
-                                                        return activeOptions.map((option, idx) => (
-                                                            <div key={idx} className="bg-dark-900 rounded-lg border border-dark-800 hover:border-gold-500/20 transition-all overflow-hidden flex flex-col justify-between">
-                                                                <div className="p-4 flex items-start gap-3">
-                                                                    <span className="flex items-center justify-center w-6 h-6 rounded-full bg-gold-500/10 text-gold-500 font-bold text-[11px] shrink-0 border border-gold-500/20">
-                                                                        {option.label}
-                                                                    </span>
-                                                                    <span className="text-sm text-gray-300 font-medium leading-snug">{option.description}</span>
-                                                                </div>
-                                                                <div className="flex items-center justify-between px-4 py-2 bg-dark-950/40 border-t border-dark-800/40">
-                                                                    <span className="text-[10px] text-gray-500 truncate max-w-[150px] md:max-w-xs">{option.link}</span>
-                                                                    <button
-                                                                        onClick={() => handleCopyLink(option.link, idx)}
-                                                                        className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 bg-dark-800 hover:bg-dark-750 text-gold-500 hover:text-gold-400 rounded-md transition-colors border border-dark-700"
-                                                                        title="Copiar link"
-                                                                    >
-                                                                        {copiedIndex === idx ? (
-                                                                            <>
-                                                                                <CheckCircle2 className="w-3 h-3 text-green-500" />
-                                                                                <span className="text-green-500 text-[9px]">Copiado</span>
-                                                                            </>
-                                                                        ) : (
-                                                                            <>
-                                                                                <Copy className="w-3 h-3" />
-                                                                                <span className="text-[9px]">Copiar Link</span>
-                                                                            </>
-                                                                        )}
-                                                                    </button>
-                                                                </div>
-                                                            </div>
-                                                        ));
-                                                    })()}
-                                                </div>
-                                            </div>
-                                        </motion.div>
-                                    )}
-                                </AnimatePresence>
-
-                            </div>
-                        </motion.div>
-                    )}
-                </div>
-            )}
-
-            {activeTab === 'presentations' && (
-                <motion.div
-                    key="presentations-tab"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="space-y-8 font-sans animate-fade-in"
-                >
-                    {/* Apresentações Principais */}
-                    <div>
-                        <div className="flex flex-col gap-1 mb-6">
-                            <h2 className="text-xl font-serif text-white font-bold flex items-center gap-2">
-                                <Sparkles className="text-gold-500 w-5 h-5 animate-pulse" />
-                                Apresentações Principais (Diagnóstico)
-                            </h2>
-                            <p className="text-xs text-gray-500 font-light">
-                                Estas apresentações carregam dinamicamente as respostas de diagnóstico dos leads para conduzir a reunião estratégica.
-                            </p>
-                        </div>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            {/* Card 1: Finanças Pessoais */}
-                            <div className="bg-dark-900 border border-dark-800 p-6 rounded-2xl flex flex-col justify-between hover:border-gold-500/30 transition-all hover:shadow-[0_0_20px_rgba(245,158,11,0.05)]">
-                                <div className="space-y-3">
-                                    <div className="w-10 h-10 bg-gold-500/10 rounded-xl flex items-center justify-center text-gold-500 border border-gold-500/20">
-                                        <User className="w-5 h-5" />
-                                    </div>
-                                    <h3 className="text-lg font-bold text-white font-serif">Finanças Pessoais</h3>
-                                    <p className="text-xs text-gray-400 font-light leading-relaxed">
-                                        Apresentação voltada para a organização financeira pessoal, definição de metas individuais ou familiares, e planejamento patrimonial.
-                                    </p>
-                                </div>
-                                <button
-                                    onClick={() => setActivePresentationSelectType('personal')}
-                                    className="w-full mt-6 py-2.5 bg-gold-500 hover:bg-gold-400 text-black font-bold rounded-lg text-xs uppercase tracking-wider transition-colors flex items-center justify-center gap-2 cursor-pointer"
-                                >
-                                    Ver Apresentação
-                                    <ArrowRight className="w-3.5 h-3.5 text-black font-bold" />
-                                </button>
-                            </div>
-
-                            {/* Card 2: Finanças Empresariais */}
-                            <div className="bg-dark-900 border border-dark-800 p-6 rounded-2xl flex flex-col justify-between hover:border-gold-500/30 transition-all hover:shadow-[0_0_20px_rgba(245,158,11,0.05)]">
-                                <div className="space-y-3">
-                                    <div className="w-10 h-10 bg-gold-500/10 rounded-xl flex items-center justify-center text-gold-500 border border-gold-500/20">
-                                        <DollarSign className="w-5 h-5" />
-                                    </div>
-                                    <h3 className="text-lg font-bold text-white font-serif">Finanças Empresariais</h3>
-                                    <p className="text-xs text-gray-400 font-light leading-relaxed">
-                                        Apresentação com foco no fluxo de caixa corporativo, margens de lucro, organização de contas da empresa e separação das finanças do sócio.
-                                    </p>
-                                </div>
-                                <button
-                                    onClick={() => setActivePresentationSelectType('business')}
-                                    className="w-full mt-6 py-2.5 bg-gold-500 hover:bg-gold-400 text-black font-bold rounded-lg text-xs uppercase tracking-wider transition-colors flex items-center justify-center gap-2 cursor-pointer"
-                                >
-                                    Ver Apresentação
-                                    <ArrowRight className="w-3.5 h-3.5 text-black font-bold" />
-                                </button>
-                            </div>
-
-                            {/* Card 3: Gestão Completa */}
-                            <div className="bg-dark-900 border border-dark-800 p-6 rounded-2xl flex flex-col justify-between hover:border-gold-500/30 transition-all hover:shadow-[0_0_20px_rgba(245,158,11,0.05)]">
-                                <div className="space-y-3">
-                                    <div className="w-10 h-10 bg-gold-500/10 rounded-xl flex items-center justify-center text-gold-500 border border-gold-500/20">
-                                        <Layers className="w-5 h-5" />
-                                    </div>
-                                    <h3 className="text-lg font-bold text-white font-serif">Gestão Completa</h3>
-                                    <p className="text-xs text-gray-400 font-light leading-relaxed">
-                                        Planejamento integrado que une finanças pessoais e empresariais. Indicado para empresários que desejam otimizar a distribuição de lucros.
-                                    </p>
-                                </div>
-                                <button
-                                    onClick={() => setActivePresentationSelectType('complete')}
-                                    className="w-full mt-6 py-2.5 bg-gold-500 hover:bg-gold-400 text-black font-bold rounded-lg text-xs uppercase tracking-wider transition-colors flex items-center justify-center gap-2 cursor-pointer"
-                                >
-                                    Ver Apresentação
-                                    <ArrowRight className="w-3.5 h-3.5 text-black font-bold" />
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Apresentações Simples */}
-                    <div className="pt-6 border-t border-dark-800/60">
-                        <div className="flex flex-col gap-1 mb-6">
-                            <h2 className="text-xl font-serif text-white font-bold flex items-center gap-2">
-                                <Target className="text-gold-500 w-5 h-5" />
-                                Apresentações Simples
-                            </h2>
-                            <p className="text-xs text-gray-500 font-light">
-                                Apresentações informativas genéricas sem vinculação a questionários.
-                            </p>
-                        </div>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            {/* Card 1: Planejamento de Metas */}
-                            <div className="bg-dark-900/40 border border-dark-800/80 p-6 rounded-2xl flex flex-col justify-between hover:border-dark-700 transition-all hover:shadow-[0_0_15px_rgba(255,255,255,0.01)]">
-                                <div className="space-y-2">
-                                    <span className="text-[9px] text-gold-500 font-black uppercase tracking-widest bg-gold-500/10 px-2 py-0.5 rounded border border-gold-500/20">Em Breve</span>
-                                    <h3 className="text-base font-bold text-white font-serif mt-2">Planejamento de Metas Rápidas</h3>
-                                    <p className="text-xs text-gray-500 font-light leading-relaxed">
-                                        Estrutura direta para desenhar prazos e valores para objetivos prioritários.
-                                    </p>
-                                </div>
-                                <button
-                                    onClick={() => setShowSimplePresentationInfo('Planejamento de Metas Rápidas')}
-                                    className="w-full mt-6 py-2 bg-dark-800 hover:bg-dark-750 text-gray-400 hover:text-white rounded-lg text-xs uppercase tracking-wider transition-colors cursor-pointer border border-dark-700"
-                                >
-                                    Visualizar Roteiro
-                                </button>
-                            </div>
-
-                            {/* Card 2: Diagnóstico Expresso */}
-                            <div className="bg-dark-900/40 border border-dark-800/80 p-6 rounded-2xl flex flex-col justify-between hover:border-dark-700 transition-all hover:shadow-[0_0_15px_rgba(255,255,255,0.01)]">
-                                <div className="space-y-2">
-                                    <span className="text-[9px] text-gold-500 font-black uppercase tracking-widest bg-gold-500/10 px-2 py-0.5 rounded border border-gold-500/20">Em Breve</span>
-                                    <h3 className="text-base font-bold text-white font-serif mt-2">Diagnóstico Expresso de Investimentos</h3>
-                                    <p className="text-xs text-gray-500 font-light leading-relaxed">
-                                        Roteiro rápido focado em alocação de carteira básica e redução de riscos.
-                                    </p>
-                                </div>
-                                <button
-                                    onClick={() => setShowSimplePresentationInfo('Diagnóstico Expresso de Investimentos')}
-                                    className="w-full mt-6 py-2 bg-dark-800 hover:bg-dark-750 text-gray-400 hover:text-white rounded-lg text-xs uppercase tracking-wider transition-colors cursor-pointer border border-dark-700"
-                                >
-                                    Visualizar Roteiro
-                                </button>
-                            </div>
-
-                            {/* Card 3: Mentalidade e Hábitos */}
-                            <div className="bg-dark-900/40 border border-dark-800/80 p-6 rounded-2xl flex flex-col justify-between hover:border-dark-700 transition-all hover:shadow-[0_0_15px_rgba(255,255,255,0.01)]">
-                                <div className="space-y-2">
-                                    <span className="text-[9px] text-gold-500 font-black uppercase tracking-widest bg-gold-500/10 px-2 py-0.5 rounded border border-gold-500/20">Em Breve</span>
-                                    <h3 className="text-base font-bold text-white font-serif mt-2">Mentalidade e Organização Diária</h3>
-                                    <p className="text-xs text-gray-500 font-light leading-relaxed">
-                                        Discussão simples sobre crenças financeiras e rotinas saudáveis de controle.
-                                    </p>
-                                </div>
-                                <button
-                                    onClick={() => setShowSimplePresentationInfo('Mentalidade e Organização Diária')}
-                                    className="w-full mt-6 py-2 bg-dark-800 hover:bg-dark-750 text-gray-400 hover:text-white rounded-lg text-xs uppercase tracking-wider transition-colors cursor-pointer border border-dark-700"
-                                >
-                                    Visualizar Roteiro
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </motion.div>
-            )}
-
-            {activeTab === 'users' && (
-                <motion.div
-                    key="users-tab"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="space-y-6"
-                >
-                    <div className="bg-dark-900 border border-dark-800 rounded-xl p-6 shadow-2xl font-sans">
-                        <h3 className="text-lg font-serif text-white font-bold mb-4">Adicionar Novo Usuário Administrativo</h3>
-                        
-                        <form onSubmit={handleAddUser} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-                            <div className="space-y-2">
-                                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider">E-mail do Usuário</label>
-                                <input
-                                    type="email"
-                                    required
-                                    placeholder="email@dominio.com"
-                                    value={newEmail}
-                                    onChange={(e) => setNewEmail(e.target.value)}
-                                    className="w-full bg-dark-950 border border-dark-800 rounded-lg p-3 text-white focus:border-gold-500 outline-none transition-all text-sm font-medium"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider">Papel / Acesso</label>
-                                <select
-                                    value={newRole}
-                                    onChange={(e: any) => setNewRole(e.target.value)}
-                                    className="w-full bg-dark-950 border border-dark-800 text-white rounded-lg p-3 text-sm outline-none focus:border-gold-500 transition-all cursor-pointer font-medium"
-                                >
-                                    <option value="vendedor">Vendedor</option>
-                                    <option value="secretario">Secretário</option>
-                                    <option value="administrador">Administrador</option>
-                                </select>
-                            </div>
-                            <button
-                                type="submit"
-                                disabled={submittingUser || !newEmail}
-                                className="py-3 px-6 bg-gold-500 hover:bg-gold-400 text-black font-bold rounded-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50 text-sm cursor-pointer"
+                        {activeTab === 'pricing' && (
+                            <motion.div
+                                key="pricing-tab"
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                className="space-y-6"
                             >
-                                <UserPlus className="w-4 h-4 text-black" />
-                                {submittingUser ? 'Adicionando...' : 'Adicionar Usuário'}
-                            </button>
-                        </form>
-                    </div>
+                                {/* Barra Superior com botão Novo Pacote */}
+                                <div className="flex justify-between items-center bg-dark-900 border border-dark-800 rounded-xl p-4 shadow-lg font-sans">
+                                    <div>
+                                        <h3 className="text-lg font-serif text-white font-bold">Gerenciador de Precificações</h3>
+                                        <p className="text-xs text-gray-500 font-semibold tracking-wider uppercase">Controle de pacotes e checkouts do sistema</p>
+                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            setEditingPricing(null);
+                                            setNewPricingName('');
+                                            setNewPricingValue('');
+                                            setNewPricingPresentationType('personal');
+                                            setNewPricingProductMoment('consultoria');
+                                            setNewPricingOptions([
+                                                { label: '1', description: '', link: '', isCard: false, installments: 12, installmentValue: '', checkoutType: 'link' }
+                                            ]);
+                                            setPricingModalOpen(true);
+                                        }}
+                                        className="px-5 py-2.5 bg-gradient-to-r from-gold-600 via-amber-500 to-gold-500 text-dark-950 rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-gold-500/10 hover:shadow-gold-500/25 hover:scale-[1.02] active:scale-[0.98] cursor-pointer flex items-center gap-2"
+                                    >
+                                        <Coins className="w-4 h-4 text-dark-950" />
+                                        + Novo Pacote
+                                    </button>
+                                </div>
 
-                    <div className="bg-dark-900 border border-dark-800 rounded-xl overflow-hidden shadow-2xl font-sans">
-                        <div className="p-4 bg-dark-850 border-b border-dark-800 flex justify-between items-center">
-                            <h3 className="text-sm font-bold uppercase tracking-wider text-gray-400">Usuários Cadastrados</h3>
-                            <span className="text-xs text-gray-500 font-mono">{adminUsers.length + 1} usuários</span>
-                        </div>
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left">
-                                <thead className="bg-dark-800/50 text-xs uppercase tracking-widest text-gray-500">
-                                    <tr>
-                                        <th className="px-6 py-4 font-semibold">E-mail</th>
-                                        <th className="px-6 py-4 font-semibold">Papel</th>
-                                        <th className="px-6 py-4 font-semibold text-right">Ações</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-dark-800">
-                                    {/* Super Admin fixo no topo */}
-                                    <tr className="bg-gold-500/5 border-l-2 border-gold-500">
-                                        <td className="px-6 py-4 font-medium text-white flex items-center gap-2">
-                                            diegokloppel21@gmail.com
-                                            <span className="text-[9px] px-2 py-0.5 bg-gold-500/20 text-gold-400 rounded border border-gold-500/20 font-bold uppercase">Criador</span>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <span className="text-[10px] px-2.5 py-1 rounded-full bg-red-500/10 text-red-400 border border-red-500/20 font-semibold uppercase tracking-wider">
-                                                Administrador
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 text-right text-xs text-gray-500 italic font-mono">
-                                            Acesso Mestre
-                                        </td>
-                                    </tr>
+                                <div className="bg-dark-900 border border-dark-800 rounded-xl overflow-hidden shadow-2xl font-sans">
+                                    <div className="p-4 bg-dark-850 border-b border-dark-800 flex justify-between items-center">
+                                        <h3 className="text-sm font-bold uppercase tracking-wider text-gray-400">Pacotes Cadastrados</h3>
+                                        <span className="text-xs text-gray-500 font-mono">{pricingPackages.length} pacotes</span>
+                                    </div>
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-left">
+                                            <thead className="bg-dark-800/50 text-xs uppercase tracking-widest text-gray-500">
+                                                <tr>
+                                                    <th className="px-6 py-4 font-semibold font-sans">Nome</th>
+                                                    <th className="px-6 py-4 font-semibold font-sans">Valor Total</th>
+                                                    <th className="px-6 py-4 font-semibold font-sans">Formas Cadastradas</th>
+                                                    <th className="px-6 py-4 font-semibold text-right font-sans">Ações</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-dark-800">
+                                                {pricingPackages.map(pkg => (
+                                                    <tr key={pkg.id} className="hover:bg-dark-800/40 transition-colors">
+                                                        <td className="px-6 py-4 text-gray-300 font-medium">
+                                                            <div className="flex items-center gap-2">
+                                                                {pkg.name}
+                                                                {pkg.name === 'Consultoria Padrão' && (
+                                                                    <span className="text-[9px] px-2 py-0.5 bg-gold-500/20 text-gold-400 rounded border border-gold-500/20 font-bold uppercase">Padrão</span>
+                                                                )}
+                                                            </div>
+                                                            <div className="flex gap-1.5 mt-1 flex-wrap">
+                                                                <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase border tracking-wide ${pkg.presentation_type === 'business'
+                                                                    ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                                                                    : pkg.presentation_type === 'complete'
+                                                                        ? 'bg-purple-500/10 text-purple-400 border-purple-500/20'
+                                                                        : 'bg-gold-500/10 text-gold-400 border-gold-500/20'
+                                                                    }`}>
+                                                                    {pkg.presentation_type === 'business'
+                                                                        ? 'Empresarial'
+                                                                        : pkg.presentation_type === 'complete'
+                                                                            ? 'Híbrida'
+                                                                            : 'Pessoal'}
+                                                                </span>
+                                                                <span className="text-[9px] px-1.5 py-0.5 bg-dark-800 text-gray-400 rounded border border-dark-750 font-bold uppercase tracking-wide">
+                                                                    {pkg.product_moment === 'especial'
+                                                                        ? 'Condição Especial'
+                                                                        : pkg.product_moment === 'entrada'
+                                                                            ? 'Produto Entrada'
+                                                                            : 'Consultoria Estruturada'}
+                                                                </span>
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-6 py-4 font-bold text-gold-500">{pkg.value}</td>
+                                                        <td className="px-6 py-4 text-xs text-gray-400">
+                                                            {pkg.payment_options.filter(o => o.description && o.description.trim() !== '').length} formas ativas
+                                                        </td>
+                                                        <td className="px-6 py-4 text-right flex items-center justify-end gap-2">
+                                                            <button
+                                                                onClick={() => {
+                                                                    setViewingPricing(pkg);
+                                                                }}
+                                                                className="p-2 text-gray-600 hover:text-gold-400 transition-colors cursor-pointer"
+                                                                title="Visualizar detalhes"
+                                                            >
+                                                                <Eye className="w-4 h-4" />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => {
+                                                                    setEditingPricing(pkg);
+                                                                    setNewPricingName(pkg.name);
+                                                                    setNewPricingValue(pkg.value);
+                                                                    setNewPricingPresentationType(pkg.presentation_type || 'personal');
+                                                                    setNewPricingProductMoment(pkg.product_moment || 'consultoria');
+                                                                    const parsedOptions = pkg.payment_options.map(opt => {
+                                                                        let isCard = opt.isCard;
+                                                                        let installments = opt.installments || 12;
+                                                                        let installmentValue = opt.installmentValue || '';
 
-                                    {adminUsers.filter(u => u.email.toLowerCase() !== 'diegokloppel21@gmail.com').map(user => (
-                                        <tr key={user.id} className="hover:bg-dark-800/40 transition-colors">
-                                            <td className="px-6 py-4 text-gray-300 font-medium">{user.email}</td>
-                                            <td className="px-6 py-4">
-                                                <span className={`text-[10px] px-2.5 py-1 rounded-full border font-semibold uppercase tracking-wider ${
-                                                    user.role === 'administrador'
-                                                        ? 'bg-red-500/10 text-red-400 border-red-500/20'
-                                                        : user.role === 'secretario'
-                                                        ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
-                                                        : 'bg-green-500/10 text-green-400 border-green-500/20'
-                                                }`}>
-                                                    {user.role}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4 text-right flex items-center justify-end gap-2">
-                                                <button
-                                                    onClick={() => {
-                                                        setEditingUser({ ...user });
-                                                        setIsUserModalOpen(true);
-                                                    }}
-                                                    disabled={userRole !== 'administrador'}
-                                                    className="p-2 text-gray-600 hover:text-gold-400 transition-colors disabled:opacity-30 disabled:hover:text-gray-600 cursor-pointer"
-                                                    title="Editar perfil e redefinir senha"
-                                                >
-                                                    <Edit className="w-4 h-4" />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDeleteUser(user.id, user.email)}
-                                                    disabled={userRole !== 'administrador'}
-                                                    className="p-2 text-gray-600 hover:text-red-400 transition-colors disabled:opacity-30 disabled:hover:text-gray-600 cursor-pointer"
-                                                    title={userRole === 'administrador' ? "Remover acesso" : "Apenas administradores podem excluir"}
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </motion.div>
-            )}
+                                                                        if (isCard === undefined) {
+                                                                            const desc = opt.description.toLowerCase();
+                                                                            isCard = desc.includes('cartão') || desc.includes('cartao');
+                                                                            if (isCard) {
+                                                                                const match = opt.description.match(/Até\s+(\d+)x\s+de\s+(R\$\s*\d+([.,]\d+)?)/i);
+                                                                                if (match) {
+                                                                                    installments = parseInt(match[1], 10);
+                                                                                    installmentValue = match[2];
+                                                                                } else {
+                                                                                    const simpleMatch = opt.description.match(/(\d+)x\s+de\s+(R\$\s*\d+([.,]\d+)?)/i);
+                                                                                    if (simpleMatch) {
+                                                                                        installments = parseInt(simpleMatch[1], 10);
+                                                                                        installmentValue = simpleMatch[2];
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        }
 
-            {activeTab === 'pricing' && (
-                <motion.div
-                    key="pricing-tab"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="space-y-6"
-                >
-                    {/* Barra Superior com botão Novo Pacote */}
-                    <div className="flex justify-between items-center bg-dark-900 border border-dark-800 rounded-xl p-4 shadow-lg font-sans">
-                        <div>
-                            <h3 className="text-lg font-serif text-white font-bold">Gerenciador de Precificações</h3>
-                            <p className="text-xs text-gray-500 font-semibold tracking-wider uppercase">Controle de pacotes e checkouts do sistema</p>
-                        </div>
-                        <button
-                            onClick={() => {
-                                setEditingPricing(null);
-                                setNewPricingName('');
-                                setNewPricingValue('');
-                                setNewPricingOptions([
-                                    { label: '1', description: '', link: '' },
-                                    { label: '2', description: '', link: '' },
-                                    { label: '3', description: '', link: '' },
-                                    { label: '4', description: '', link: '' },
-                                    { label: '5', description: '', link: '' },
-                                    { label: '6', description: '', link: '' }
-                                ]);
-                                setPricingModalOpen(true);
-                            }}
-                            className="px-5 py-2.5 bg-gradient-to-r from-gold-600 via-amber-500 to-gold-500 text-dark-950 rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-gold-500/10 hover:shadow-gold-500/25 hover:scale-[1.02] active:scale-[0.98] cursor-pointer flex items-center gap-2"
-                        >
-                            <Coins className="w-4 h-4 text-dark-950" />
-                            + Novo Pacote
-                        </button>
-                    </div>
+                                                                        // Inferir checkoutType se não existir
+                                                                        let checkoutType = opt.checkoutType;
+                                                                        if (!checkoutType) {
+                                                                            const link = opt.link || '';
+                                                                            const desc = opt.description.toLowerCase();
+                                                                            if (link.startsWith('http://') || link.startsWith('https://')) {
+                                                                                checkoutType = 'link';
+                                                                            } else if (link.trim() !== '') {
+                                                                                checkoutType = 'pix';
+                                                                            } else if (desc.includes('maquininha') || desc.includes('tap') || desc.includes('presencial')) {
+                                                                                checkoutType = 'maquininha';
+                                                                            } else {
+                                                                                checkoutType = 'link';
+                                                                            }
+                                                                        }
 
-                    <div className="bg-dark-900 border border-dark-800 rounded-xl overflow-hidden shadow-2xl font-sans">
-                        <div className="p-4 bg-dark-850 border-b border-dark-800 flex justify-between items-center">
-                            <h3 className="text-sm font-bold uppercase tracking-wider text-gray-400">Pacotes Cadastrados</h3>
-                            <span className="text-xs text-gray-500 font-mono">{pricingPackages.length} pacotes</span>
-                        </div>
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left">
-                                <thead className="bg-dark-800/50 text-xs uppercase tracking-widest text-gray-500">
-                                    <tr>
-                                        <th className="px-6 py-4 font-semibold font-sans">Nome</th>
-                                        <th className="px-6 py-4 font-semibold font-sans">Valor Total</th>
-                                        <th className="px-6 py-4 font-semibold font-sans">Formas Cadastradas</th>
-                                        <th className="px-6 py-4 font-semibold text-right font-sans">Ações</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-dark-800">
-                                    {pricingPackages.map(pkg => (
-                                        <tr key={pkg.id} className="hover:bg-dark-800/40 transition-colors">
-                                            <td className="px-6 py-4 text-gray-300 font-medium flex items-center gap-2">
-                                                {pkg.name}
-                                                {pkg.name === 'Consultoria Padrão' && (
-                                                    <span className="text-[9px] px-2 py-0.5 bg-gold-500/20 text-gold-400 rounded border border-gold-500/20 font-bold uppercase">Padrão</span>
-                                                )}
-                                            </td>
-                                            <td className="px-6 py-4 font-bold text-gold-500">{pkg.value}</td>
-                                            <td className="px-6 py-4 text-xs text-gray-400">
-                                                {pkg.payment_options.filter(o => o.description && o.description.trim() !== '').length} formas ativas
-                                            </td>
-                                            <td className="px-6 py-4 text-right flex items-center justify-end gap-2">
-                                                <button
-                                                    onClick={() => {
-                                                        setViewingPricing(pkg);
-                                                    }}
-                                                    className="p-2 text-gray-600 hover:text-gold-400 transition-colors cursor-pointer"
-                                                    title="Visualizar detalhes"
-                                                >
-                                                    <Eye className="w-4 h-4" />
-                                                </button>
-                                                <button
-                                                    onClick={() => {
-                                                        setEditingPricing(pkg);
-                                                        setNewPricingName(pkg.name);
-                                                        setNewPricingValue(pkg.value);
-                                                        const opts = Array.from({ length: 6 }, (_, idx) => {
-                                                            const existing = pkg.payment_options.find(o => o.label === String(idx + 1));
-                                                            return existing ? { ...existing } : { label: String(idx + 1), description: '', link: '' };
-                                                        });
-                                                        setNewPricingOptions(opts);
-                                                        setPricingModalOpen(true);
-                                                    }}
-                                                    className="p-2 text-gray-600 hover:text-gold-400 transition-colors cursor-pointer"
-                                                    title="Editar precificação"
-                                                >
-                                                    <Edit className="w-4 h-4" />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDeletePricing(pkg.id, pkg.name)}
-                                                    disabled={pkg.name === 'Consultoria Padrão'}
-                                                    className="p-2 text-gray-600 hover:text-red-400 transition-colors cursor-pointer disabled:opacity-30 disabled:hover:text-gray-600"
-                                                    title={pkg.name === 'Consultoria Padrão' ? "O pacote padrão não deve ser excluído" : "Excluir precificação"}
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </motion.div>
-            )}
-        </AnimatePresence>
-    )}
-</main>
+                                                                        return {
+                                                                            ...opt,
+                                                                            isCard,
+                                                                            installments,
+                                                                            installmentValue,
+                                                                            checkoutType
+                                                                        };
+                                                                    });
+                                                                    setNewPricingOptions(parsedOptions);
+                                                                    setPricingModalOpen(true);
+                                                                }}
+                                                                className="p-2 text-gray-600 hover:text-gold-400 transition-colors cursor-pointer"
+                                                                title="Editar precificação"
+                                                            >
+                                                                <Edit className="w-4 h-4" />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDeletePricing(pkg.id, pkg.name)}
+                                                                disabled={pkg.name === 'Consultoria Padrão'}
+                                                                className="p-2 text-gray-600 hover:text-red-400 transition-colors cursor-pointer disabled:opacity-30 disabled:hover:text-gray-600"
+                                                                title={pkg.name === 'Consultoria Padrão' ? "O pacote padrão não deve ser excluído" : "Excluir precificação"}
+                                                            >
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                )}
+            </main>
 
             {/* Modal de Confirmação de Exclusão */}
             <AnimatePresence>
@@ -1973,7 +2339,7 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                             onClick={() => setLeadToDelete(null)}
                             className="absolute inset-0 bg-black/75 backdrop-blur-sm"
                         />
-                        
+
                         {/* Card do Modal */}
                         <motion.div
                             initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -1991,13 +2357,13 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                                     <p className="text-xs text-red-400 font-semibold tracking-wider uppercase">Confirmação de Ação Permanente</p>
                                 </div>
                             </div>
-                            
+
                             <div className="text-sm text-gray-300 leading-relaxed font-light">
-                                Tem certeza de que deseja excluir o lead <strong className="text-white font-semibold">{leadToDelete.name}</strong>? 
+                                Tem certeza de que deseja excluir o lead <strong className="text-white font-semibold">{leadToDelete.name}</strong>?
                                 Esta ação irá apagar todos os registros do lead, incluindo respostas de formulários e da apresentação.
                                 <span className="block mt-2 font-medium text-red-400/90">Esta alteração é irreversível.</span>
                             </div>
-                            
+
                             <div className="flex justify-end gap-3 pt-2">
                                 <button
                                     onClick={() => setLeadToDelete(null)}
@@ -2032,7 +2398,7 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                             }}
                             className="absolute inset-0 bg-black/75 backdrop-blur-sm"
                         />
-                        
+
                         {/* Card do Modal */}
                         <motion.div
                             initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -2062,14 +2428,14 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                                     <X className="w-5 h-5" />
                                 </button>
                             </div>
-                            
+
                             {/* Body (Scrollable) */}
                             <div className="p-6 overflow-y-auto flex-grow space-y-6">
-                                {!selectedLead.answers?.meeting || 
-                                 !Object.keys(selectedLead.answers.meeting).some(
-                                     key => selectedLead.answers.meeting![key as keyof typeof selectedLead.answers.meeting] !== undefined && 
+                                {!selectedLead.answers?.meeting ||
+                                    !Object.keys(selectedLead.answers.meeting).some(
+                                        key => selectedLead.answers.meeting![key as keyof typeof selectedLead.answers.meeting] !== undefined &&
                                             selectedLead.answers.meeting![key as keyof typeof selectedLead.answers.meeting] !== ''
-                                 ) ? (
+                                    ) ? (
                                     /* Caso Não Tenha Respostas */
                                     <div className="text-center py-16 px-4">
                                         <AlertCircle className="w-16 h-16 text-gold-500/70 mx-auto mb-4 animate-pulse" />
@@ -2092,17 +2458,16 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                                                 <button
                                                     key={tab.id}
                                                     onClick={() => setActiveAnswersTab(tab.id as any)}
-                                                    className={`px-4 py-3 border-b-2 text-xs md:text-sm font-semibold transition-all whitespace-nowrap ${
-                                                        activeAnswersTab === tab.id
-                                                            ? 'border-gold-500 text-gold-400'
-                                                            : 'border-transparent text-gray-500 hover:text-gray-400'
-                                                    }`}
+                                                    className={`px-4 py-3 border-b-2 text-xs md:text-sm font-semibold transition-all whitespace-nowrap ${activeAnswersTab === tab.id
+                                                        ? 'border-gold-500 text-gold-400'
+                                                        : 'border-transparent text-gray-500 hover:text-gray-400'
+                                                        }`}
                                                 >
                                                     {tab.label}
                                                 </button>
                                             ))}
                                         </div>
-                                        
+
                                         {/* Conteúdo da Aba Diagnóstico */}
                                         {activeAnswersTab === 'diagnostico' && selectedLead.answers.meeting && (
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -2110,59 +2475,59 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                                                     <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Gasta mais do que deveria?</p>
                                                     <p className="text-sm text-white font-medium">{selectedLead.answers.meeting.gastaMaisDoQueDeveria || 'Não respondido'}</p>
                                                 </div>
-                                                
+
                                                 <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1">
                                                     <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Com o que gasta mais?</p>
                                                     <p className="text-sm text-white font-medium">{selectedLead.answers.meeting.comOQueGastaMais || 'Não respondido'}</p>
                                                 </div>
-                                                
+
                                                 <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1">
                                                     <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Consegue guardar dinheiro?</p>
                                                     <p className="text-sm text-white font-medium">{selectedLead.answers.meeting.consegueGuardarDinheiro || 'Não respondido'}</p>
                                                 </div>
-                                                
+
                                                 <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1">
                                                     <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Guarda mensalmente?</p>
                                                     <p className="text-sm text-white font-medium">{selectedLead.answers.meeting.guardaMensalmente || 'Não respondido'}</p>
                                                 </div>
-                                                
+
                                                 <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1">
                                                     <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Quanto guarda mensalmente?</p>
                                                     <p className="text-sm text-white font-medium">{selectedLead.answers.meeting.quantoGuardaMensalmente || 'Não respondido'}</p>
                                                 </div>
-                                                
+
                                                 <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1">
                                                     <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Quanto conseguiu guardar?</p>
                                                     <p className="text-sm text-white font-medium">{selectedLead.answers.meeting.quantoConseguiuGuardar || 'Não respondido'}</p>
                                                 </div>
-                                                
+
                                                 <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1">
                                                     <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">O que impede de guardar?</p>
                                                     <p className="text-sm text-white font-medium">{selectedLead.answers.meeting.oQueImpedeDeGuardar || 'Não respondido'}</p>
                                                 </div>
-                                                
+
                                                 <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1">
                                                     <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Quanto tem de reserva de emergência?</p>
                                                     <p className="text-sm text-white font-medium">{selectedLead.answers.meeting.quantoTemDeReserva || 'Não respondido'}</p>
                                                 </div>
-                                                
+
                                                 <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1">
                                                     <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Possui dívidas?</p>
                                                     <p className="text-sm text-white font-medium">{selectedLead.answers.meeting.possuiDividas || 'Não respondido'}</p>
                                                 </div>
-                                                
+
                                                 <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1">
                                                     <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Dificuldade para lidar com as dívidas?</p>
                                                     <p className="text-sm text-white font-medium">{selectedLead.answers.meeting.dificuldadeLidarDividas || 'Não respondido'}</p>
                                                 </div>
-                                                
+
                                                 <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1 md:col-span-2">
                                                     <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Quais são as dificuldades com dívidas?</p>
                                                     <p className="text-sm text-white font-medium">{selectedLead.answers.meeting.quaisDificuldadesDividas || 'Nenhuma informada ou sem dívidas'}</p>
                                                 </div>
                                             </div>
                                         )}
-                                        
+
                                         {/* Conteúdo da Aba Metas */}
                                         {activeAnswersTab === 'metas' && selectedLead.answers.meeting && (
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -2170,17 +2535,17 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                                                     <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Economia Mensal Média</p>
                                                     <p className="text-sm text-white font-medium">{selectedLead.answers.meeting.monthlySavings || 'Não respondido'}</p>
                                                 </div>
-                                                
+
                                                 <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1">
                                                     <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Prioridade Financeira Atual</p>
                                                     <p className="text-sm text-white font-medium">{selectedLead.answers.meeting.financialPriority || 'Não respondido'}</p>
                                                 </div>
-                                                
+
                                                 <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1">
                                                     <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Maior Desperdício / Ralo</p>
                                                     <p className="text-sm text-white font-medium">{selectedLead.answers.meeting.biggestWaste || 'Não respondido'}</p>
                                                 </div>
-                                                
+
                                                 <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1">
                                                     <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Tem reserva?</p>
                                                     <p className="text-sm text-white font-medium">
@@ -2188,12 +2553,12 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                                                         {selectedLead.answers.meeting.reserveMonths && ` (${selectedLead.answers.meeting.reserveMonths} meses)`}
                                                     </p>
                                                 </div>
-                                                
+
                                                 <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1">
                                                     <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Possui Metas definidas?</p>
                                                     <p className="text-sm text-white font-medium">{selectedLead.answers.meeting.possuiMetas || 'Não respondido'}</p>
                                                 </div>
-                                                
+
                                                 <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1">
                                                     <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Tem outro problema além do principal?</p>
                                                     <p className="text-sm text-white font-medium">
@@ -2201,19 +2566,19 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                                                         {selectedLead.answers.meeting.quaisOutrosProblemas && ` - ${selectedLead.answers.meeting.quaisOutrosProblemas}`}
                                                     </p>
                                                 </div>
-                                                
+
                                                 <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1 md:col-span-2">
                                                     <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Quais são as três metas principais?</p>
                                                     <p className="text-sm text-white font-medium leading-relaxed">{selectedLead.answers.meeting.quaisTresMetas || 'Não respondido'}</p>
                                                 </div>
-                                                
+
                                                 <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1 md:col-span-2">
                                                     <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider font-bold">Por que essas metas são importantes?</p>
                                                     <p className="text-sm text-white font-medium leading-relaxed">{selectedLead.answers.meeting.porqueMetasImportantes || 'Não respondido'}</p>
                                                 </div>
                                             </div>
                                         )}
-                                        
+
                                         {/* Conteúdo da Aba Emocional */}
                                         {activeAnswersTab === 'emocional' && selectedLead.answers.meeting && (
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -2221,34 +2586,34 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                                                     <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Nota de Animação para resolver metas</p>
                                                     <p className="text-sm text-white font-medium">{selectedLead.answers.meeting.animacaoResolverMetas || 'Não respondido'} / 10</p>
                                                 </div>
-                                                
+
                                                 <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1">
                                                     <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">O que falta para nota 10?</p>
                                                     <p className="text-sm text-white font-medium">{selectedLead.answers.meeting.oQueFaltaParaDez || 'Não respondido'}</p>
                                                 </div>
-                                                
+
                                                 <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1">
                                                     <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Como estará a vida financeira daqui a 6 meses?</p>
                                                     <p className="text-sm text-white font-medium">{selectedLead.answers.meeting.vidaDaquiSeisMeses || 'Não respondido'}</p>
                                                 </div>
-                                                
+
                                                 <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1">
                                                     <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">A perspectiva de 6 meses assusta ou conforta?</p>
                                                     <p className="text-sm text-white font-medium">{selectedLead.answers.meeting.seisMesesAssustaOuConforta || 'Não respondido'}</p>
                                                 </div>
-                                                
+
                                                 <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1">
                                                     <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Tempo de dedicação semanal (horas)</p>
                                                     <p className="text-sm text-white font-medium">{selectedLead.answers.meeting.timeCommitment || 'Não respondido'}</p>
                                                 </div>
-                                                
+
                                                 <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1">
                                                     <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Se a rotina tem pouco tempo, aceita 10-15m/dia?</p>
                                                     <p className="text-sm text-white font-medium">{selectedLead.answers.meeting.rotinaPoucoTempo || 'Não respondido'}</p>
                                                 </div>
                                             </div>
                                         )}
-                                        
+
                                         {/* Conteúdo da Aba Fechamento */}
                                         {activeAnswersTab === 'fechamento' && selectedLead.answers.meeting && (
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -2260,12 +2625,12 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                                                         {!selectedLead.answers.meeting.matrixDecision && 'Não respondido'}
                                                     </p>
                                                 </div>
-                                                
+
                                                 <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1">
                                                     <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">A solução inicial fez sentido?</p>
                                                     <p className="text-sm text-white font-medium">{selectedLead.answers.meeting.initialSolutionSense || 'Não respondido'}</p>
                                                 </div>
-                                                
+
                                                 <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1">
                                                     <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Finalidade do dinheiro guardado</p>
                                                     <p className="text-sm text-white font-medium">
@@ -2273,29 +2638,29 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                                                         {selectedLead.answers.meeting.guardadoQualFinalidade && ` - ${selectedLead.answers.meeting.guardadoQualFinalidade}`}
                                                     </p>
                                                 </div>
-                                                
+
                                                 <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1">
                                                     <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Data da Reunião / Registro</p>
                                                     <p className="text-sm text-white font-medium">
                                                         {selectedLead.answers.meeting.meetingDate ? new Date(selectedLead.answers.meeting.meetingDate).toLocaleString('pt-BR') : 'Não registrada'}
                                                     </p>
                                                 </div>
-                                                
+
                                                 <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1">
                                                     <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Escolha de Investimento (Oferta Principal)</p>
                                                     <p className="text-sm text-white font-medium">{selectedLead.answers.meeting.investmentChoice || 'Nenhuma selecionada'}</p>
                                                 </div>
-                                                
+
                                                 <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1">
                                                     <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider font-bold">Escolha na Negociação</p>
                                                     <p className="text-sm text-white font-medium">{selectedLead.answers.meeting.negotiationChoice || 'Nenhuma selecionada'}</p>
                                                 </div>
-                                                
+
                                                 <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1 md:col-span-2">
                                                     <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider font-bold">Escolha no Downsell</p>
                                                     <p className="text-sm text-white font-medium">{selectedLead.answers.meeting.downsellChoice || 'Nenhuma selecionada'}</p>
                                                 </div>
-                                                
+
                                                 <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1 md:col-span-2">
                                                     <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider font-bold">Observações Adicionais do Consultor</p>
                                                     <p className="text-sm text-white font-light whitespace-pre-wrap leading-relaxed">{selectedLead.answers.meeting.notes || 'Sem observações adicionais.'}</p>
@@ -2305,7 +2670,7 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                                     </div>
                                 )}
                             </div>
-                            
+
                             {/* Footer */}
                             <div className="p-6 border-t border-dark-800 flex justify-between items-center shrink-0">
                                 <div>
@@ -2350,6 +2715,293 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                 />
             )}
 
+            {/* Modal Premium de Configuração de Precificação do Lead */}
+            <AnimatePresence>
+                {selectedPricingLead && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[160] flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95, y: 15 }}
+                            animate={{ scale: 1, y: 0 }}
+                            exit={{ scale: 0.95, y: 15 }}
+                            className="w-full max-w-2xl bg-dark-900 border border-dark-800 rounded-2xl p-6 shadow-2xl space-y-6 font-sans max-h-[90vh] flex flex-col"
+                        >
+                            <div className="flex justify-between items-center border-b border-dark-800 pb-4 shrink-0">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-full bg-gold-500/10 border border-gold-500/20 flex items-center justify-center text-gold-500">
+                                        <DollarSign className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-lg font-bold text-white font-serif">Configurar Precificação do Cliente</h3>
+                                        <p className="text-xs text-gray-500 mt-0.5">{selectedPricingLead.name}</p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setSelectedPricingLead(null)}
+                                    className="p-1.5 text-gray-500 hover:text-white rounded-lg transition-colors cursor-pointer"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+
+                            <div className="flex-1 overflow-y-auto pr-2 space-y-6 py-2 min-h-0">
+                                {pricingPackages.length === 0 ? (
+                                    <div className="py-12 text-center text-gray-500 space-y-3">
+                                        <AlertCircle className="w-10 h-10 text-gray-600 mx-auto" />
+                                        <p className="text-sm font-semibold text-gray-400">Nenhum Pacote de Precificação Cadastrado</p>
+                                        <p className="text-xs text-gray-500 font-light max-w-xs mx-auto leading-relaxed">
+                                            Você precisa cadastrar pelo menos um pacote de precificação na aba "Precificação" antes de agendar um cliente.
+                                        </p>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setSelectedPricingLead(null);
+                                                setActiveTab('pricing');
+                                            }}
+                                            className="px-4 py-2 bg-gold-500 hover:bg-gold-400 text-black text-xs font-bold rounded-lg uppercase tracking-wider transition-colors cursor-pointer"
+                                        >
+                                            Ir para Precificação
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-6">
+                                        {/* Cabeçalho de Contexto do Lead */}
+                                        <div className="p-4 bg-dark-950 rounded-xl border border-dark-800 flex justify-between items-center">
+                                            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Tipo de Apresentação Ativa</span>
+                                            <span className={`text-xs px-2.5 py-1 rounded-full font-black uppercase tracking-wide border ${selectedPricingLead.answers.formType === 'business'
+                                                ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                                                : selectedPricingLead.answers.formType === 'complete'
+                                                    ? 'bg-purple-500/10 text-purple-400 border-purple-500/20'
+                                                    : 'bg-gold-500/10 text-gold-450 border-gold-500/20'
+                                                }`}>
+                                                {selectedPricingLead.answers.formType === 'business'
+                                                    ? 'Empresarial'
+                                                    : selectedPricingLead.answers.formType === 'complete'
+                                                        ? 'Empresarial + Pessoal'
+                                                        : 'Finanças Pessoais'}
+                                            </span>
+                                        </div>
+
+                                        {/* Aviso sobre cartão de crédito do lead */}
+                                        {selectedPricingLead.answers.hasCreditCard !== 'Sim' ? (
+                                            <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 rounded-lg text-xs font-light leading-relaxed flex items-start gap-2">
+                                                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-yellow-500" />
+                                                <div>
+                                                    <strong className="font-bold">Atenção:</strong> Este cliente informou no Quiz que <strong className="text-white">NÃO possui cartão de crédito</strong>. A apresentação estratégica de Consultoria Estruturada exibirá automaticamente apenas a opção de pagamento à vista.
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="p-3 bg-green-500/10 border border-green-500/20 text-green-400 rounded-lg text-xs font-light leading-relaxed flex items-start gap-2">
+                                                <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-green-500" />
+                                                <div>
+                                                    Este cliente informou no Quiz que <strong className="text-white">possui cartão de crédito</strong>. A apresentação exibirá as opções parceladas combinadas com as opções à vista.
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Seção 1: Consultoria Estruturada */}
+                                        <div className="p-4 bg-dark-850 border border-dark-800 rounded-xl space-y-4">
+                                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-dark-800 pb-3">
+                                                <h4 className="text-xs font-bold text-white uppercase tracking-wider">1. Consultoria Estruturada (Investimento Padrão)</h4>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest shrink-0">Pacote:</span>
+                                                    <select
+                                                        value={leadPricingSelections.consultoriaPackageId}
+                                                        onChange={(e) => handleLeadPricingPackageChangeForMoment('consultoria', e.target.value)}
+                                                        className="bg-dark-950 border border-dark-800 text-white rounded px-2.5 py-1 text-xs outline-none focus:border-gold-500 transition-all font-medium cursor-pointer"
+                                                    >
+                                                        <option value="">Selecione...</option>
+                                                        {pricingPackages.filter(p => p.presentation_type === (selectedPricingLead.answers.formType || 'personal') && p.product_moment === 'consultoria').map(pkg => (
+                                                            <option key={pkg.id} value={pkg.id}>{pkg.name} ({pkg.value})</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            {leadPricingSelections.consultoriaPackageId && (
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <div className="space-y-1">
+                                                        <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Opção À Vista</label>
+                                                        <select
+                                                            value={leadPricingSelections.consultoriaVista}
+                                                            onChange={(e) => setLeadPricingSelections(prev => ({ ...prev, consultoriaVista: e.target.value }))}
+                                                            className="w-full bg-dark-950 border border-dark-800 text-white rounded-lg p-2.5 text-xs outline-none focus:border-gold-500 transition-all font-medium cursor-pointer"
+                                                        >
+                                                            <option value="">Selecione...</option>
+                                                            {pricingPackages.find(p => p.id === leadPricingSelections.consultoriaPackageId)?.payment_options.map(opt => (
+                                                                <option key={opt.label} value={opt.label}>
+                                                                    [Forma {opt.label}] {opt.description}
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Opção Parcelada (Cartão)</label>
+                                                        <select
+                                                            value={leadPricingSelections.consultoriaParcelado}
+                                                            onChange={(e) => setLeadPricingSelections(prev => ({ ...prev, consultoriaParcelado: e.target.value }))}
+                                                            className="w-full bg-dark-950 border border-dark-800 text-white rounded-lg p-2.5 text-xs outline-none focus:border-gold-500 transition-all font-medium cursor-pointer"
+                                                        >
+                                                            <option value="">Selecione...</option>
+                                                            {pricingPackages.find(p => p.id === leadPricingSelections.consultoriaPackageId)?.payment_options.map(opt => (
+                                                                <option key={opt.label} value={opt.label}>
+                                                                    [Forma {opt.label}] {opt.description}
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Seção 2: Condição Especial */}
+                                        <div className="p-4 bg-dark-850 border border-dark-800 rounded-xl space-y-4">
+                                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-dark-800 pb-3">
+                                                <h4 className="text-xs font-bold text-white uppercase tracking-wider">2. Condição Especial</h4>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest shrink-0">Pacote:</span>
+                                                    <select
+                                                        value={leadPricingSelections.especialPackageId}
+                                                        onChange={(e) => handleLeadPricingPackageChangeForMoment('especial', e.target.value)}
+                                                        className="bg-dark-950 border border-dark-800 text-white rounded px-2.5 py-1 text-xs outline-none focus:border-gold-500 transition-all font-medium cursor-pointer"
+                                                    >
+                                                        <option value="">Selecione...</option>
+                                                        {pricingPackages.filter(p => p.presentation_type === (selectedPricingLead.answers.formType || 'personal') && p.product_moment === 'especial').map(pkg => (
+                                                            <option key={pkg.id} value={pkg.id}>{pkg.name} ({pkg.value})</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            {leadPricingSelections.especialPackageId && (
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <div className="space-y-1">
+                                                        <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Opção À Vista</label>
+                                                        <select
+                                                            value={leadPricingSelections.especialVista}
+                                                            onChange={(e) => setLeadPricingSelections(prev => ({ ...prev, especialVista: e.target.value }))}
+                                                            className="w-full bg-dark-950 border border-dark-800 text-white rounded-lg p-2.5 text-xs outline-none focus:border-gold-500 transition-all font-medium cursor-pointer"
+                                                        >
+                                                            <option value="">Selecione...</option>
+                                                            {pricingPackages.find(p => p.id === leadPricingSelections.especialPackageId)?.payment_options.map(opt => (
+                                                                <option key={opt.label} value={opt.label}>
+                                                                    [Forma {opt.label}] {opt.description}
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Opção Parcelada</label>
+                                                        <select
+                                                            value={leadPricingSelections.especialParcelado}
+                                                            onChange={(e) => setLeadPricingSelections(prev => ({ ...prev, especialParcelado: e.target.value }))}
+                                                            className="w-full bg-dark-950 border border-dark-800 text-white rounded-lg p-2.5 text-xs outline-none focus:border-gold-500 transition-all font-medium cursor-pointer"
+                                                        >
+                                                            <option value="">Selecione...</option>
+                                                            {pricingPackages.find(p => p.id === leadPricingSelections.especialPackageId)?.payment_options.map(opt => (
+                                                                <option key={opt.label} value={opt.label}>
+                                                                    [Forma {opt.label}] {opt.description}
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Seção 3: Produto de Entrada */}
+                                        <div className="p-4 bg-dark-850 border border-dark-800 rounded-xl space-y-4">
+                                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-dark-800 pb-3">
+                                                <h4 className="text-xs font-bold text-white uppercase tracking-wider">3. Produto de Entrada</h4>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest shrink-0">Pacote:</span>
+                                                    <select
+                                                        value={leadPricingSelections.entradaPackageId}
+                                                        onChange={(e) => handleLeadPricingPackageChangeForMoment('entrada', e.target.value)}
+                                                        className="bg-dark-950 border border-dark-800 text-white rounded px-2.5 py-1 text-xs outline-none focus:border-gold-500 transition-all font-medium cursor-pointer"
+                                                    >
+                                                        <option value="">Selecione...</option>
+                                                        {pricingPackages.filter(p => p.presentation_type === (selectedPricingLead.answers.formType || 'personal') && p.product_moment === 'entrada').map(pkg => (
+                                                            <option key={pkg.id} value={pkg.id}>{pkg.name} ({pkg.value})</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            {leadPricingSelections.entradaPackageId && (
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <div className="space-y-1">
+                                                        <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Opção À Vista</label>
+                                                        <select
+                                                            value={leadPricingSelections.entradaVista}
+                                                            onChange={(e) => setLeadPricingSelections(prev => ({ ...prev, entradaVista: e.target.value }))}
+                                                            className="w-full bg-dark-950 border border-dark-800 text-white rounded-lg p-2.5 text-xs outline-none focus:border-gold-500 transition-all font-medium cursor-pointer"
+                                                        >
+                                                            <option value="">Selecione...</option>
+                                                            {pricingPackages.find(p => p.id === leadPricingSelections.entradaPackageId)?.payment_options.map(opt => (
+                                                                <option key={opt.label} value={opt.label}>
+                                                                    [Forma {opt.label}] {opt.description}
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Opção Parcelada</label>
+                                                        <select
+                                                            value={leadPricingSelections.entradaParcelado}
+                                                            onChange={(e) => setLeadPricingSelections(prev => ({ ...prev, entradaParcelado: e.target.value }))}
+                                                            className="w-full bg-dark-950 border border-dark-800 text-white rounded-lg p-2.5 text-xs outline-none focus:border-gold-500 transition-all font-medium cursor-pointer"
+                                                        >
+                                                            <option value="">Selecione...</option>
+                                                            {pricingPackages.find(p => p.id === leadPricingSelections.entradaPackageId)?.payment_options.map(opt => (
+                                                                <option key={opt.label} value={opt.label}>
+                                                                    [Forma {opt.label}] {opt.description}
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="flex flex-col sm:flex-row justify-end gap-2.5 border-t border-dark-800 pt-4 shrink-0">
+                                <button
+                                    type="button"
+                                    onClick={() => setSelectedPricingLead(null)}
+                                    className="w-full sm:w-auto px-5 py-2.5 bg-dark-800 hover:bg-dark-750 text-gray-300 hover:text-white rounded-xl transition-all border border-dark-700 text-xs font-bold uppercase tracking-widest cursor-pointer"
+                                >
+                                    Cancelar
+                                </button>
+                                {pricingPackages.length > 0 && (
+                                    <>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleSaveLeadPricingSelections(false)}
+                                            disabled={updatingStatus !== null}
+                                            className="w-full sm:w-auto px-5 py-2.5 bg-dark-805 hover:bg-dark-750 text-gray-300 hover:text-white rounded-xl transition-all border border-dark-700 text-xs font-bold uppercase tracking-widest cursor-pointer disabled:opacity-50"
+                                        >
+                                            Salvar e Agendar
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleSaveLeadPricingSelections(true)}
+                                            disabled={updatingStatus !== null}
+                                            className="w-full sm:w-auto px-5 py-2.5 bg-gradient-to-r from-gold-600 via-amber-500 to-gold-500 text-dark-950 font-black rounded-xl shadow-lg shadow-gold-500/25 transition-all text-xs uppercase tracking-widest cursor-pointer hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
+                                        >
+                                            Salvar e Iniciar Apresentação
+                                        </button>
+                                    </>
+                                )}
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             {/* Modal Premium de Alertas/Confirmações */}
             <AnimatePresence>
                 {modalConfig && (
@@ -2367,13 +3019,12 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                         >
                             {/* Cabeçalho com ícone */}
                             <div className="flex items-center gap-4">
-                                <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 border ${
-                                    modalConfig.type === 'error'
-                                        ? 'bg-red-500/10 border-red-500/20 text-red-500'
-                                        : modalConfig.type === 'success'
+                                <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 border ${modalConfig.type === 'error'
+                                    ? 'bg-red-500/10 border-red-500/20 text-red-500'
+                                    : modalConfig.type === 'success'
                                         ? 'bg-green-500/10 border-green-500/20 text-green-400'
                                         : 'bg-gold-500/10 border-gold-500/20 text-gold-400'
-                                }`}>
+                                    }`}>
                                     {modalConfig.type === 'error' && <AlertCircle className="w-6 h-6" />}
                                     {modalConfig.type === 'success' && <CheckCircle2 className="w-6 h-6" />}
                                     {modalConfig.type === 'confirm' && <HelpCircle className="w-6 h-6" />}
@@ -2414,11 +3065,10 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                                     <button
                                         type="button"
                                         onClick={modalConfig.onCancel}
-                                        className={`px-5 py-2.5 text-xs font-bold uppercase tracking-widest transition-colors rounded-xl border cursor-pointer ${
-                                            modalConfig.type === 'error'
-                                                ? 'bg-red-500/10 hover:bg-red-500/20 text-red-400 border-red-500/20'
-                                                : 'bg-gold-500/10 hover:bg-gold-500/20 text-gold-450 border border-gold-500/20'
-                                        }`}
+                                        className={`px-5 py-2.5 text-xs font-bold uppercase tracking-widest transition-colors rounded-xl border cursor-pointer ${modalConfig.type === 'error'
+                                            ? 'bg-red-500/10 hover:bg-red-500/20 text-red-400 border-red-500/20'
+                                            : 'bg-gold-500/10 hover:bg-gold-500/20 text-gold-450 border border-gold-500/20'
+                                            }`}
                                     >
                                         Fechar
                                     </button>
@@ -2579,7 +3229,7 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                             onClick={() => setViewingPricing(null)}
                             className="absolute inset-0 bg-black/75 backdrop-blur-sm"
                         />
-                        
+
                         <motion.div
                             initial={{ opacity: 0, scale: 0.95, y: 20 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -2604,7 +3254,7 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                                     <X className="w-5 h-5" />
                                 </button>
                             </div>
-                            
+
                             <div className="p-6 overflow-y-auto space-y-6">
                                 <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 flex justify-between items-center">
                                     <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Valor Total Configurado</span>
@@ -2613,30 +3263,104 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
 
                                 <div className="space-y-4">
                                     <h4 className="text-xs font-bold uppercase tracking-wider text-gray-500 border-b border-dark-800 pb-2">Formas de Pagamento Ativas</h4>
-                                    
+
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        {viewingPricing.payment_options.filter(o => o.description && o.description.trim() !== '').map((option, idx) => (
-                                            <div key={idx} className="bg-dark-950 rounded-xl border border-dark-800 p-4 space-y-3">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="flex items-center justify-center w-5 h-5 rounded-full bg-gold-500/10 text-gold-500 font-bold text-[10px] border border-gold-500/20">
-                                                        {option.label}
-                                                    </span>
-                                                    <span className="text-xs text-gray-400 uppercase tracking-wider font-bold">Opção {option.label}</span>
+                                        {viewingPricing.payment_options.filter(o => o.description && o.description.trim() !== '').map((option, idx) => {
+                                            let cType = option.checkoutType;
+                                            if (!cType) {
+                                                const link = option.link || '';
+                                                const desc = option.description.toLowerCase();
+                                                if (link.startsWith('http://') || link.startsWith('https://')) {
+                                                    cType = 'link';
+                                                } else if (link.trim() !== '') {
+                                                    cType = 'pix';
+                                                } else if (desc.includes('maquininha') || desc.includes('tap') || desc.includes('presencial')) {
+                                                    cType = 'maquininha';
+                                                } else {
+                                                    cType = 'link';
+                                                }
+                                            }
+
+                                            return (
+                                                <div key={idx} className="bg-dark-950 rounded-xl border border-dark-800 p-4 space-y-3 relative">
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="flex items-center justify-center w-5 h-5 rounded-full bg-gold-500/10 text-gold-500 font-bold text-[10px] border border-gold-500/20">
+                                                                {option.label}
+                                                            </span>
+                                                            <span className="text-xs text-gray-400 uppercase tracking-wider font-bold">Opção {option.label}</span>
+                                                        </div>
+                                                        <span className={`text-[9px] uppercase tracking-wider font-extrabold px-2 py-0.5 rounded border ${
+                                                            cType === 'link' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+                                                            cType === 'pix' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
+                                                            'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                                                        }`}>
+                                                            {cType === 'link' ? 'Checkout Link' : cType === 'pix' ? 'PIX' : 'Maquininha'}
+                                                        </span>
+                                                    </div>
+
+                                                    <div className="space-y-1">
+                                                        <p className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Descrição</p>
+                                                        <p className="text-xs text-white font-medium">{option.description}</p>
+                                                    </div>
+
+                                                    {/* Valores Estruturados */}
+                                                    <div className="grid grid-cols-2 gap-2 p-2.5 bg-dark-900 rounded-lg border border-dark-850">
+                                                        {option.isCard ? (
+                                                            <>
+                                                                <div>
+                                                                    <p className="text-[9px] text-gray-500 uppercase tracking-wider font-bold">Parcelas</p>
+                                                                    <p className="text-xs text-gray-200 font-semibold">{option.installments || 12}x</p>
+                                                                </div>
+                                                                <div>
+                                                                    <p className="text-[9px] text-gray-500 uppercase tracking-wider font-bold">Valor Parcela</p>
+                                                                    <p className="text-xs text-gold-500 font-bold">{option.installmentValue || 'R$ 0,00'}</p>
+                                                                </div>
+                                                            </>
+                                                        ) : (
+                                                            <div className="col-span-2">
+                                                                <p className="text-[9px] text-gray-500 uppercase tracking-wider font-bold">Valor à Vista</p>
+                                                                <p className="text-xs text-gold-500 font-bold">{option.value || 'R$ 0,00'}</p>
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Link/Chave ou Indicação de Maquininha */}
+                                                    {cType !== 'maquininha' ? (
+                                                        <div className="space-y-1">
+                                                            <p className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">
+                                                                {cType === 'link' ? 'Link do Checkout' : 'Chave Pix'}
+                                                            </p>
+                                                            <div className="flex items-center gap-2 bg-dark-900 p-2 rounded-lg border border-dark-850">
+                                                                <p className="text-xs text-gray-300 truncate font-mono flex-grow pr-2">
+                                                                    {option.link}
+                                                                </p>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleCopyLink(option.link, idx)}
+                                                                    className="p-1.5 bg-dark-800 hover:bg-dark-750 text-gray-400 hover:text-gold-500 rounded border border-dark-700 hover:border-gold-500/30 transition-all cursor-pointer inline-flex items-center justify-center"
+                                                                    title={cType === 'link' ? "Copiar link de checkout" : "Copiar chave Pix"}
+                                                                >
+                                                                    {copiedIndex === idx ? (
+                                                                        <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
+                                                                    ) : (
+                                                                        <Copy className="w-3.5 h-3.5" />
+                                                                    )}
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="p-2.5 bg-dark-900 rounded-lg border border-dark-850 text-center">
+                                                            <p className="text-xs text-gray-400 font-medium leading-relaxed">Pagamento presencial via Maquininha (Sem link de checkout/chave Pix)</p>
+                                                        </div>
+                                                    )}
                                                 </div>
-                                                <div className="space-y-1">
-                                                    <p className="text-xs text-gray-500">Descrição</p>
-                                                    <p className="text-sm text-white font-medium">{option.description}</p>
-                                                </div>
-                                                <div className="space-y-1">
-                                                    <p className="text-xs text-gray-500">Checkout Link</p>
-                                                    <p className="text-xs text-gold-500/80 truncate font-mono">{option.link}</p>
-                                                </div>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <div className="p-6 border-t border-dark-800 flex justify-end shrink-0">
                                 <button
                                     onClick={() => setViewingPricing(null)}
@@ -2664,7 +3388,7 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                             }}
                             className="absolute inset-0 bg-black/75 backdrop-blur-sm"
                         />
-                        
+
                         <motion.div
                             initial={{ opacity: 0, scale: 0.95, y: 20 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -2696,7 +3420,7 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                                     <X className="w-5 h-5" />
                                 </button>
                             </div>
-                            
+
                             <form onSubmit={handleSavePricing} className="flex flex-col flex-grow overflow-hidden">
                                 <div className="p-6 overflow-y-auto space-y-6 flex-grow">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -2724,21 +3448,95 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                                         </div>
                                     </div>
 
+                                    {/* Tipo e Momento da Precificação */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider">Tipo de Apresentação</label>
+                                            <select
+                                                value={newPricingPresentationType}
+                                                onChange={(e: any) => setNewPricingPresentationType(e.target.value)}
+                                                className="w-full bg-dark-950 border border-dark-800 text-white rounded-lg p-3 text-sm outline-none focus:border-gold-500 transition-all cursor-pointer font-medium"
+                                            >
+                                                <option value="personal">Finanças Pessoais</option>
+                                                <option value="business">Finanças Empresariais</option>
+                                                <option value="complete">Finanças Empresariais + Pessoais</option>
+                                            </select>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider">Momento / Produto da Apresentação</label>
+                                            <select
+                                                value={newPricingProductMoment}
+                                                onChange={(e: any) => setNewPricingProductMoment(e.target.value)}
+                                                className="w-full bg-dark-950 border border-dark-800 text-white rounded-lg p-3 text-sm outline-none focus:border-gold-500 transition-all cursor-pointer font-medium"
+                                            >
+                                                <option value="consultoria">1. Consultoria Estruturada (Padrão)</option>
+                                                <option value="especial">2. Condição Especial</option>
+                                                <option value="entrada">3. Produto de Entrada</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
                                     <div className="space-y-4">
-                                        <h4 className="text-xs font-bold uppercase tracking-wider text-gray-500 border-b border-dark-800 pb-2">Opções de Pagamento (Até 6 Formas)</h4>
-                                        
+                                        <div className="flex justify-between items-center border-b border-dark-800 pb-2">
+                                            <h4 className="text-xs font-bold uppercase tracking-wider text-gray-500">Formas de Pagamento</h4>
+                                            <button
+                                                type="button"
+                                                onClick={handleAddPricingOption}
+                                                className="px-3 py-1 bg-gold-500/10 hover:bg-gold-500/20 text-gold-400 border border-gold-500/20 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+                                            >
+                                                <Plus className="w-3.5 h-3.5" />
+                                                Adicionar Forma
+                                            </button>
+                                        </div>
+
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             {newPricingOptions.map((opt, idx) => (
                                                 <div key={idx} className="p-4 bg-dark-950 rounded-xl border border-dark-850 space-y-3 relative">
-                                                    <span className="absolute top-2 right-3 text-[10px] font-bold text-gold-500 bg-gold-500/10 px-2 py-0.5 rounded border border-gold-500/20">
-                                                        Forma {opt.label}
-                                                    </span>
+                                                    <div className="flex justify-between items-center">
+                                                        <span className="text-[10px] font-bold text-gold-500 bg-gold-500/10 px-2 py-0.5 rounded border border-gold-500/20">
+                                                            Forma {opt.label}
+                                                        </span>
+                                                        {newPricingOptions.length > 1 && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleDeletePricingOption(idx)}
+                                                                className="p-1 hover:bg-red-500/10 text-gray-500 hover:text-red-400 rounded transition-colors cursor-pointer"
+                                                                title="Excluir esta forma de pagamento"
+                                                            >
+                                                                <Trash2 className="w-3.5 h-3.5" />
+                                                            </button>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Toggle Switch Premium para Cartão */}
+                                                    <div className="flex items-center justify-between py-1 select-none border-b border-dark-850/60 pb-2">
+                                                        <span className="text-xs font-bold text-slate-350 uppercase tracking-wide">
+                                                            Pagamento por Cartão (Parcelado)
+                                                        </span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                const updated = [...newPricingOptions];
+                                                                updated[idx].isCard = !opt.isCard;
+                                                                setNewPricingOptions(updated);
+                                                            }}
+                                                            className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${opt.isCard ? 'bg-gold-500' : 'bg-dark-800'
+                                                                }`}
+                                                        >
+                                                            <span
+                                                                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${opt.isCard ? 'translate-x-5' : 'translate-x-0'
+                                                                    }`}
+                                                            />
+                                                        </button>
+                                                    </div>
+
+                                                    {/* Descrição da Opção - Sempre visível */}
                                                     <div className="space-y-1">
-                                                        <label className="block text-[9px] font-semibold text-gray-450 uppercase tracking-widest">Descrição da Opção</label>
+                                                        <label className="block text-[9px] font-bold text-gray-500 uppercase tracking-widest">Descrição da Opção (Livre)</label>
                                                         <input
                                                             type="text"
-                                                            placeholder={idx === 0 ? "Até 12x de R$ 99 no Cartão" : idx === 1 ? "À vista por R$ 997" : "Ex: Boleto parcelado..."}
-                                                            value={opt.description}
+                                                            placeholder={opt.isCard ? "Deixe vazio para automático ou ex: 12x no cartão..." : "Ex: À vista no Pix por R$ 597"}
+                                                            value={opt.description || ''}
                                                             onChange={(e) => {
                                                                 const updated = [...newPricingOptions];
                                                                 updated[idx].description = e.target.value;
@@ -2747,20 +3545,87 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                                                             className="w-full bg-dark-900 border border-dark-800 rounded px-2.5 py-1.5 text-white text-xs outline-none focus:border-gold-500 transition-all font-medium"
                                                         />
                                                     </div>
+
+                                                    {opt.isCard ? (
+                                                        <div className="grid grid-cols-2 gap-2">
+                                                            <div className="space-y-1">
+                                                                <label className="block text-[9px] font-semibold text-gray-455 uppercase tracking-widest">Qtd. de Parcelas</label>
+                                                                <input
+                                                                    type="number"
+                                                                    min={1}
+                                                                    max={24}
+                                                                    placeholder="Ex: 12"
+                                                                    value={opt.installments || 12}
+                                                                    onChange={(e) => {
+                                                                        const updated = [...newPricingOptions];
+                                                                        updated[idx].installments = parseInt(e.target.value, 10) || 12;
+                                                                        setNewPricingOptions(updated);
+                                                                    }}
+                                                                    className="w-full bg-dark-900 border border-dark-800 rounded px-2.5 py-1.5 text-white text-xs outline-none focus:border-gold-500 transition-all font-medium"
+                                                                />
+                                                            </div>
+                                                            <div className="space-y-1">
+                                                                <label className="block text-[9px] font-semibold text-gray-455 uppercase tracking-widest">Valor da Parcela</label>
+                                                                <input
+                                                                    type="text"
+                                                                    placeholder="Ex: R$ 61,74"
+                                                                    value={opt.installmentValue || ''}
+                                                                    onChange={(e) => handleOptionCurrencyChange(idx, e.target.value, true)}
+                                                                    className="w-full bg-dark-900 border border-dark-800 rounded px-2.5 py-1.5 text-white text-xs outline-none focus:border-gold-500 transition-all font-medium"
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="space-y-1">
+                                                            <label className="block text-[9px] font-semibold text-gray-455 uppercase tracking-widest">Valor à Vista</label>
+                                                            <input
+                                                                type="text"
+                                                                placeholder="Ex: R$ 597,00"
+                                                                value={opt.value || ''}
+                                                                onChange={(e) => handleOptionCurrencyChange(idx, e.target.value, false)}
+                                                                className="w-full bg-dark-900 border border-dark-800 rounded px-2.5 py-1.5 text-white text-xs outline-none focus:border-gold-500 transition-all font-medium"
+                                                            />
+                                                        </div>
+                                                    )}
+
                                                     <div className="space-y-1">
-                                                        <label className="block text-[9px] font-semibold text-gray-450 uppercase tracking-widest">Link do Checkout</label>
-                                                        <input
-                                                            type="url"
-                                                            placeholder="https://..."
-                                                            value={opt.link}
+                                                        <label className="block text-[9px] font-bold text-gray-500 uppercase tracking-widest">Tipo de Recebimento</label>
+                                                        <select
+                                                            value={opt.checkoutType || 'link'}
                                                             onChange={(e) => {
                                                                 const updated = [...newPricingOptions];
-                                                                updated[idx].link = e.target.value;
+                                                                updated[idx].checkoutType = e.target.value as 'link' | 'pix' | 'maquininha';
+                                                                if (e.target.value === 'maquininha') {
+                                                                    updated[idx].link = '';
+                                                                }
                                                                 setNewPricingOptions(updated);
                                                             }}
-                                                            className="w-full bg-dark-900 border border-dark-800 rounded px-2.5 py-1.5 text-white text-xs outline-none focus:border-gold-500 transition-all font-medium"
-                                                        />
+                                                            className="w-full bg-dark-900 border border-dark-800 text-white rounded px-2.5 py-1.5 text-xs outline-none focus:border-gold-500 transition-all cursor-pointer font-medium"
+                                                        >
+                                                            <option value="link">🔗 Link do Checkout</option>
+                                                            <option value="pix">📱 Chave PIX</option>
+                                                            <option value="maquininha">💳 Maquininha (Presencial/Tap)</option>
+                                                        </select>
                                                     </div>
+
+                                                    {opt.checkoutType !== 'maquininha' && (
+                                                        <div className="space-y-1">
+                                                            <label className="block text-[9px] font-semibold text-gray-455 uppercase tracking-widest">
+                                                                {opt.checkoutType === 'pix' ? 'Chave Pix' : 'Link do Checkout'}
+                                                            </label>
+                                                            <input
+                                                                type="text"
+                                                                placeholder={opt.checkoutType === 'pix' ? "Ex: pix@empresa.com ou telefone..." : "https://..."}
+                                                                value={opt.link}
+                                                                onChange={(e) => {
+                                                                    const updated = [...newPricingOptions];
+                                                                    updated[idx].link = e.target.value;
+                                                                    setNewPricingOptions(updated);
+                                                                }}
+                                                                className="w-full bg-dark-900 border border-dark-800 rounded px-2.5 py-1.5 text-white text-xs outline-none focus:border-gold-500 transition-all font-medium"
+                                                            />
+                                                        </div>
+                                                    )}
                                                 </div>
                                             ))}
                                         </div>
@@ -2830,22 +3695,20 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                                 <button
                                     type="button"
                                     onClick={() => setEditLeadTab('info')}
-                                    className={`px-4 py-2 border-b-2 text-xs font-bold transition-all uppercase tracking-wider cursor-pointer ${
-                                        editLeadTab === 'info'
-                                            ? 'border-gold-500 text-gold-400'
-                                            : 'border-transparent text-gray-500 hover:text-gray-400'
-                                    }`}
+                                    className={`px-4 py-2 border-b-2 text-xs font-bold transition-all uppercase tracking-wider cursor-pointer ${editLeadTab === 'info'
+                                        ? 'border-gold-500 text-gold-400'
+                                        : 'border-transparent text-gray-500 hover:text-gray-400'
+                                        }`}
                                 >
                                     Informações Básicas
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => setEditLeadTab('answers')}
-                                    className={`px-4 py-2 border-b-2 text-xs font-bold transition-all uppercase tracking-wider cursor-pointer ${
-                                        editLeadTab === 'answers'
-                                            ? 'border-gold-500 text-gold-400'
-                                            : 'border-transparent text-gray-500 hover:text-gray-400'
-                                    }`}
+                                    className={`px-4 py-2 border-b-2 text-xs font-bold transition-all uppercase tracking-wider cursor-pointer ${editLeadTab === 'answers'
+                                        ? 'border-gold-500 text-gold-400'
+                                        : 'border-transparent text-gray-500 hover:text-gray-400'
+                                        }`}
                                 >
                                     Respostas do Quiz
                                 </button>
@@ -3350,7 +4213,7 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                                         <button
                                             key={lead.id}
                                             onClick={() => {
-                                                setActivePresentationLead(lead);
+                                                handleStartPresentation(lead);
                                                 setActivePresentationSelectType(null);
                                             }}
                                             className="w-full text-left p-4 bg-dark-950 border border-dark-800/80 hover:border-gold-500/40 rounded-xl transition-all flex justify-between items-center group cursor-pointer"

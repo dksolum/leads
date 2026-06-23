@@ -1,0 +1,40 @@
+"  // Resolução de Opções por Slide (buscando o pacote específico de cada momento)
+  const leadFormType = lead.answers?.formType || 'personal';
+
+  // 1. Consultoria Estruturada (Padrão)
+  const consultoriaPackage = selections.consultoriaPackageId
+    ? pricingPackages.find(p => p.id === selections.consultoriaPackageId)
+    : pricingPackages.find(p => p.presentation_type === leadFormType && p.product_moment === 'consultoria');
+  const consultoriaOptions = consultoriaPackage ? consultoriaPackage.payment_options : currentOptions;
+
+  let consultoriaVistaOption = selections.consultoriaVista 
+    ? consultoriaOptions.find(o => o.label === selections.consultoriaVista)
+    : null;
+  if (!consultoriaVistaOption) {
+    consultoriaVistaOption = consultoriaOptions.find(o => !o.isCard && !o.description?.toLowerCase().includes('cartão')) 
+      || consultoriaOptions.find(o => o.label === '2')
+      || consultoriaOptions[0];
+  }
+
+  let consultoriaParceladoOption = selections.consultoriaParcelado 
+    ? consultoriaOptions.find(o => o.label === selections.consultoriaParcelado)
+    : null;
+  if (!consultoriaParceladoOption) {
+    consultoriaParceladoOption = consultoriaOptions.find(o => o.isCard || o.description?.toLowerCase().includes('cartão'))
+      || consultoriaOptions.find(o => o.label === '1')
+      || consultoriaOptions[1] 
+      || consultoriaOptions[0];
+  }
+
+  // 2. Condição Especial
+  const especialPackage = selections.especialPackageId
+    ? pricingPackages.find(p => p.id === selections.especialPackageId)
+    : pricingPackages.find(p => p.presentation_type === leadFormType && p.product_moment === 'especial');
+  const especialOptions = especialPackage ? especialPackage.payment_options : currentOptions;
+
+  let especialVistaOption = selections.especialVista 
+    ? especialOptions.find(o => o.label === selections.especialVista)
+    : null;
+  if (!especialVistaOption) {
+    const vistaOpts = especialOptions.filter(o => !o.isCard && !o.description?.toLowerCase().includes('cart
+<truncated 1845 bytes>

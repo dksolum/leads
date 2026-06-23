@@ -44,6 +44,17 @@ export interface UserAnswers {
   meeting?: MeetingAnswers;
   formType?: 'personal' | 'business' | 'complete';
   selectedPricingId?: string;
+  pricingSelections?: {
+    consultoriaPackageId?: string;
+    consultoriaVista?: string;
+    consultoriaParcelado?: string;
+    especialPackageId?: string;
+    especialVista?: string;
+    especialParcelado?: string;
+    entradaPackageId?: string;
+    entradaVista?: string;
+    entradaParcelado?: string;
+  };
 }
 
 export interface MeetingAnswers {
@@ -137,6 +148,11 @@ export interface PaymentOption {
   label: string;
   description: string;
   link: string;
+  isCard?: boolean;
+  installments?: number;
+  installmentValue?: string;
+  value?: string;
+  checkoutType?: 'link' | 'pix' | 'maquininha';
 }
 
 export interface PricingPackage {
@@ -144,5 +160,7 @@ export interface PricingPackage {
   name: string;
   value: string;
   payment_options: PaymentOption[];
+  presentation_type?: 'personal' | 'business' | 'complete';
+  product_moment?: 'consultoria' | 'especial' | 'entrada';
   created_at?: string;
 }

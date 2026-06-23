@@ -5,7 +5,8 @@ import {
   HelpCircle, AlertCircle, Image as ImageIcon, Save,
   Users, Award, TrendingUp, ShieldCheck, Play, ArrowRight,
   TrendingDown, CheckCircle2, RefreshCw, HeartHandshake, Brain,
-  Compass, Eye, Target, Sparkle, Coins, CreditCard, Info, ExternalLink
+  Compass, Eye, Target, Sparkle, Coins, CreditCard, Info, ExternalLink,
+  Copy, Link
 } from 'lucide-react';
 import { Lead, MeetingAnswers, PricingPackage } from '../types';
 import { supabase } from '../lib/supabase';
@@ -58,6 +59,17 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
   const [showExitModal, setShowExitModal] = useState<boolean>(false);
   // Controle de exibição de detalhes de formas de pagamento (negociação)
   const [paymentDetailsModal, setPaymentDetailsModal] = useState<'padrao' | 'especial' | 'downsell' | null>(null);
+  const [copiedText, setCopiedText] = useState<string | null>(null);
+  const handleCopyLink = async (text: string, label: string) => {
+    if (!text) return;
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedText(label);
+      setTimeout(() => setCopiedText(null), 2000);
+    } catch (err) {
+      console.error('Falha ao copiar:', err);
+    }
+  };
 
   // Lógica de precificação ativa dinamicamente
   const currentPricingId = lead.answers?.selectedPricingId;
@@ -77,16 +89,91 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
 
   const currentOptions = activePricing ? activePricing.payment_options : DEFAULT_PAYMENT_OPTIONS;
 
-  // Formatar valores para exibição nos cards
-  const opt1 = currentOptions.find(o => o.label === '1');
-  const opt2 = currentOptions.find(o => o.label === '2');
-  const opt4 = currentOptions.find(o => o.label === '4');
-  const opt5 = currentOptions.find(o => o.label === '5');
+  const selections = lead.answers?.pricingSelections || {};
+  const leadFormType = lead.answers?.formType || 'personal';
 
-  const displayParcelado = opt1 ? opt1.description : '12x de R$ 61,74';
-  const displayAVista = opt2 ? opt2.description : 'R$ 597 à vista com desconto especial';
-  const displayEspecial1 = opt4 ? opt4.description : 'Entrada de R$ 147 + 1x de R$ 450';
-  const displayEspecial2 = opt5 ? opt5.description : 'ou parcelado em Boleto em até 3x de R$ 210';
+  // 1. Consultoria Estruturada (Padrão)
+  const consultoriaPackage = selections.consultoriaPackageId
+    ? pricingPackages.find(p => p.id === selections.consultoriaPackageId)
+    : pricingPackages.find(p => p.presentation_type === leadFormType && p.product_moment === 'consultoria');
+  const consultoriaOptions = consultoriaPackage ? consultoriaPackage.payment_options : currentOptions;
+
+  let consultoriaVistaOption = selections.consultoriaVista
+    ? consultoriaOptions.find(o => o.label === selections.consultoriaVista)
+    : null;
+  if (!consultoriaVistaOption) {
+    consultoriaVistaOption = consultoriaOptions.find(o => !o.isCard && !o.description?.toLowerCase().includes('cartão'))
+      || consultoriaOptions.find(o => o.label === '2')
+      || consultoriaOptions[0];
+  }
+
+  let consultoriaParceladoOption = selections.consultoriaParcelado
+    ? consultoriaOptions.find(o => o.label === selections.consultoriaParcelado)
+    : null;
+  if (!consultoriaParceladoOption) {
+    consultoriaParceladoOption = consultoriaOptions.find(o => o.isCard || o.description?.toLowerCase().includes('cartão'))
+      || consultoriaOptions.find(o => o.label === '1')
+      || consultoriaOptions[1]
+      || consultoriaOptions[0];
+  }
+
+  // 2. Condição Especial
+  const especialPackage = selections.especialPackageId
+    ? pricingPackages.find(p => p.id === selections.especialPackageId)
+    : pricingPackages.find(p => p.presentation_type === leadFormType && p.product_moment === 'especial');
+  const especialOptions = especialPackage ? especialPackage.payment_options : currentOptions;
+
+  let especialVistaOption = selections.especialVista
+    ? especialOptions.find(o => o.label === selections.especialVista)
+    : null;
+  if (!especialVistaOption) {
+    const vistaOpts = especialOptions.filter(o => !o.isCard && !o.description?.toLowerCase().includes('cartão'));
+    especialVistaOption = vistaOpts[0]
+      || especialOptions.find(o => o.label === '4')
+      || especialOptions[0];
+  }
+
+  let especialParceladoOption = selections.especialParcelado
+    ? especialOptions.find(o => o.label === selections.especialParcelado)
+    : null;
+  if (!especialParceladoOption) {
+    const parceladaOpts = especialOptions.filter(o => o.isCard || o.description?.toLowerCase().includes('cartão'));
+    especialParceladoOption = parceladaOpts[0]
+      || especialOptions.find(o => o.label === '5')
+      || especialOptions[1]
+      || especialOptions[0];
+  }
+
+  // 3. Produto de Entrada (Downsell)
+  const entradaPackage = selections.entradaPackageId
+    ? pricingPackages.find(p => p.id === selections.entradaPackageId)
+    : pricingPackages.find(p => p.presentation_type === leadFormType && p.product_moment === 'entrada');
+  const entradaOptions = entradaPackage ? entradaPackage.payment_options : currentOptions;
+
+  let entradaVistaOption = selections.entradaVista
+    ? entradaOptions.find(o => o.label === selections.entradaVista)
+    : null;
+  if (!entradaVistaOption) {
+    entradaVistaOption = entradaOptions.find(o => !o.isCard && !o.description?.toLowerCase().includes('cartão'))
+      || entradaOptions.find(o => o.label === '2')
+      || entradaOptions[0];
+  }
+
+  let entradaParceladoOption = selections.entradaParcelado
+    ? entradaOptions.find(o => o.label === selections.entradaParcelado)
+    : null;
+  if (!entradaParceladoOption) {
+    entradaParceladoOption = entradaOptions.find(o => o.isCard || o.description?.toLowerCase().includes('cartão'))
+      || entradaOptions.find(o => o.label === '1')
+      || entradaOptions[1]
+      || entradaOptions[0];
+  }
+
+  // Formatar valores para exibição nos cards
+  const displayParcelado = consultoriaParceladoOption ? consultoriaParceladoOption.description : '12x de R$ 61,74';
+  const displayAVista = consultoriaVistaOption ? consultoriaVistaOption.description : 'R$ 597 à vista com desconto especial';
+  const displayEspecial1 = especialVistaOption ? especialVistaOption.description : 'Entrada de R$ 147 + 1x de R$ 450';
+  const displayEspecial2 = especialParceladoOption ? especialParceladoOption.description : 'ou parcelado em Boleto em até 3x de R$ 210';
 
   // Controle de sub-passos na coleta de dados parte 1
   const [coletaStep, setColetaStep] = useState<number>(1);
@@ -296,6 +383,93 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
       return 50;
     }
     return Math.round(((index + 1) / slideOrder.length) * 100);
+  };
+
+  const renderPaymentOption = (opt: any, labelColor: 'white' | 'gold') => {
+    const isMaquininha = opt.checkoutType === 'maquininha';
+    if (isMaquininha) {
+      return (
+        <div
+          key={opt.label}
+          className="block p-3.5 bg-dark-950/40 border border-dark-800 rounded-xl transition-all"
+        >
+          <div className="flex justify-between items-center">
+            <div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">
+                  Opção {opt.label}
+                </span>
+                <span className="px-1.5 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded text-[9px] font-bold uppercase tracking-wider">
+                  Maquininha
+                </span>
+              </div>
+              <p className="text-xs md:text-sm text-gray-450 font-medium mt-0.5 leading-relaxed">{opt.description}</p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    const isExternalLink = opt.link?.startsWith('http://') || opt.link?.startsWith('https://');
+    const optTypeLabel = opt.checkoutType === 'pix' ? 'Pix' : 'Checkout';
+    const badgeColor = opt.checkoutType === 'pix' 
+      ? 'bg-green-500/10 text-green-400 border-green-500/20' 
+      : 'bg-gold-500/10 text-gold-400 border-gold-500/20';
+
+    return (
+      <div
+        key={opt.label}
+        className="block p-3.5 bg-dark-950 border border-dark-800 rounded-xl transition-all"
+      >
+        <div className="flex justify-between items-center w-full">
+          <div className="flex-1 min-w-0 pr-2">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">
+                Opção {opt.label}
+              </span>
+              <span className={`px-1.5 py-0.5 border rounded text-[9px] font-bold uppercase tracking-wider ${badgeColor}`}>
+                {optTypeLabel}
+              </span>
+            </div>
+            <p className={`text-xs md:text-sm font-medium mt-0.5 leading-relaxed ${labelColor === 'gold' ? 'text-gold-400' : 'text-white'}`}>
+              {opt.description}
+            </p>
+            {opt.link && (
+              <p className="text-[10px] text-gray-500 font-mono mt-0.5 truncate max-w-[250px]" title={opt.link}>
+                {opt.link}
+              </p>
+            )}
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {opt.link && (
+              <button
+                type="button"
+                onClick={() => handleCopyLink(opt.link || '', `Opção ${opt.label}`)}
+                className="p-1.5 bg-dark-900 hover:bg-dark-850 text-gray-400 hover:text-gold-400 rounded-lg border border-dark-800 transition-colors cursor-pointer"
+                title={`Copiar ${optTypeLabel}`}
+              >
+                {copiedText === `Opção ${opt.label}` ? (
+                  <Check className="w-3.5 h-3.5 text-green-500" />
+                ) : (
+                  <Copy className="w-3.5 h-3.5" />
+                )}
+              </button>
+            )}
+            {isExternalLink && (
+              <a
+                href={opt.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-1.5 bg-dark-900 hover:bg-dark-850 text-gray-400 hover:text-gold-400 rounded-lg border border-dark-800 transition-colors"
+                title="Abrir Link"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            )}
+          </div>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -2161,11 +2335,26 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                     Melhor Opção
                   </div>
 
+                  {/* Botão de Copiar Link Principal (Canto Superior Esquerdo) */}
+                  {((lead.answers?.hasCreditCard === 'Sim' ? consultoriaParceladoOption : consultoriaVistaOption)?.checkoutType !== 'maquininha') && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const option = lead.answers?.hasCreditCard === 'Sim' ? consultoriaParceladoOption : consultoriaVistaOption;
+                        handleCopyLink(option?.link || '', lead.answers?.hasCreditCard === 'Sim' ? 'Consultoria Parcelada' : 'Consultoria À Vista');
+                      }}
+                      className="absolute top-4 left-4 p-2 bg-dark-950/80 hover:bg-dark-800 border border-dark-800 hover:border-gold-500/30 text-gray-455 hover:text-gold-400 rounded-full transition-all cursor-pointer shadow-md z-10"
+                      title="Copiar Link de Pagamento Principal"
+                    >
+                      <Link className="w-4 h-4" />
+                    </button>
+                  )}
+
                   {/* Botão de Negociação (Formas de Pagamento) */}
                   <button
                     type="button"
                     onClick={() => setPaymentDetailsModal(paymentDetailsModal === 'padrao' ? null : 'padrao')}
-                    className="absolute top-4 left-4 p-2 bg-dark-950/80 hover:bg-dark-800 border border-dark-800 hover:border-gold-500/30 text-gray-455 hover:text-gold-400 rounded-full transition-all cursor-pointer shadow-md z-10"
+                    className="absolute top-4 left-14 p-2 bg-dark-950/80 hover:bg-dark-800 border border-dark-800 hover:border-gold-500/30 text-gray-455 hover:text-gold-400 rounded-full transition-all cursor-pointer shadow-md z-10"
                     title="Negociar / Opções de Pagamento"
                   >
                     <Coins className="w-4 h-4" />
@@ -2173,10 +2362,40 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
 
                   <div className="space-y-2">
                     <h4 className="text-sm text-gray-500 uppercase tracking-widest font-bold">Programa Completo</h4>
-                    <div className="text-2xl md:text-3xl font-serif font-extrabold text-white">
-                      {displayParcelado}
+                    <div className="text-2xl md:text-3xl font-serif font-extrabold text-white flex items-center justify-center gap-2">
+                      <span>{displayParcelado}</span>
+                      {consultoriaParceladoOption && consultoriaParceladoOption.checkoutType !== 'maquininha' && (
+                        <button
+                          type="button"
+                          onClick={() => handleCopyLink(consultoriaParceladoOption.link, 'Parcelado')}
+                          className="p-1 hover:bg-dark-800 rounded text-gray-500 hover:text-gold-400 transition-colors inline-flex shrink-0 cursor-pointer"
+                          title="Copiar link/chave parcelado"
+                        >
+                          {copiedText === 'Parcelado' ? (
+                            <Check className="w-4 h-4 text-green-500" />
+                          ) : (
+                            <Copy className="w-4 h-4" />
+                          )}
+                        </button>
+                      )}
                     </div>
-                    <p className="text-xs text-gray-400 font-light">ou {displayAVista}</p>
+                    <div className="text-xs text-gray-450 font-light flex items-center justify-center gap-1.5 mt-1">
+                      ou {displayAVista}
+                      {consultoriaVistaOption && consultoriaVistaOption.checkoutType !== 'maquininha' && (
+                        <button
+                          type="button"
+                          onClick={() => handleCopyLink(consultoriaVistaOption.link, 'À Vista')}
+                          className="p-0.5 hover:bg-dark-800 rounded text-gray-650 hover:text-gold-400 transition-colors inline-flex shrink-0 cursor-pointer animate-pulse"
+                          title="Copiar link/chave à vista"
+                        >
+                          {copiedText === 'À Vista' ? (
+                            <Check className="w-3 h-3 text-green-500" />
+                          ) : (
+                            <Copy className="w-3 h-3" />
+                          )}
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   <ul className="text-xs text-gray-400 space-y-2 py-4 border-t border-b border-dark-800 text-left max-w-xs mx-auto">
@@ -2259,11 +2478,25 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
 
                 <div className="bg-dark-900 border border-dark-800 max-w-lg mx-auto rounded-3xl p-6 md:p-8 space-y-6 text-center shadow-2xl relative overflow-hidden">
 
+                  {/* Botão de Copiar Link Principal (Canto Superior Esquerdo) */}
+                  {especialVistaOption && especialVistaOption.checkoutType !== 'maquininha' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleCopyLink(especialVistaOption.link, 'Condição Especial À Vista');
+                      }}
+                      className="absolute top-4 left-4 p-2 bg-dark-950/80 hover:bg-dark-800 border border-dark-800 hover:border-gold-500/30 text-gray-455 hover:text-gold-400 rounded-full transition-all cursor-pointer shadow-md z-10"
+                      title="Copiar Link de Pagamento Principal"
+                    >
+                      <Link className="w-4 h-4" />
+                    </button>
+                  )}
+
                   {/* Botão de Negociação (Formas de Pagamento) */}
                   <button
                     type="button"
                     onClick={() => setPaymentDetailsModal(paymentDetailsModal === 'especial' ? null : 'especial')}
-                    className="absolute top-4 left-4 p-2 bg-dark-950/80 hover:bg-dark-800 border border-dark-800 hover:border-gold-500/30 text-gray-455 hover:text-gold-400 rounded-full transition-all cursor-pointer shadow-md z-10"
+                    className="absolute top-4 left-14 p-2 bg-dark-950/80 hover:bg-dark-800 border border-dark-800 hover:border-gold-500/30 text-gray-455 hover:text-gold-400 rounded-full transition-all cursor-pointer shadow-md z-10"
                     title="Negociar / Opções de Pagamento"
                   >
                     <Coins className="w-4 h-4" />
@@ -2278,10 +2511,40 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
 
                   <div className="space-y-2">
                     <h4 className="text-sm text-gray-500 uppercase tracking-widest font-bold">Investimento Promocional</h4>
-                    <div className="text-3xl md:text-4xl font-serif font-extrabold text-gold-400">
-                      {displayEspecial1}
+                    <div className="text-3xl md:text-4xl font-serif font-extrabold text-gold-400 flex items-center justify-center gap-2">
+                      <span>{displayEspecial1}</span>
+                      {especialVistaOption && especialVistaOption.checkoutType !== 'maquininha' && (
+                        <button
+                          type="button"
+                          onClick={() => handleCopyLink(especialVistaOption.link, 'Condição Especial À Vista')}
+                          className="p-1 hover:bg-dark-800 rounded text-gray-500 hover:text-gold-400 transition-colors inline-flex shrink-0 cursor-pointer"
+                          title="Copiar link/chave à vista"
+                        >
+                          {copiedText === 'Condição Especial À Vista' ? (
+                            <Check className="w-4 h-4 text-green-500" />
+                          ) : (
+                            <Copy className="w-4 h-4" />
+                          )}
+                        </button>
+                      )}
                     </div>
-                    <p className="text-xs text-gray-400 font-light">{displayEspecial2}</p>
+                    <div className="text-xs text-gray-400 font-light flex items-center justify-center gap-1.5 mt-1">
+                      ou {displayEspecial2}
+                      {especialParceladoOption && especialParceladoOption.checkoutType !== 'maquininha' && (
+                        <button
+                          type="button"
+                          onClick={() => handleCopyLink(especialParceladoOption.link, 'Condição Especial Parcelado')}
+                          className="p-0.5 hover:bg-dark-800 rounded text-gray-600 hover:text-gold-400 transition-colors inline-flex shrink-0 cursor-pointer"
+                          title="Copiar link/chave parcelado"
+                        >
+                          {copiedText === 'Condição Especial Parcelado' ? (
+                            <Check className="w-3 h-3 text-green-500" />
+                          ) : (
+                            <Copy className="w-3 h-3" />
+                          )}
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-1 gap-3 pt-2">
@@ -2349,11 +2612,25 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
 
                 <div className="bg-dark-900 border border-dark-800 max-w-lg mx-auto rounded-3xl p-6 md:p-8 space-y-6 text-center shadow-2xl relative overflow-hidden">
 
+                  {/* Botão de Copiar Link Principal (Canto Superior Esquerdo) */}
+                  {entradaVistaOption && entradaVistaOption.checkoutType !== 'maquininha' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleCopyLink(entradaVistaOption.link, 'Downsell À Vista');
+                      }}
+                      className="absolute top-4 left-4 p-2 bg-dark-950/80 hover:bg-dark-800 border border-dark-800 hover:border-gold-500/30 text-gray-455 hover:text-gold-400 rounded-full transition-all cursor-pointer shadow-md z-10"
+                      title="Copiar Link de Pagamento Principal"
+                    >
+                      <Link className="w-4 h-4" />
+                    </button>
+                  )}
+
                   {/* Botão de Negociação (Formas de Pagamento) */}
                   <button
                     type="button"
                     onClick={() => setPaymentDetailsModal(paymentDetailsModal === 'downsell' ? null : 'downsell')}
-                    className="absolute top-4 left-4 p-2 bg-dark-950/80 hover:bg-dark-800 border border-dark-800 hover:border-gold-500/30 text-gray-455 hover:text-gold-400 rounded-full transition-all cursor-pointer shadow-md z-10"
+                    className="absolute top-4 left-14 p-2 bg-dark-950/80 hover:bg-dark-800 border border-dark-800 hover:border-gold-500/30 text-gray-455 hover:text-gold-400 rounded-full transition-all cursor-pointer shadow-md z-10"
                     title="Negociar / Opções de Pagamento"
                   >
                     <Coins className="w-4 h-4" />
@@ -2368,10 +2645,40 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
 
                   <div className="space-y-2">
                     <h4 className="text-sm text-gray-500 uppercase tracking-widest font-bold">Investimento Acessível</h4>
-                    <div className="text-3xl md:text-4xl font-serif font-extrabold text-white">
-                      R$ 197 <span className="text-xs text-gray-400 font-light">à vista</span>
+                    <div className="text-3xl md:text-4xl font-serif font-extrabold text-white flex items-center justify-center gap-2">
+                      <span>{entradaVistaOption?.description || 'R$ 197 à vista'}</span>
+                      {entradaVistaOption && entradaVistaOption.checkoutType !== 'maquininha' && (
+                        <button
+                          type="button"
+                          onClick={() => handleCopyLink(entradaVistaOption.link, 'Downsell À Vista')}
+                          className="p-1 hover:bg-dark-800 rounded text-gray-500 hover:text-gold-400 transition-colors inline-flex shrink-0 cursor-pointer"
+                          title="Copiar link/chave à vista"
+                        >
+                          {copiedText === 'Downsell À Vista' ? (
+                            <Check className="w-4 h-4 text-green-500" />
+                          ) : (
+                            <Copy className="w-4 h-4" />
+                          )}
+                        </button>
+                      )}
                     </div>
-                    <p className="text-xs text-gray-400 font-light">ou parcelado no cartão em até 3x de R$ 71,22</p>
+                    <div className="text-xs text-gray-400 font-light flex items-center justify-center gap-1.5 mt-1">
+                      ou {entradaParceladoOption?.description || 'parcelado no cartão em até 3x de R$ 71,22'}
+                      {entradaParceladoOption && entradaParceladoOption.checkoutType !== 'maquininha' && (
+                        <button
+                          type="button"
+                          onClick={() => handleCopyLink(entradaParceladoOption.link, 'Downsell Parcelado')}
+                          className="p-0.5 hover:bg-dark-800 rounded text-gray-655 hover:text-gold-400 transition-colors inline-flex shrink-0 cursor-pointer"
+                          title="Copiar link/chave parcelado"
+                        >
+                          {copiedText === 'Downsell Parcelado' ? (
+                            <Check className="w-3 h-3 text-green-500" />
+                          ) : (
+                            <Copy className="w-3 h-3" />
+                          )}
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-1 gap-3 pt-2">
@@ -2749,68 +3056,21 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                 {paymentDetailsModal === 'padrao' && (
                   <div className="space-y-3">
                     <p className="text-xs text-gray-450 font-light leading-relaxed">Opções de parcelamento e à vista para a Consultoria Estruturada:</p>
-                    {currentOptions.filter(o => ['1', '2', '3'].includes(o.label)).map((opt) => (
-                      <a
-                        key={opt.label}
-                        href={opt.link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block p-3.5 bg-dark-950 hover:bg-dark-850 border border-dark-800 hover:border-gold-500/30 rounded-xl transition-all group cursor-pointer"
-                      >
-                        <div className="flex justify-between items-center">
-                          <div>
-                            <p className="text-[10px] text-gray-500 group-hover:text-gold-500 uppercase font-bold tracking-wider transition-colors">
-                              Opção {opt.label}
-                            </p>
-                            <p className="text-xs md:text-sm text-white font-medium mt-0.5 leading-relaxed">{opt.description}</p>
-                          </div>
-                          <ExternalLink className="w-4 h-4 text-gray-550 group-hover:text-gold-500 transition-colors shrink-0 ml-2" />
-                        </div>
-                      </a>
-                    ))}
+                    {consultoriaOptions.map((opt) => renderPaymentOption(opt, 'white'))}
                   </div>
                 )}
 
                 {paymentDetailsModal === 'especial' && (
                   <div className="space-y-3">
                     <p className="text-xs text-gray-450 font-light leading-relaxed">Opções de parcelamento para a Condição Especial:</p>
-                    {currentOptions.filter(o => ['4', '5', '6'].includes(o.label)).map((opt) => (
-                      <a
-                        key={opt.label}
-                        href={opt.link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block p-3.5 bg-dark-950 hover:bg-dark-850 border border-dark-800 hover:border-gold-500/30 rounded-xl transition-all group cursor-pointer"
-                      >
-                        <div className="flex justify-between items-center">
-                          <div>
-                            <p className="text-[10px] text-gray-500 group-hover:text-gold-500 uppercase font-bold tracking-wider transition-colors">
-                              Opção {opt.label}
-                            </p>
-                            <p className="text-xs md:text-sm text-gold-400 font-medium mt-0.5 leading-relaxed">{opt.description}</p>
-                          </div>
-                          <ExternalLink className="w-4 h-4 text-gray-550 group-hover:text-gold-500 transition-colors shrink-0 ml-2" />
-                        </div>
-                      </a>
-                    ))}
+                    {especialOptions.map((opt) => renderPaymentOption(opt, 'gold'))}
                   </div>
                 )}
 
                 {paymentDetailsModal === 'downsell' && (
                   <div className="space-y-3">
                     <p className="text-xs text-gray-450 font-light leading-relaxed">Opções de parcelamento para a Sessão Expresso:</p>
-                    <div className="p-3 bg-dark-950 rounded-xl border border-dark-850">
-                      <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">À Vista (PIX)</p>
-                      <p className="text-sm text-white font-medium mt-0.5">R$ 197 à vista no PIX ou Boleto</p>
-                    </div>
-                    <div className="p-3 bg-dark-950 rounded-xl border border-dark-850">
-                      <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Cartão de Crédito</p>
-                      <p className="text-sm text-white font-medium mt-0.5">Em até 3x de R$ 71,22 no Cartão de Crédito</p>
-                    </div>
-                    <div className="p-3 bg-dark-950 rounded-xl border border-dark-850">
-                      <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Reserva de Vaga</p>
-                      <p className="text-sm text-white font-medium mt-0.5">R$ 47 para reserva de vaga + saldo residual antes da sessão</p>
-                    </div>
+                    {entradaOptions.map((opt) => renderPaymentOption(opt, 'white'))}
                   </div>
                 )}
               </div>

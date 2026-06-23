@@ -1,0 +1,48 @@
+"  // Resolução de Opções por Slide (com Fallback Heurístico Inteligente)
+  
+  // 1. Consultoria Estruturada (Padrão)
+  let consultoriaVistaOption = selections.consultoriaVista 
+    ? currentOptions.find(o => o.label === selections.consultoriaVista)
+    : null;
+  if (!consultoriaVistaOption) {
+    consultoriaVistaOption = currentOptions.find(o => !o.isCard && !o.description?.toLowerCase().includes('cartão')) 
+      || currentOptions.find(o => o.label === '2')
+      || currentOptions[0];
+  }
+
+  let consultoriaParceladoOption = selections.consultoriaParcelado 
+    ? currentOptions.find(o => o.label === selections.consultoriaParcelado)
+    : null;
+  if (!consultoriaParceladoOption) {
+    consultoriaParceladoOption = currentOptions.find(o => o.isCard || o.description?.toLowerCase().includes('cartão'))
+      || currentOptions.find(o => o.label === '1')
+      || currentOptions[1] 
+      || currentOptions[0];
+  }
+
+  // 2. Condição Especial
+  let especialVistaOption = selections.especialVista 
+    ? currentOptions.find(o => o.label === selections.especialVista)
+    : null;
+  if (!especialVistaOption) {
+    const vistaOpts = currentOptions.filter(o => !o.isCard && !o.description?.toLowerCase().includes('cartão'));
+    especialVistaOption = vistaOpts[1] || vistaOpts[0] 
+      || currentOptions.find(o => o.label === '4')
+      || currentOptions[0];
+  }
+
+  let especialParceladoOption = selections.especialParcelado 
+    ? currentOptions.find(o => o.label === selections.especialParcelado)
+    : null;
+  if (!especialParceladoOption) {
+    const parceladaOpts = currentOptions.filter(o => o.isCard || o.description?.toLowerCase().includes('cartão'));
+    especialParceladoOption = parceladaOpts[1] || parceladaOpts[0] 
+      || currentOptions.find(o => o.label === '5')
+      || currentOptions[1] 
+      || currentOptions[0];
+  }
+
+  // 3. Produto de Entrada (Downsell)
+  let entradaVistaOption = selections.entradaVista 
+    ? currentOptions.find(o => o.label === selections.entra
+<truncated 792 bytes>
