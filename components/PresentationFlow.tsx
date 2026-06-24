@@ -21,6 +21,22 @@ interface PresentationProps {
 // Imagem padrão de fundo fixa para a capa fornecida pelo usuário
 const DIAGNOSTICO_BG = '/images/diagnostico.webp';
 
+// Lista extensível de imagens de depoimentos (public/testimonials)
+const TESTIMONIAL_IMAGES = [
+  '/testimonials/Felipe1.jpg',
+  '/testimonials/Felipe2.jpg',
+  '/testimonials/Felipe3.jpg',
+  '/testimonials/Felipe31.jpg',
+  '/testimonials/Felipe32.jpg',
+  '/testimonials/Felipe41.jpg',
+  '/testimonials/Moises1.jpg',
+  '/testimonials/Moises2.jpg',
+  '/testimonials/Moises3.jpg',
+  '/testimonials/Moises4.jpg',
+  '/testimonials/Ronaldo1.jpeg',
+  '/testimonials/higor1.jpeg'
+];
+
 export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPackages = [], onClose, onUpdateLead }) => {
   // Estado para controlar o slide atual
   type SlideId =
@@ -1843,7 +1859,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
 
             {/* SLIDE 8: PROVAS SOCIAIS */}
             {currentSlide === 'provas_sociais' && (
-              <div className="space-y-8">
+              <div className="space-y-8 animate-fade-in">
                 <div className="text-center space-y-3">
                   <h3 className="text-xs font-bold uppercase tracking-widest text-gold-500 font-mono">Resultados</h3>
                   <h1 className="font-serif font-bold text-3xl md:text-5xl text-white">Transformações reais de clientes</h1>
@@ -1852,54 +1868,137 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                   </p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
-                  {/* Caso 1 */}
-                  <div className="bg-dark-900 border border-dark-800 hover:border-gold-500/10 rounded-2xl overflow-hidden shadow-lg flex flex-col justify-between">
-                    <div className="h-44 bg-dark-950 flex items-center justify-center border-b border-dark-850 relative text-gray-500">
-                      <span className="text-xs font-mono uppercase tracking-wider text-gray-600 flex flex-col items-center gap-2">
-                        <ImageIcon className="w-8 h-8" />
-                        [Foto/Resultado Cliente 1]
-                      </span>
+                {/* Carrossel de Depoimentos Infinito */}
+                <div className="relative w-full overflow-hidden [mask-image:linear-gradient(to_right,transparent,white_15%,white_85%,transparent)] py-4 bg-dark-950/40 rounded-2xl border border-dark-800/40">
+                  <div className="animate-infinite-scroll gap-6">
+                    {/* Renderiza a lista de imagens duas vezes para o efeito infinito suave */}
+                    {[...TESTIMONIAL_IMAGES, ...TESTIMONIAL_IMAGES].map((imgUrl, idx) => (
+                      <div key={idx} className="flex-shrink-0">
+                        <img
+                          src={imgUrl}
+                          className="h-[280px] md:h-[360px] w-auto object-contain rounded-xl shadow-2xl border border-dark-800/80 hover:border-gold-500/30 transition-all duration-300 select-none"
+                          alt={`Depoimento ${idx + 1}`}
+                          draggable={false}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Grid com 3 Cards Premium */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-4">
+                  {/* Felipe Rossi */}
+                  <div className="bg-dark-900 border border-dark-800 hover:border-gold-500/10 rounded-2xl p-6 shadow-xl flex flex-col justify-between transition-all duration-300 group">
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-4">
+                        <img
+                          src="images/rossipqdt.jpg"
+                          className="w-14 h-14 rounded-full border border-gold-500/40 object-cover shrink-0"
+                          alt="Felipe Rossi"
+                        />
+                        <div>
+                          <h4 className="text-base font-serif font-bold text-white leading-tight">Felipe Rossi</h4>
+                          <p className="text-[10px] text-gray-500 tracking-wider font-semibold mt-0.5">@rossipqd</p>
+                          <p className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold mt-0.5">Renda acima de 10 mil reais</p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        <div className="space-y-1">
+                          <span className="text-[9px] text-red-500 font-extrabold uppercase tracking-widest font-sans">Antes da Consultoria</span>
+                          <p className="text-xs text-gray-400 font-light leading-relaxed">
+                            Sem tranquilidade por conta da desorganização financeira.
+                          </p>
+                        </div>
+
+                        <div className="space-y-1">
+                          <span className="text-[9px] text-gold-500 font-extrabold uppercase tracking-widest font-sans">Resultado Alcançado</span>
+                          <p className="text-xs text-gray-400 font-light leading-relaxed">
+                            Sabe exatamente o quanto precisa antes de começar o mês, a renda sobra até o final do mês, sabe usar corretamente o cartão de crédito e reserva dinheiro mensalmente para gastos eventuais e objetivos.
+                          </p>
+                        </div>
+                      </div>
                     </div>
-                    <div className="p-5 space-y-3">
-                      <h4 className="text-base font-bold text-white">Carlos & Mariana (Médico & Advogada)</h4>
-                      <p className="text-xs text-gold-500 font-bold uppercase tracking-wider">Resultado: Reserva de R$ 50k em 6 meses</p>
-                      <p className="text-xs text-gray-400 font-light leading-relaxed italic">
-                        "Mesmo com alta renda, estávamos sempre zerados no fim do mês. A consultoria nos trouxe regras claras e paz no orçamento."
+
+                    <div className="mt-4 pt-4 border-t border-dark-850/60">
+                      <p className="text-xs text-gray-400 leading-relaxed font-light italic">
+                        "Organizou a minha vida financeira e parece que fez reproduzir dinheiro na minha conta."
                       </p>
                     </div>
                   </div>
 
-                  {/* Caso 2 */}
-                  <div className="bg-dark-900 border border-dark-800 hover:border-gold-500/10 rounded-2xl overflow-hidden shadow-lg flex flex-col justify-between">
-                    <div className="h-44 bg-dark-950 flex items-center justify-center border-b border-dark-850 relative text-gray-500">
-                      <span className="text-xs font-mono uppercase tracking-wider text-gray-600 flex flex-col items-center gap-2">
-                        <ImageIcon className="w-8 h-8" />
-                        [Foto/Resultado Cliente 2]
-                      </span>
+                  {/* Moises Rios */}
+                  <div className="bg-dark-900 border border-dark-800 hover:border-gold-500/10 rounded-2xl p-6 shadow-xl flex flex-col justify-between transition-all duration-300 group">
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-4">
+                        <img
+                          src="images/moisesrios.jpg"
+                          className="w-14 h-14 rounded-full border border-gold-500/40 object-cover shrink-0"
+                          alt="Moises Rios"
+                        />
+                        <div>
+                          <h4 className="text-base font-serif font-bold text-white leading-tight">Moises Rios</h4>
+                          <p className="text-[10px] text-gray-500 tracking-wider font-semibold mt-0.5">@moisesr.rios</p>
+                          <p className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold mt-0.5">Renda até 10 mil reais</p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        <div className="space-y-1">
+                          <span className="text-[9px] text-red-500 font-extrabold uppercase tracking-widest font-sans">Antes da Consultoria</span>
+                          <p className="text-xs text-gray-400 font-light leading-relaxed">
+                            Dificuldade em poupar com regularidade, mantendo capital parado na poupança por medo de investir e sem clareza de onde seu dinheiro estava indo.
+                          </p>
+                        </div>
+
+                        <div className="space-y-1">
+                          <span className="text-[9px] text-gold-500 font-extrabold uppercase tracking-widest font-sans">Resultado Alcançado</span>
+                          <p className="text-xs text-gray-400 font-light leading-relaxed">
+                            Reserva de emergência robusta estruturada e carteira de ativos internacionais diversificada de acordo com o perfil familiar.
+                          </p>
+                        </div>
+                      </div>
                     </div>
-                    <div className="p-5 space-y-3">
-                      <h4 className="text-base font-bold text-white">Fernanda Ramos (Designer Autônoma)</h4>
-                      <p className="text-xs text-gold-500 font-bold uppercase tracking-wider">Resultado: Quitação de R$ 35k em dívidas</p>
-                      <p className="text-xs text-gray-400 font-light leading-relaxed italic">
-                        "Eu vivia no cheque especial por desorganização do fluxo de caixa. Com o método, estruturei minhas contas físicas e jurídicas."
+
+                    <div className="mt-4 pt-4 border-t border-dark-850/60">
+                      <p className="text-xs text-gray-400 leading-relaxed font-light italic">
+                        "Eu sabia que precisava investir, mas faltava segurança e o passo a passo. A consultoria me deu a tranquilidade necessária para acelerar o crescimento do meu patrimônio de forma organizada."
                       </p>
                     </div>
                   </div>
 
-                  {/* Caso 3 */}
-                  <div className="bg-dark-900 border border-dark-800 hover:border-gold-500/10 rounded-2xl overflow-hidden shadow-lg flex flex-col justify-between">
-                    <div className="h-44 bg-dark-950 flex items-center justify-center border-b border-dark-850 relative text-gray-500">
-                      <span className="text-xs font-mono uppercase tracking-wider text-gray-600 flex flex-col items-center gap-2">
-                        <ImageIcon className="w-8 h-8" />
-                        [Foto/Resultado Cliente 3]
-                      </span>
+                  {/* O que nossos clientes conquistam (Card 3 Informativo sem Imagem) */}
+                  <div className="bg-dark-900/60 border border-dark-800/80 hover:border-gold-500/10 rounded-2xl p-6 shadow-xl flex flex-col justify-between transition-all duration-300 relative overflow-hidden group">
+                    <div className="absolute -right-16 -top-16 w-32 h-32 bg-gold-500/5 rounded-full blur-2xl group-hover:bg-gold-500/10 transition-colors duration-500 animate-pulse" />
+
+                    <div className="space-y-5">
+                      <div className="flex items-center gap-2">
+                        <Award className="w-5 h-5 text-gold-500" />
+                        <h4 className="text-base font-serif font-bold text-white leading-tight">O que nossos clientes conquistam</h4>
+                      </div>
+
+                      <ul className="space-y-3.5">
+                        {[
+                          "Mais clareza sobre o dinheiro",
+                          "Controle sem abrir mão da qualidade de vida",
+                          "Segurança para investir",
+                          "Planejamento para objetivos importantes",
+                          "Tranquilidade para o futuro",
+                          "Acompanhamento nas decisões"
+                        ].map((item, idx) => (
+                          <li key={idx} className="flex items-center gap-3">
+                            <span className="flex items-center justify-center w-5 h-5 rounded-full bg-gold-500/10 border border-gold-500/20 text-gold-500 shrink-0">
+                              <Check className="w-3 h-3" />
+                            </span>
+                            <span className="text-xs text-gray-300 font-light leading-relaxed">{item}</span>
+                          </li>
+                        ))}
+                      </ul>
                     </div>
-                    <div className="p-5 space-y-3">
-                      <h4 className="text-base font-bold text-white">Rodrigo Almeida (Gerente Geral)</h4>
-                      <p className="text-xs text-gold-500 font-bold uppercase tracking-wider">Resultado: Primeiros R$ 100k Investidos</p>
-                      <p className="text-xs text-gray-400 font-light leading-relaxed italic">
-                        "Sabia poupar, mas tinha pânico de perder na bolsa. A carteira recomendada na consultoria me deu segurança para investir sério."
+
+                    <div className="mt-6 pt-4 border-t border-dark-850/60 text-center">
+                      <p className="text-[10px] text-gold-500/60 font-semibold uppercase tracking-wider">
+                        A Consultoria é estruturada para cada pessoa
                       </p>
                     </div>
                   </div>

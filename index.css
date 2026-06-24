@@ -32,3 +32,22 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #F59E0B;
 }
+
+@keyframes infinite-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-infinite-scroll {
+  display: flex;
+  width: max-content;
+  animation: infinite-scroll 45s linear infinite;
+}
+
+.animate-infinite-scroll:hover {
+  animation-play-state: paused;
+}
