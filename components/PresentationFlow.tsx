@@ -169,11 +169,43 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
       || entradaOptions[0];
   }
 
+  // Função auxiliar para extrair e formatar o valor de forma limpa na apresentação
+  const formatPaymentOptionValue = (option: any, isParceladoFallback = false) => {
+    if (!option) return '';
+
+    // Se for parcelado (possui parcelas e valor da parcela) ou se for explicitamente cartão
+    if (option.isCard || (option.installments && option.installmentValue)) {
+      const inst = option.installments || 12;
+      const val = option.installmentValue || option.value || '';
+      return `${inst}x de ${val}`;
+    }
+
+    // Se for à vista ou pagamento único com valor cadastrado
+    if (option.value) {
+      return option.value;
+    }
+
+    // Se for parcelado implícito por ter parcelas e valor parcelado sem a flag isCard
+    if (isParceladoFallback && option.installments && option.installmentValue) {
+      return `${option.installments}x de ${option.installmentValue}`;
+    }
+
+    return option.description || '';
+  };
+
   // Formatar valores para exibição nos cards
-  const displayParcelado = consultoriaParceladoOption ? consultoriaParceladoOption.description : '12x de R$ 61,74';
-  const displayAVista = consultoriaVistaOption ? consultoriaVistaOption.description : 'R$ 597 à vista com desconto especial';
-  const displayEspecial1 = especialVistaOption ? especialVistaOption.description : 'Entrada de R$ 147 + 1x de R$ 450';
-  const displayEspecial2 = especialParceladoOption ? especialParceladoOption.description : 'ou parcelado em Boleto em até 3x de R$ 210';
+  const displayParcelado = consultoriaParceladoOption
+    ? formatPaymentOptionValue(consultoriaParceladoOption, true)
+    : '12x de R$ 61,74';
+  const displayAVista = consultoriaVistaOption
+    ? formatPaymentOptionValue(consultoriaVistaOption)
+    : 'R$ 597,00';
+  const displayEspecial1 = especialVistaOption
+    ? formatPaymentOptionValue(especialVistaOption)
+    : 'R$ 450,00';
+  const displayEspecial2 = especialParceladoOption
+    ? formatPaymentOptionValue(especialParceladoOption, true)
+    : '12x de R$ 46,55';
 
   // Controle de sub-passos na coleta de dados parte 1
   const [coletaStep, setColetaStep] = useState<number>(1);
@@ -412,8 +444,8 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
 
     const isExternalLink = opt.link?.startsWith('http://') || opt.link?.startsWith('https://');
     const optTypeLabel = opt.checkoutType === 'pix' ? 'Pix' : 'Checkout';
-    const badgeColor = opt.checkoutType === 'pix' 
-      ? 'bg-green-500/10 text-green-400 border-green-500/20' 
+    const badgeColor = opt.checkoutType === 'pix'
+      ? 'bg-green-500/10 text-green-400 border-green-500/20'
       : 'bg-gold-500/10 text-gold-400 border-gold-500/20';
 
     return (
@@ -550,8 +582,8 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                     {lead.answers?.formType === 'business'
                       ? 'Uma experiência de transformação, organização de fluxo de caixa e crescimento sob medida para sua empresa.'
                       : lead.answers?.formType === 'complete'
-                      ? 'Planejamento integrado de finanças pessoais e empresariais para maximizar seus lucros e patrimônio.'
-                      : 'Uma experiência de transformação e controle patrimonial sob medida para sua realidade.'}
+                        ? 'Planejamento integrado de finanças pessoais e empresariais para maximizar seus lucros e patrimônio.'
+                        : 'Uma experiência de transformação e controle patrimonial sob medida para sua realidade.'}
                   </p>
                 </div>
 
@@ -636,7 +668,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                       <div className="space-y-2">
                         <h3 className="text-lg font-bold text-white">Investimentos</h3>
                         <p className="text-gray-450 text-sm font-light leading-relaxed">
-                          Antes de investir, é preciso organizar, planejar e construir uma base sólida
+                          Antes de investir, é preciso organizar, planejar e construir uma base sólida.
                         </p>
                       </div>
                     </div>
@@ -830,7 +862,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
               <div className="space-y-8">
                 <div className="text-center space-y-3">
                   <h3 className="text-xs font-bold uppercase tracking-widest text-gold-500 font-mono">Dados Captados</h3>
-                  <h1 className="font-serif font-bold text-3xl md:text-5xl text-white">Validação de Diagnóstico Inicial</h1>
+                  <h1 className="font-serif font-bold text-3xl md:text-5xl text-white">Validação de diagnóstico inicial</h1>
                   <p className="text-gray-400 text-sm md:text-base max-w-xl mx-auto font-light">
                     Confirmemos as informações coletadas no seu formulário de perfil para garantir a precisão da consultoria.
                   </p>
@@ -873,7 +905,12 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                     <div className="p-4 bg-dark-950 border border-dark-800/60 rounded-xl space-y-1">
                       <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Profissão e Família</p>
                       <p className="text-sm text-white font-medium">
-                        {lead.answers.profession} • {lead.answers.spouse} • {lead.answers.children}
+                        {lead.answers.profession}
+                        {lead.answers.spouse && ` • ${lead.answers.spouse}`}
+                        {lead.answers.children && ` • ${lead.answers.children}`}
+                        {lead.answers.otherDependents === 'Possuo outros dependentes' && (
+                          ` • ${lead.answers.otherDependentsCount || 0} ${lead.answers.otherDependentsCount === 1 ? 'outro dependente' : 'outros dependentes'}`
+                        )}
                       </p>
                     </div>
 
@@ -909,7 +946,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
               <div className="space-y-8">
                 <div className="text-center space-y-3">
                   <h3 className="text-xs font-bold uppercase tracking-widest text-gold-500 font-mono">Aprofundamento</h3>
-                  <h1 className="font-serif font-bold text-3xl md:text-5xl text-white">Coleta de Informações</h1>
+                  <h1 className="font-serif font-bold text-3xl md:text-5xl text-white">Coleta de informações</h1>
                   <p className="text-gray-400 text-sm md:text-base max-w-xl mx-auto font-light">
                     Diagnóstico Técnico: responda as perguntas abaixo em conjunto com o cliente durante a conversa.
                   </p>
@@ -1494,7 +1531,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
               <div className="space-y-8">
                 <div className="text-center space-y-3">
                   <h3 className="text-xs font-bold uppercase tracking-widest text-gold-500 font-mono">Aprofundamento</h3>
-                  <h1 className="font-serif font-bold text-3xl md:text-5xl text-white">Coleta de Informações - Parte 2</h1>
+                  <h1 className="font-serif font-bold text-3xl md:text-5xl text-white">Coleta de informações</h1>
                   <p className="text-gray-400 text-sm md:text-base max-w-xl mx-auto font-light">
                     Mapeamento de ânimo, perspectiva e rotina para alinhamento estratégico.
                   </p>
@@ -2646,7 +2683,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                   <div className="space-y-2">
                     <h4 className="text-sm text-gray-500 uppercase tracking-widest font-bold">Investimento Acessível</h4>
                     <div className="text-3xl md:text-4xl font-serif font-extrabold text-white flex items-center justify-center gap-2">
-                      <span>{entradaVistaOption?.description || 'R$ 197 à vista'}</span>
+                      <span>{entradaVistaOption ? formatPaymentOptionValue(entradaVistaOption) : 'R$ 147,00'}</span>
                       {entradaVistaOption && entradaVistaOption.checkoutType !== 'maquininha' && (
                         <button
                           type="button"
@@ -2663,7 +2700,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                       )}
                     </div>
                     <div className="text-xs text-gray-400 font-light flex items-center justify-center gap-1.5 mt-1">
-                      ou {entradaParceladoOption?.description || 'parcelado no cartão em até 3x de R$ 71,22'}
+                      ou {entradaParceladoOption ? formatPaymentOptionValue(entradaParceladoOption, true) : '12x de R$ 15,20'}
                       {entradaParceladoOption && entradaParceladoOption.checkoutType !== 'maquininha' && (
                         <button
                           type="button"

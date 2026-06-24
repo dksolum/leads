@@ -1179,6 +1179,127 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
         return dateB - dateA;
     });
 
+    const renderLeadProductPaymentSection = (
+        title: string,
+        packageId: string | undefined,
+        vistaLabel: string | undefined,
+        parceladoLabel: string | undefined,
+        momentKey: 'consultoria' | 'especial' | 'entrada'
+    ) => {
+        const leadFormType = selectedLead!.answers?.formType || 'personal';
+        const finalPackageId = packageId || 
+            (pricingPackages.find(p => p.presentation_type === leadFormType && p.product_moment === momentKey)?.id || '');
+        
+        const currentPkg = pricingPackages.find(p => p.id === finalPackageId);
+        
+        let options = currentPkg ? currentPkg.payment_options : [];
+        if (momentKey === 'consultoria' && options.length === 0 && !packageId) {
+            options = STATIC_PAYMENT_OPTIONS;
+        }
+
+        const activeOptions = options.filter(o => o && o.description && o.description.trim() !== '');
+
+        return (
+            <div className="bg-dark-900/40 p-4 rounded-xl border border-dark-800 space-y-3 font-sans">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-dark-800/60 pb-2">
+                    <div className="space-y-0.5">
+                        <h5 className="text-xs font-bold text-white uppercase tracking-wider">{title}</h5>
+                        <p className="text-[10px] text-gray-500 font-semibold">
+                            Pacote: <span className="text-gold-500 font-bold">{currentPkg ? `${currentPkg.name} (${currentPkg.value})` : 'Padrão (R$ 597)'}</span>
+                        </p>
+                    </div>
+                </div>
+
+                {activeOptions.length === 0 ? (
+                    <p className="text-xs text-gray-500 font-medium">Nenhuma forma de pagamento cadastrada para este pacote.</p>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {activeOptions.map((option, idx) => {
+                            const isVistaSelected = vistaLabel && option.label === vistaLabel;
+                            const isParceladoSelected = parceladoLabel && option.label === parceladoLabel;
+                            const uniqueIdx = `${momentKey}_${option.label}_${idx}`;
+
+                            const isStructured = !!(option.value || (option.installments && option.installmentValue));
+                            
+                            let displayValue = "";
+                            if (option.installments && option.installmentValue) {
+                                displayValue = `${option.installments}x de ${option.installmentValue}`;
+                            } else if (option.value) {
+                                displayValue = option.value;
+                            } else {
+                                displayValue = option.description;
+                            }
+
+                            const displayDescription = isStructured ? option.description : "Opção de Pagamento";
+
+                            return (
+                                <div key={uniqueIdx} className={`bg-dark-950/50 rounded-lg border transition-all overflow-hidden flex flex-col justify-between ${
+                                    isVistaSelected || isParceladoSelected 
+                                        ? 'border-gold-500/30 shadow-md shadow-gold-500/5' 
+                                        : 'border-dark-800 hover:border-gold-500/10'
+                                }`}>
+                                    <div className="p-3 flex items-start gap-2.5">
+                                        <span className="flex items-center justify-center w-5 h-5 rounded-full bg-gold-500/10 text-gold-500 font-bold text-[10px] shrink-0 border border-gold-500/20 font-mono">
+                                            {option.label}
+                                        </span>
+                                        <div className="space-y-1.5 flex-1 min-w-0">
+                                            <span className="text-[10px] text-gray-500 font-semibold tracking-wide uppercase block truncate" title={displayDescription}>
+                                                {displayDescription}
+                                            </span>
+                                            
+                                            {/* Valor Estruturado Cadastrado em Destaque */}
+                                            <div className="text-sm font-extrabold text-gold-400 font-sans">
+                                                {displayValue}
+                                            </div>
+
+                                            <div className="flex gap-1 flex-wrap pt-0.5">
+                                                {isVistaSelected && (
+                                                    <span className="text-[8px] px-1.5 py-0.5 bg-green-500/10 text-green-400 border border-green-500/20 rounded font-black uppercase tracking-wider">
+                                                        À Vista Selecionado
+                                                    </span>
+                                                )}
+                                                {isParceladoSelected && (
+                                                    <span className="text-[8px] px-1.5 py-0.5 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded font-black uppercase tracking-wider">
+                                                        Parcelado Selecionado
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center justify-between px-3 py-1.5 bg-dark-950/80 border-t border-dark-800/40">
+                                        <span className="text-[9px] text-gray-500 truncate max-w-[120px] md:max-w-xs">{option.link || 'Sem link (Maquininha)'}</span>
+                                        {option.link && (
+                                            <button
+                                                onClick={() => {
+                                                    const copyIdxOffset = momentKey === 'especial' ? 10 : momentKey === 'entrada' ? 20 : 0;
+                                                    handleCopyLink(option.link, idx + copyIdxOffset);
+                                                }}
+                                                className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider px-2 py-1 bg-dark-800 hover:bg-dark-750 text-gold-500 hover:text-gold-400 rounded transition-colors border border-dark-700 cursor-pointer"
+                                                title="Copiar link"
+                                            >
+                                                {copiedIndex === idx + (momentKey === 'especial' ? 10 : momentKey === 'entrada' ? 20 : 0) ? (
+                                                    <>
+                                                        <CheckCircle2 className="w-2.5 h-2.5 text-green-500" />
+                                                        <span className="text-green-500 text-[8px]">Copiado</span>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Copy className="w-2.5 h-2.5" />
+                                                        <span className="text-[8px]">Copiar</span>
+                                                    </>
+                                                )}
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+            </div>
+        );
+    };
+
     return (
         <div className="min-h-screen bg-dark-950 text-slate-200">
             <header className="bg-dark-900 border-b border-dark-800 p-6">
@@ -1812,62 +1933,70 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                                                                     <h4 className="text-xs font-semibold uppercase tracking-widest text-gray-500 font-sans">Opções de Pagamento</h4>
                                                                 </div>
 
-                                                                {/* Dropdown de Precificação */}
-                                                                <div className="flex items-center gap-2">
-                                                                    <span className="text-[10px] text-gray-450 uppercase font-bold tracking-wider shrink-0 font-sans">Precificação:</span>
-                                                                    <select
-                                                                        value={selectedLead.answers.selectedPricingId || 'default'}
-                                                                        onChange={(e) => handleUpdateLeadPricing(selectedLead.id, e.target.value)}
-                                                                        disabled={userRole !== 'administrador'}
-                                                                        className="bg-dark-900 border border-dark-800 text-white rounded-lg px-3 py-1.5 text-xs outline-none focus:border-gold-500 transition-all cursor-pointer font-medium disabled:opacity-60 disabled:cursor-not-allowed"
+                                                                {/* Botão Ajustar Produtos sem o dropdown */}
+                                                                <div className="flex items-center gap-3">
+                                                                    <button
+                                                                        onClick={() => setSelectedPricingLead(selectedLead)}
+                                                                        className="px-4 py-2 bg-gradient-to-r from-gold-600 via-amber-500 to-gold-500 hover:from-gold-500 hover:via-amber-400 hover:to-gold-400 text-black text-xs font-black uppercase tracking-wider rounded-lg transition-all flex items-center gap-1.5 cursor-pointer shadow-lg shadow-gold-500/10 hover:shadow-gold-500/20 border-none font-sans"
+                                                                        title="Editar detalhadamente cada produto de preços da apresentação"
                                                                     >
-                                                                        <option value="default">Renda de até 10 mil reais (R$ 597) - Padrão</option>
-                                                                        {pricingPackages.map(pkg => (
-                                                                            <option key={pkg.id} value={pkg.id}>{pkg.name} ({pkg.value})</option>
-                                                                        ))}
-                                                                    </select>
+                                                                        <Edit className="w-3.5 h-3.5 text-black font-bold" />
+                                                                        Ajustar Produtos
+                                                                    </button>
                                                                 </div>
                                                             </div>
 
-                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                                {(() => {
-                                                                    const currentPricingId = selectedLead.answers.selectedPricingId;
-                                                                    const currentPkg = currentPricingId && pricingPackages.find(p => p.id === currentPricingId);
-                                                                    const options = currentPkg ? currentPkg.payment_options : STATIC_PAYMENT_OPTIONS;
-                                                                    const activeOptions = options.filter(o => o && o.description && o.description.trim() !== '');
+                                                            {(() => {
+                                                                const hasPricingConfigured = !!selectedLead.answers?.pricingSelections && (
+                                                                    !!selectedLead.answers.pricingSelections.consultoriaPackageId ||
+                                                                    !!selectedLead.answers.pricingSelections.especialPackageId ||
+                                                                    !!selectedLead.answers.pricingSelections.entradaPackageId
+                                                                );
 
-                                                                    return activeOptions.map((option, idx) => (
-                                                                        <div key={idx} className="bg-dark-900 rounded-lg border border-dark-800 hover:border-gold-500/20 transition-all overflow-hidden flex flex-col justify-between">
-                                                                            <div className="p-4 flex items-start gap-3">
-                                                                                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-gold-500/10 text-gold-500 font-bold text-[11px] shrink-0 border border-gold-500/20">
-                                                                                    {option.label}
-                                                                                </span>
-                                                                                <span className="text-sm text-gray-300 font-medium leading-snug">{option.description}</span>
+                                                                if (!hasPricingConfigured) {
+                                                                    return (
+                                                                        <div className="bg-dark-900/40 rounded-xl border border-dashed border-gold-500/20 p-8 text-center flex flex-col items-center justify-center space-y-3">
+                                                                            <div className="w-12 h-12 rounded-full bg-gold-500/10 flex items-center justify-center border border-gold-500/25">
+                                                                                <AlertCircle className="w-6 h-6 text-gold-400" />
                                                                             </div>
-                                                                            <div className="flex items-center justify-between px-4 py-2 bg-dark-950/40 border-t border-dark-800/40">
-                                                                                <span className="text-[10px] text-gray-500 truncate max-w-[150px] md:max-w-xs">{option.link}</span>
-                                                                                <button
-                                                                                    onClick={() => handleCopyLink(option.link, idx)}
-                                                                                    className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 bg-dark-800 hover:bg-dark-750 text-gold-500 hover:text-gold-400 rounded-md transition-colors border border-dark-700"
-                                                                                    title="Copiar link"
-                                                                                >
-                                                                                    {copiedIndex === idx ? (
-                                                                                        <>
-                                                                                            <CheckCircle2 className="w-3 h-3 text-green-500" />
-                                                                                            <span className="text-green-500 text-[9px]">Copiado</span>
-                                                                                        </>
-                                                                                    ) : (
-                                                                                        <>
-                                                                                            <Copy className="w-3 h-3" />
-                                                                                            <span className="text-[9px]">Copiar Link</span>
-                                                                                        </>
-                                                                                    )}
-                                                                                </button>
+                                                                            <div className="max-w-md">
+                                                                                <h5 className="text-sm font-bold text-white mb-1">Precificação não configurada</h5>
+                                                                                <p className="text-xs text-gray-400 leading-relaxed font-light">
+                                                                                    Nenhuma precificação foi configurada para a apresentação deste lead ainda. Clique no botão <strong className="text-gold-400 font-semibold">Ajustar Produtos</strong> acima para configurar os pacotes de preços e as formas de pagamento.
+                                                                                </p>
                                                                             </div>
                                                                         </div>
-                                                                    ));
-                                                                })()}
-                                                            </div>
+                                                                    );
+                                                                }
+
+                                                                return (
+                                                                    <div className="space-y-4">
+                                                                        {renderLeadProductPaymentSection(
+                                                                            "1. Consultoria Estruturada",
+                                                                            selectedLead.answers.pricingSelections?.consultoriaPackageId,
+                                                                            selectedLead.answers.pricingSelections?.consultoriaVista,
+                                                                            selectedLead.answers.pricingSelections?.consultoriaParcelado,
+                                                                            'consultoria'
+                                                                        )}
+
+                                                                        {renderLeadProductPaymentSection(
+                                                                            "2. Condição Especial (Produto Alternativo)",
+                                                                            selectedLead.answers.pricingSelections?.especialPackageId,
+                                                                            selectedLead.answers.pricingSelections?.especialVista,
+                                                                            selectedLead.answers.pricingSelections?.especialParcelado,
+                                                                            'especial'
+                                                                        )}
+
+                                                                        {renderLeadProductPaymentSection(
+                                                                            "3. Produto de Entrada (Downsell)",
+                                                                            selectedLead.answers.pricingSelections?.entradaPackageId,
+                                                                            selectedLead.answers.pricingSelections?.entradaVista,
+                                                                            selectedLead.answers.pricingSelections?.entradaParcelado,
+                                                                            'entrada'
+                                                                        )}
+                                                                    </div>
+                                                                );
+                                                            })()}
                                                         </div>
                                                     </motion.div>
                                                 )}
@@ -2183,144 +2312,171 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                                     </button>
                                 </div>
 
-                                <div className="bg-dark-900 border border-dark-800 rounded-xl overflow-hidden shadow-2xl font-sans">
-                                    <div className="p-4 bg-dark-850 border-b border-dark-800 flex justify-between items-center">
-                                        <h3 className="text-sm font-bold uppercase tracking-wider text-gray-400">Pacotes Cadastrados</h3>
-                                        <span className="text-xs text-gray-500 font-mono">{pricingPackages.length} pacotes</span>
-                                    </div>
-                                    <div className="overflow-x-auto">
-                                        <table className="w-full text-left">
-                                            <thead className="bg-dark-800/50 text-xs uppercase tracking-widest text-gray-500">
-                                                <tr>
-                                                    <th className="px-6 py-4 font-semibold font-sans">Nome</th>
-                                                    <th className="px-6 py-4 font-semibold font-sans">Valor Total</th>
-                                                    <th className="px-6 py-4 font-semibold font-sans">Formas Cadastradas</th>
-                                                    <th className="px-6 py-4 font-semibold text-right font-sans">Ações</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-dark-800">
-                                                {pricingPackages.map(pkg => (
-                                                    <tr key={pkg.id} className="hover:bg-dark-800/40 transition-colors">
-                                                        <td className="px-6 py-4 text-gray-300 font-medium">
-                                                            <div className="flex items-center gap-2">
-                                                                {pkg.name}
-                                                                {pkg.name === 'Consultoria Padrão' && (
-                                                                    <span className="text-[9px] px-2 py-0.5 bg-gold-500/20 text-gold-400 rounded border border-gold-500/20 font-bold uppercase">Padrão</span>
-                                                                )}
-                                                            </div>
-                                                            <div className="flex gap-1.5 mt-1 flex-wrap">
-                                                                <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase border tracking-wide ${pkg.presentation_type === 'business'
-                                                                    ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
-                                                                    : pkg.presentation_type === 'complete'
-                                                                        ? 'bg-purple-500/10 text-purple-400 border-purple-500/20'
-                                                                        : 'bg-gold-500/10 text-gold-400 border-gold-500/20'
-                                                                    }`}>
-                                                                    {pkg.presentation_type === 'business'
-                                                                        ? 'Empresarial'
-                                                                        : pkg.presentation_type === 'complete'
-                                                                            ? 'Híbrida'
-                                                                            : 'Pessoal'}
-                                                                </span>
-                                                                <span className="text-[9px] px-1.5 py-0.5 bg-dark-800 text-gray-400 rounded border border-dark-750 font-bold uppercase tracking-wide">
-                                                                    {pkg.product_moment === 'especial'
-                                                                        ? 'Condição Especial'
-                                                                        : pkg.product_moment === 'entrada'
-                                                                            ? 'Produto Entrada'
-                                                                            : 'Consultoria Estruturada'}
-                                                                </span>
-                                                            </div>
-                                                        </td>
-                                                        <td className="px-6 py-4 font-bold text-gold-500">{pkg.value}</td>
-                                                        <td className="px-6 py-4 text-xs text-gray-400">
-                                                            {pkg.payment_options.filter(o => o.description && o.description.trim() !== '').length} formas ativas
-                                                        </td>
-                                                        <td className="px-6 py-4 text-right flex items-center justify-end gap-2">
-                                                            <button
-                                                                onClick={() => {
-                                                                    setViewingPricing(pkg);
-                                                                }}
-                                                                className="p-2 text-gray-600 hover:text-gold-400 transition-colors cursor-pointer"
-                                                                title="Visualizar detalhes"
-                                                            >
-                                                                <Eye className="w-4 h-4" />
-                                                            </button>
-                                                            <button
-                                                                onClick={() => {
-                                                                    setEditingPricing(pkg);
-                                                                    setNewPricingName(pkg.name);
-                                                                    setNewPricingValue(pkg.value);
-                                                                    setNewPricingPresentationType(pkg.presentation_type || 'personal');
-                                                                    setNewPricingProductMoment(pkg.product_moment || 'consultoria');
-                                                                    const parsedOptions = pkg.payment_options.map(opt => {
-                                                                        let isCard = opt.isCard;
-                                                                        let installments = opt.installments || 12;
-                                                                        let installmentValue = opt.installmentValue || '';
+                                {[
+                                    {
+                                        title: "Produto Principal (Consultoria Estruturada)",
+                                        subtitle: "Pacotes de precificação da oferta principal",
+                                        packages: pricingPackages.filter(p => !p.product_moment || p.product_moment === 'consultoria')
+                                    },
+                                    {
+                                        title: "Produto Alternativo (Condição Especial)",
+                                        subtitle: "Pacotes para condições alternativas e ofertas especiais",
+                                        packages: pricingPackages.filter(p => p.product_moment === 'especial')
+                                    },
+                                    {
+                                        title: "Produto Downsell (Produto de Entrada)",
+                                        subtitle: "Pacotes mais acessíveis para conversão de entrada",
+                                        packages: pricingPackages.filter(p => p.product_moment === 'entrada')
+                                    }
+                                ].map((section, sectionIdx) => (
+                                    <div key={sectionIdx} className="bg-dark-900 border border-dark-800 rounded-xl overflow-hidden shadow-2xl font-sans">
+                                        <div className="p-4 bg-dark-850 border-b border-dark-800 flex justify-between items-center">
+                                            <div>
+                                                <h3 className="text-sm font-bold uppercase tracking-wider text-gray-300">{section.title}</h3>
+                                                <p className="text-[11px] text-gray-500 mt-0.5">{section.subtitle}</p>
+                                            </div>
+                                            <span className="text-xs text-gray-500 font-mono">{section.packages.length} pacotes</span>
+                                        </div>
+                                        <div className="overflow-x-auto">
+                                            {section.packages.length === 0 ? (
+                                                <div className="p-8 text-center text-gray-500 text-xs font-medium">
+                                                    Nenhum pacote cadastrado para este tipo de produto.
+                                                </div>
+                                            ) : (
+                                                <table className="w-full text-left">
+                                                    <thead className="bg-dark-800/50 text-xs uppercase tracking-widest text-gray-500">
+                                                        <tr>
+                                                            <th className="px-6 py-4 font-semibold font-sans">Nome</th>
+                                                            <th className="px-6 py-4 font-semibold font-sans">Valor Total</th>
+                                                            <th className="px-6 py-4 font-semibold font-sans">Formas Cadastradas</th>
+                                                            <th className="px-6 py-4 font-semibold text-right font-sans">Ações</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-dark-800">
+                                                        {section.packages.map(pkg => (
+                                                            <tr key={pkg.id} className="hover:bg-dark-800/40 transition-colors">
+                                                                <td className="px-6 py-4 text-gray-300 font-medium">
+                                                                    <div className="flex items-center gap-2">
+                                                                        {pkg.name}
+                                                                        {pkg.name === 'Consultoria Padrão' && (
+                                                                            <span className="text-[9px] px-2 py-0.5 bg-gold-500/20 text-gold-400 rounded border border-gold-500/20 font-bold uppercase">Padrão</span>
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="flex gap-1.5 mt-1 flex-wrap">
+                                                                        <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase border tracking-wide ${pkg.presentation_type === 'business'
+                                                                            ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                                                                            : pkg.presentation_type === 'complete'
+                                                                                ? 'bg-purple-500/10 text-purple-400 border-purple-500/20'
+                                                                                : 'bg-gold-500/10 text-gold-400 border-gold-500/20'
+                                                                            }`}>
+                                                                            {pkg.presentation_type === 'business'
+                                                                                ? 'Empresarial'
+                                                                                : pkg.presentation_type === 'complete'
+                                                                                    ? 'Híbrida'
+                                                                                    : 'Pessoal'}
+                                                                        </span>
+                                                                        <span className="text-[9px] px-1.5 py-0.5 bg-dark-800 text-gray-400 rounded border border-dark-750 font-bold uppercase tracking-wide">
+                                                                            {pkg.product_moment === 'especial'
+                                                                                ? 'Condição Especial'
+                                                                                : pkg.product_moment === 'entrada'
+                                                                                    ? 'Produto Entrada'
+                                                                                    : 'Consultoria Estruturada'}
+                                                                        </span>
+                                                                    </div>
+                                                                </td>
+                                                                <td className="px-6 py-4 font-bold text-gold-500">{pkg.value}</td>
+                                                                <td className="px-6 py-4 text-xs text-gray-400">
+                                                                    {pkg.payment_options.filter(o => o.description && o.description.trim() !== '').length} formas ativas
+                                                                </td>
+                                                                <td className="px-6 py-4 text-right flex items-center justify-end gap-2">
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            setViewingPricing(pkg);
+                                                                        }}
+                                                                        className="p-2 text-gray-600 hover:text-gold-400 transition-colors cursor-pointer"
+                                                                        title="Visualizar detalhes"
+                                                                    >
+                                                                        <Eye className="w-4 h-4" />
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            setEditingPricing(pkg);
+                                                                            setNewPricingName(pkg.name);
+                                                                            setNewPricingValue(pkg.value);
+                                                                            setNewPricingPresentationType(pkg.presentation_type || 'personal');
+                                                                            setNewPricingProductMoment(pkg.product_moment || 'consultoria');
+                                                                            const parsedOptions = pkg.payment_options.map(opt => {
+                                                                                let isCard = opt.isCard;
+                                                                                let installments = opt.installments || 12;
+                                                                                let installmentValue = opt.installmentValue || '';
 
-                                                                        if (isCard === undefined) {
-                                                                            const desc = opt.description.toLowerCase();
-                                                                            isCard = desc.includes('cartão') || desc.includes('cartao');
-                                                                            if (isCard) {
-                                                                                const match = opt.description.match(/Até\s+(\d+)x\s+de\s+(R\$\s*\d+([.,]\d+)?)/i);
-                                                                                if (match) {
-                                                                                    installments = parseInt(match[1], 10);
-                                                                                    installmentValue = match[2];
-                                                                                } else {
-                                                                                    const simpleMatch = opt.description.match(/(\d+)x\s+de\s+(R\$\s*\d+([.,]\d+)?)/i);
-                                                                                    if (simpleMatch) {
-                                                                                        installments = parseInt(simpleMatch[1], 10);
-                                                                                        installmentValue = simpleMatch[2];
+                                                                                if (isCard === undefined) {
+                                                                                    const desc = opt.description.toLowerCase();
+                                                                                    isCard = desc.includes('cartão') || desc.includes('cartao');
+                                                                                    if (isCard) {
+                                                                                        const match = opt.description.match(/Até\s+(\d+)x\s+de\s+(R\$\s*\d+([.,]\d+)?)/i);
+                                                                                        if (match) {
+                                                                                            installments = parseInt(match[1], 10);
+                                                                                            installmentValue = match[2];
+                                                                                        } else {
+                                                                                            const simpleMatch = opt.description.match(/(\d+)x\s+de\s+(R\$\s*\d+([.,]\d+)?)/i);
+                                                                                            if (simpleMatch) {
+                                                                                                installments = parseInt(simpleMatch[1], 10);
+                                                                                                installmentValue = simpleMatch[2];
+                                                                                            }
+                                                                                        }
                                                                                     }
                                                                                 }
-                                                                            }
-                                                                        }
 
-                                                                        // Inferir checkoutType se não existir
-                                                                        let checkoutType = opt.checkoutType;
-                                                                        if (!checkoutType) {
-                                                                            const link = opt.link || '';
-                                                                            const desc = opt.description.toLowerCase();
-                                                                            if (link.startsWith('http://') || link.startsWith('https://')) {
-                                                                                checkoutType = 'link';
-                                                                            } else if (link.trim() !== '') {
-                                                                                checkoutType = 'pix';
-                                                                            } else if (desc.includes('maquininha') || desc.includes('tap') || desc.includes('presencial')) {
-                                                                                checkoutType = 'maquininha';
-                                                                            } else {
-                                                                                checkoutType = 'link';
-                                                                            }
-                                                                        }
+                                                                                // Inferir checkoutType se não existir
+                                                                                let checkoutType = opt.checkoutType;
+                                                                                if (!checkoutType) {
+                                                                                    const link = opt.link || '';
+                                                                                    const desc = opt.description.toLowerCase();
+                                                                                    if (link.startsWith('http://') || link.startsWith('https://')) {
+                                                                                        checkoutType = 'link';
+                                                                                    } else if (link.trim() !== '') {
+                                                                                        checkoutType = 'pix';
+                                                                                    } else if (desc.includes('maquininha') || desc.includes('tap') || desc.includes('presencial')) {
+                                                                                        checkoutType = 'maquininha';
+                                                                                    } else {
+                                                                                        checkoutType = 'link';
+                                                                                    }
+                                                                                }
 
-                                                                        return {
-                                                                            ...opt,
-                                                                            isCard,
-                                                                            installments,
-                                                                            installmentValue,
-                                                                            checkoutType
-                                                                        };
-                                                                    });
-                                                                    setNewPricingOptions(parsedOptions);
-                                                                    setPricingModalOpen(true);
-                                                                }}
-                                                                className="p-2 text-gray-600 hover:text-gold-400 transition-colors cursor-pointer"
-                                                                title="Editar precificação"
-                                                            >
-                                                                <Edit className="w-4 h-4" />
-                                                            </button>
-                                                            <button
-                                                                onClick={() => handleDeletePricing(pkg.id, pkg.name)}
-                                                                disabled={pkg.name === 'Consultoria Padrão'}
-                                                                className="p-2 text-gray-600 hover:text-red-400 transition-colors cursor-pointer disabled:opacity-30 disabled:hover:text-gray-600"
-                                                                title={pkg.name === 'Consultoria Padrão' ? "O pacote padrão não deve ser excluído" : "Excluir precificação"}
-                                                            >
-                                                                <Trash2 className="w-4 h-4" />
-                                                            </button>
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
+                                                                                return {
+                                                                                    ...opt,
+                                                                                    isCard,
+                                                                                    installments,
+                                                                                    installmentValue,
+                                                                                    checkoutType
+                                                                                };
+                                                                            });
+                                                                            setNewPricingOptions(parsedOptions);
+                                                                            setPricingModalOpen(true);
+                                                                        }}
+                                                                        className="p-2 text-gray-600 hover:text-gold-400 transition-colors cursor-pointer"
+                                                                        title="Editar precificação"
+                                                                    >
+                                                                        <Edit className="w-4 h-4" />
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => handleDeletePricing(pkg.id, pkg.name)}
+                                                                        disabled={pkg.name === 'Consultoria Padrão'}
+                                                                        className="p-2 text-gray-600 hover:text-red-400 transition-colors cursor-pointer disabled:opacity-30 disabled:hover:text-gray-600"
+                                                                        title={pkg.name === 'Consultoria Padrão' ? "O pacote padrão não deve ser excluído" : "Excluir precificação"}
+                                                                    >
+                                                                        <Trash2 className="w-4 h-4" />
+                                                                    </button>
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            )}
+                                        </div>
                                     </div>
-                                </div>
+                                ))}
                             </motion.div>
                         )}
                     </AnimatePresence>
@@ -3235,7 +3391,7 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: 20 }}
                             transition={{ type: 'spring', duration: 0.4 }}
-                            className="bg-dark-900 border border-dark-800 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl relative z-10 flex flex-col font-sans"
+                            className="bg-dark-900 border border-dark-800 rounded-2xl w-full max-w-2xl max-h-[85vh] overflow-hidden shadow-2xl relative z-10 flex flex-col font-sans"
                         >
                             <div className="p-6 border-b border-dark-800 flex items-center justify-between shrink-0">
                                 <div className="flex items-center gap-3">
