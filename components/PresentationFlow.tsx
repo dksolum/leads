@@ -1846,9 +1846,9 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
               <div className="space-y-8">
                 <div className="text-center space-y-3">
                   <h3 className="text-xs font-bold uppercase tracking-widest text-gold-500 font-mono">Resultados</h3>
-                  <h1 className="font-serif font-bold text-3xl md:text-5xl text-white">Casos de Sucesso e Transformação</h1>
+                  <h1 className="font-serif font-bold text-3xl md:text-5xl text-white">Transformações reais de clientes</h1>
                   <p className="text-gray-400 text-sm md:text-base max-w-xl mx-auto font-light">
-                    Veja os resultados práticos de clientes que seguiram o método estruturado de consultoria patrimonial.
+                    Cada cliente possui uma realidade diferente, mas todos tinham algo em comum: precisavam de clareza para tomar melhores decisões.
                   </p>
                 </div>
 
