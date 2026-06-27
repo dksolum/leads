@@ -950,7 +950,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                     onClick={() => navigateTo('coleta_informacoes')}
                     className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-gold-600 to-amber-500 hover:from-gold-500 hover:to-amber-400 text-dark-950 font-black rounded-xl shadow-lg transition-all duration-300 uppercase tracking-widest text-xs flex items-center justify-center gap-2"
                   >
-                    Aprofundar Diagnóstico (Coleta)
+                    Aprofundar Diagnóstico
                     <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
@@ -1917,6 +1917,10 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                             Sabe exatamente o quanto precisa antes de começar o mês, a renda sobra até o final do mês, sabe usar corretamente o cartão de crédito e reserva dinheiro mensalmente para gastos eventuais e objetivos.
                           </p>
                         </div>
+
+                        <div className="space-y-1">
+                          <span className="text-[9px] text-green-500 font-extrabold uppercase tracking-widest font-sans">Acumulou mais de R$ 3.700,00 em 2 meses</span>
+                        </div>
                       </div>
                     </div>
 
@@ -1947,22 +1951,26 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                         <div className="space-y-1">
                           <span className="text-[9px] text-red-500 font-extrabold uppercase tracking-widest font-sans">Antes da Consultoria</span>
                           <p className="text-xs text-gray-400 font-light leading-relaxed">
-                            Dificuldade em poupar com regularidade, mantendo capital parado na poupança por medo de investir e sem clareza de onde seu dinheiro estava indo.
+                            Não conseguia organizar o financeiro e sempre gastava tudo o que recebia no mês.
                           </p>
                         </div>
 
                         <div className="space-y-1">
                           <span className="text-[9px] text-gold-500 font-extrabold uppercase tracking-widest font-sans">Resultado Alcançado</span>
                           <p className="text-xs text-gray-400 font-light leading-relaxed">
-                            Reserva de emergência robusta estruturada e carteira de ativos internacionais diversificada de acordo com o perfil familiar.
+                            Estruturou um orçamento que fazia com que o dinheiro sobrasse no fim do mês e, dessa forma, conseguiu separar mensalmente o dinheiro para seus objetivos.
                           </p>
+                        </div>
+
+                        <div className="space-y-1">
+                          <span className="text-[9px] text-green-500 font-extrabold uppercase tracking-widest font-sans">Acumulou mais de R$ 3.400,00 em 2 meses</span>
                         </div>
                       </div>
                     </div>
 
                     <div className="mt-4 pt-4 border-t border-dark-850/60">
                       <p className="text-xs text-gray-400 leading-relaxed font-light italic">
-                        "Eu sabia que precisava investir, mas faltava segurança e o passo a passo. A consultoria me deu a tranquilidade necessária para acelerar o crescimento do meu patrimônio de forma organizada."
+                        "Agora com as orientações e a técnica, aprendi a separar o dinheiro em metas e ver o resultado crescendo todo dia."
                       </p>
                     </div>
                   </div>
@@ -2021,9 +2029,9 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
               <div className="space-y-8">
                 <div className="text-center space-y-3">
                   <h3 className="text-xs font-bold uppercase tracking-widest text-gold-500 font-mono">O Processo</h3>
-                  <h1 className="font-serif font-bold text-3xl md:text-5xl text-white">Como a Consultoria gera valor prático?</h1>
+                  <h1 className="font-serif font-bold text-3xl md:text-5xl text-white">Como isso funciona na prática?</h1>
                   <p className="text-gray-400 text-sm md:text-base max-w-xl mx-auto font-light">
-                    O nosso trabalho é estruturado para garantir que a organização e o crescimento ocorram com método e segurança.
+                    Cada etapa tem um objetivo simples: dar mais clareza, controle e segurança para suas decisões financeiras.
                   </p>
                 </div>
 
@@ -2039,48 +2047,39 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                       <div className="flex gap-4 items-start bg-dark-950 p-4 rounded-xl border border-dark-800/60 hover:border-gold-500/20 transition-all group">
                         <span className="w-8 h-8 rounded-lg bg-gold-500/10 text-gold-500 flex items-center justify-center font-bold text-xs shrink-0 group-hover:scale-110 transition-transform">1</span>
                         <div>
-                          <h4 className="text-sm font-bold text-white">Diagnóstico e Bloqueio de Gargalos</h4>
+                          <h4 className="text-sm font-bold text-white">Ver para onde o dinheiro está indo</h4>
                           <p className="text-xs text-gray-400 font-light mt-1 leading-relaxed">
-                            Mapeamos todas as despesas invisíveis e ralos do cartão para recuperar capacidade financeira na primeira semana sem alterar o seu padrão de vida.
+                            Utilizar de um app (muito fácil de usar), que não tome muito tempo e que encaixe no seu dia a dia.
                           </p>
                         </div>
                       </div>
                       <div className="flex gap-4 items-start bg-dark-950 p-4 rounded-xl border border-dark-800/60 hover:border-gold-500/20 transition-all group">
                         <span className="w-8 h-8 rounded-lg bg-gold-500/10 text-gold-500 flex items-center justify-center font-bold text-xs shrink-0 group-hover:scale-110 transition-transform">2</span>
                         <div>
-                          <h4 className="text-sm font-bold text-white">Autorregulação e Orçamento Inteligente</h4>
+                          <h4 className="text-sm font-bold text-white">Unificar suas contas</h4>
                           <p className="text-xs text-gray-400 font-light mt-1 leading-relaxed">
-                            Desenhamos as regras de distribuição e contas separadas adaptadas com base nos seus objetivos com prazos e valores concretos.
+                            Visualizar em uma única tela o que tá entrando, saindo e pra onde. É facilidade para entender o que está acontecendo.
                           </p>
                         </div>
                       </div>
                       <div className="flex gap-4 items-start bg-dark-950 p-4 rounded-xl border border-dark-800/60 hover:border-gold-500/20 transition-all group">
                         <span className="w-8 h-8 rounded-lg bg-gold-500/10 text-gold-500 flex items-center justify-center font-bold text-xs shrink-0 group-hover:scale-110 transition-transform">3</span>
                         <div>
-                          <h4 className="text-sm font-bold text-white">Recomendação de Portfólio Seguro</h4>
+                          <h4 className="text-sm font-bold text-white">Criar um orçamento mensal</h4>
                           <p className="text-xs text-gray-400 font-light mt-1 leading-relaxed">
-                            Direcionamos você para os investimentos corretos de reserva de emergência e metas de curto/médio prazo, garantindo que não perca dinheiro.
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex gap-4 items-start bg-dark-950 p-4 rounded-xl border border-dark-800/60 hover:border-gold-500/20 transition-all group">
-                        <span className="w-8 h-8 rounded-lg bg-gold-500/10 text-gold-500 flex items-center justify-center font-bold text-xs shrink-0 group-hover:scale-110 transition-transform">4</span>
-                        <div>
-                          <h4 className="text-sm font-bold text-white">Acompanhamento e Suporte de Rotina</h4>
-                          <p className="text-xs text-gray-400 font-light mt-1 leading-relaxed">
-                            Prestamos suporte diário via WhatsApp para tomadas de decisão rápidas e sessões de alinhamento focadas em acompanhamento.
+                            Definir um planejamento financeiro que respeite sua realidade e esteja alinhado aos seus objetivos.
                           </p>
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  {/* Tópico 2: Por que iremos fazer? */}
+                  {/* Tópico 2: O que isso muda para você? */}
                   <div className="bg-dark-900 border border-dark-800 p-6 md:p-8 rounded-3xl space-y-6 shadow-lg relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full filter blur-2xl"></div>
                     <h3 className="text-lg font-bold text-white flex items-center gap-2 border-b border-dark-800/60 pb-3">
                       <Target className="w-5 h-5 text-gray-400" />
-                      Por que iremos fazer?
+                      O que isso muda para você?
                     </h3>
                     <div className="space-y-4">
                       <div className="flex gap-4 items-start bg-dark-950 p-4 rounded-xl border border-dark-800/60 hover:border-emerald-500/20 transition-all group">
@@ -2088,9 +2087,9 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                           <Check className="w-4 h-4" />
                         </span>
                         <div>
-                          <h4 className="text-sm font-bold text-white font-serif">Eliminar Ansiedade e Incerteza</h4>
+                          <h4 className="text-sm font-bold text-white font-serif">Eliminar ansiedade e incerteza</h4>
                           <p className="text-xs text-gray-400 font-light mt-1 leading-relaxed">
-                            Para que você saiba exatamente para onde vai seu dinheiro e tenha total clareza do quanto está gastando e poupando mensalmente.
+                            Porque ter clareza sobre o dinheiro reduz a insegurança e permite decisões mais conscientes.
                           </p>
                         </div>
                       </div>
@@ -2099,9 +2098,9 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                           <Check className="w-4 h-4" />
                         </span>
                         <div>
-                          <h4 className="text-sm font-bold text-white font-serif">Clareza no Propósito de Vida</h4>
+                          <h4 className="text-sm font-bold text-white font-serif">Saber tudo por categoria</h4>
                           <p className="text-xs text-gray-400 font-light mt-1 leading-relaxed">
-                            Para dar prazos e metas claras aos seus maiores objetivos (reserva, imóveis, viagens), criando um plano sustentável para realizá-los.
+                            Quando você vê o que sai no horizonte de um mês, entende o quanto está saindo no total por finalidade. (Recebe 5k, saindo 6k, e desses 6k, vai ver que 40% só com alimentação).
                           </p>
                         </div>
                       </div>
@@ -2110,9 +2109,9 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                           <Check className="w-4 h-4" />
                         </span>
                         <div>
-                          <h4 className="text-sm font-bold text-white font-serif">Paz e Segurança Patrimonial</h4>
+                          <h4 className="text-sm font-bold text-white font-serif">Conseguir trabalhar por tópicos</h4>
                           <p className="text-xs text-gray-400 font-light mt-1 leading-relaxed">
-                            Para reestruturar dívidas de forma inteligente, diminuindo o peso mensal das obrigações e blindando você contra escolhas erradas.
+                            Mantendo sua qualidade de vida, mas fazendo com que você prospere mais e fique menos preocupado com dinheiro.
                           </p>
                         </div>
                       </div>
@@ -2121,9 +2120,9 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                           <Check className="w-4 h-4" />
                         </span>
                         <div>
-                          <h4 className="text-sm font-bold text-white font-serif">Liberdade para Investir com Confiança</h4>
+                          <h4 className="text-sm font-bold text-white font-serif">Ver a verdadeira realidade</h4>
                           <p className="text-xs text-gray-400 font-light mt-1 leading-relaxed">
-                            Para que você comece a rentabilizar seu dinheiro com segurança, sabendo que as escolhas estão validadas e protegendo seu capital.
+                            Dessa forma é possível fazer os ajustes necessários dentro do seu orçamento.
                           </p>
                         </div>
                       </div>
@@ -2150,7 +2149,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                   <h3 className="text-xs font-bold uppercase tracking-widest text-gold-500 font-mono">Entregáveis</h3>
                   <h1 className="font-serif font-bold text-3xl md:text-5xl text-white">Tudo o que você recebe</h1>
                   <p className="text-gray-400 text-sm md:text-base max-w-xl mx-auto font-light">
-                    A estrutura de acompanhamento que garante a execução prática sem procrastinação.
+                    A estrutura que você precisa para organizar sua vida financeira e colocar todos os seus planos em prática.
                   </p>
                 </div>
 
@@ -2168,7 +2167,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                       <div className="space-y-1">
                         <h4 className="font-bold text-white text-base">Sessão de 1h 30min</h4>
                         <p className="text-xs text-gray-400 font-light leading-relaxed">
-                          Encontro individual e online focado em abrir sua realidade financeira, identificar seus gargalos e traçar a rota do seu plano de ação.
+                          Encontro individual para entender o detalhe da sua realidade financeira, organizar prioridades e construir um plano de ação personalizado.
                         </p>
                       </div>
                     </div>
@@ -2180,7 +2179,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                       <div className="space-y-1">
                         <h4 className="font-bold text-white text-base">Acompanhamento de 30 dias</h4>
                         <p className="text-xs text-gray-400 font-light leading-relaxed">
-                          Apoio contínuo e diário por WhatsApp para tirar dúvidas de rotina, além de um retorno exclusivo para analisar os resultados e o que ainda precisa ser verificado.
+                          Suporte pelo WhatsApp durante 30 dias para tirar dúvidas, acompanhar a execução e ajustar o plano sempre que necessário.
                         </p>
                       </div>
                     </div>
@@ -2193,7 +2192,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                     <Sparkles className="w-4 h-4 text-gold-500" />
                     Os bônus inclusos
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                     <div className="p-6 bg-dark-900 border border-dark-800 hover:border-gold-500/10 rounded-3xl flex flex-col justify-between shadow-md group transition-all">
                       <div className="space-y-4">
                         <span className="p-3 bg-dark-950 text-gold-500 rounded-2xl border border-dark-800/80 inline-flex group-hover:scale-110 transition-transform">
@@ -2202,7 +2201,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                         <div className="space-y-1">
                           <h4 className="font-bold text-white text-sm">Ferramenta de controle financeiro</h4>
                           <p className="text-xs text-gray-450 font-light leading-relaxed">
-                            Acesso durante todo o acompanhamento da consultoria para registro e gerenciamento prático da sua vida financeira.
+                            Acesso durante toda a consultoria de um ambiente organizado para registrar e acompanhar a sua vida financeira.
                           </p>
                         </div>
                       </div>
@@ -2214,9 +2213,9 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                           <Target className="w-5 h-5" />
                         </span>
                         <div className="space-y-1">
-                          <h4 className="font-bold text-white text-sm">Diagnóstico Financeiro Personalizado</h4>
+                          <h4 className="font-bold text-white text-sm">Análise completa da sua situação financeira</h4>
                           <p className="text-xs text-gray-450 font-light leading-relaxed">
-                            Mapeamento detalhado de dívidas existentes, levantamento preciso de Custo de Vida e a relação Tempo x Valor do seu trabalho.
+                            Mapeamento detalhado de dívidas existentes, levantamento do custo de vida e a visualização da relação <strong>"Tempo x Valor"</strong> do seu trabalho.
                           </p>
                         </div>
                       </div>
@@ -2228,9 +2227,23 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                           <TrendingDown className="w-5 h-5" />
                         </span>
                         <div className="space-y-1">
-                          <h4 className="font-bold text-white text-sm">Análise das despesas</h4>
+                          <h4 className="font-bold text-white text-sm">Revisão dos seus gastos</h4>
                           <p className="text-xs text-gray-450 font-light leading-relaxed">
-                            Varredura das contas com ações práticas sugeridas para a redução imediata de gastos desnecessários que drenam seu orçamento.
+                            Avaliamos seus gastos para identificar oportunidades de economia e melhor aproveitamento do seu dinheiro.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-6 bg-dark-900 border border-dark-800 hover:border-gold-500/10 rounded-3xl flex flex-col justify-between shadow-md group transition-all">
+                      <div className="space-y-4">
+                        <span className="p-3 bg-dark-950 text-gold-500 rounded-2xl border border-dark-800/80 inline-flex group-hover:scale-110 transition-transform">
+                          <RefreshCw className="w-5 h-5" />
+                        </span>
+                        <div className="space-y-1">
+                          <h4 className="font-bold text-white text-sm">Sessão de retorno</h4>
+                          <p className="text-xs text-gray-450 font-light leading-relaxed">
+                            Encontro de fechamento após os 30 dias para analisar os resultados alcançados e planejar os próximos passos.
                           </p>
                         </div>
                       </div>
@@ -2262,9 +2275,9 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
               <div className="space-y-8">
                 <div className="text-center space-y-3">
                   <h3 className="text-xs font-bold uppercase tracking-widest text-gold-500 font-mono">Reflexão</h3>
-                  <h1 className="font-serif font-bold text-3xl md:text-5xl text-white">O Momento da Escolha</h1>
+                  <h1 className="font-serif font-bold text-3xl md:text-5xl text-white">O momento da escolha</h1>
                   <p className="text-gray-400 text-sm md:text-base max-w-xl mx-auto font-light">
-                    Assim como no Matrix, você se depara com duas realidades possíveis para a sua vida financeira daqui para frente.
+                    Agora você se depara com duas realidades possíveis para a sua vida financeira daqui para frente.
                   </p>
                 </div>
 
@@ -2277,7 +2290,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                       className="text-center space-y-4 py-12"
                     >
                       <p className="text-gray-400 text-lg font-light max-w-md mx-auto leading-relaxed italic">
-                        Duas pílulas, duas direções. Qual caminho você escolherá trilhar a partir de hoje?
+                        No filme Matrix, são <span className="text-white font-bold">duas pílulas, duas direções.</span> Qual caminho você escolherá trilhar a partir de hoje?
                       </p>
                     </motion.div>
                   )}
@@ -2291,9 +2304,12 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                     >
                       <img src="/images/pilulaazul.png" alt="Pílula Azul" className="w-40 h-auto object-contain" />
                       <div className="bg-dark-900 border border-blue-500/20 p-6 md:p-8 rounded-3xl text-left space-y-4 shadow-xl">
-                        <h3 className="text-xl font-serif font-bold text-blue-400 border-b border-dark-800 pb-2">Pílula Azul: Continuar como está</h3>
+                        <h3 className="text-xl font-serif font-bold text-blue-400 border-b border-dark-800 pb-2">Continuar como está</h3>
                         <p className="text-sm text-gray-300 font-light leading-relaxed">
-                          Ignorar a desorganização invisível, continuar sem saber para onde o dinheiro está indo, manter a insegurança de não ter reserva sólida e adiar o sonho dos investimentos por mais tempo.
+                          Finalizamos a conversa, mesmo sabendo que eu consigo te ajudar.
+                        </p>
+                        <p className="text-xs text-gray-450 font-light leading-relaxed">
+                          É você sozinho...
                         </p>
                       </div>
                     </motion.div>
@@ -2310,9 +2326,12 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                       <div className="flex flex-col items-center space-y-6">
                         <img src="/images/pilulaazul.png" alt="Pílula Azul" className="w-36 h-auto object-contain" />
                         <div className="bg-dark-900 border border-dark-800 p-6 md:p-8 rounded-3xl text-left space-y-4 shadow-xl w-full min-h-[220px]">
-                          <h3 className="text-lg font-serif font-bold text-blue-400 border-b border-dark-850 pb-2">Pílula Azul: Continuar como está</h3>
+                          <h3 className="text-lg font-serif font-bold text-blue-400 border-b border-dark-850 pb-2">Continuar como está</h3>
                           <p className="text-xs text-gray-450 font-light leading-relaxed">
-                            Ignorar a desorganização invisível, continuar sem saber para onde o dinheiro está indo, manter a insegurança de não ter reserva sólida e adiar o sonho dos investimentos por mais tempo.
+                            Finalizamos a conversa, mesmo sabendo que eu consigo te ajudar.
+                          </p>
+                          <p className="text-xs text-gray-450 font-light leading-relaxed">
+                            É você sozinho...
                           </p>
                         </div>
                       </div>
@@ -2321,9 +2340,12 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                       <div className="flex flex-col items-center space-y-6">
                         <img src="/images/pilulavermelha.png" alt="Pílula Vermelha" className="w-36 h-auto object-contain animate-pulse" />
                         <div className="bg-dark-900 border border-gold-500/20 p-6 md:p-8 rounded-3xl text-left space-y-4 shadow-xl w-full min-h-[220px]">
-                          <h3 className="text-lg font-serif font-bold text-red-400 border-b border-dark-850 pb-2">Pílula Vermelha: Seguir com Método</h3>
+                          <h3 className="text-lg font-serif font-bold text-red-400 border-b border-dark-850 pb-2">Seguir com a Consultoria</h3>
                           <p className="text-xs text-gray-300 font-light leading-relaxed">
-                            Tomar as rédeas do patrimônio, usar um método validado passo a passo, contar com suporte de um especialista de forma diária, investir com segurança e conquistar tranquilidade e liberdade financeira real.
+                            Eu te ajudo! Começamos da maneira correta, estruturando o seu financeiro para resolver os problemas, tirando dúvidas e com um plano de ação simples para colocar em prática.
+                          </p>
+                          <p className="text-xs text-gray-300 font-light leading-relaxed">
+                            É você com solução e suporte!
                           </p>
                         </div>
                       </div>
@@ -2370,7 +2392,10 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                   <h3 className="text-xs font-bold uppercase tracking-widest text-gold-500 font-mono">Confirmação</h3>
                   <h1 className="font-serif font-bold text-3xl md:text-5xl text-white">Essa solução faz sentido para você?</h1>
                   <p className="text-gray-400 text-sm md:text-base font-light">
-                    O caminho da pílula vermelha exige comprometimento. Deseja seguir com a transformação da sua vida financeira hoje?
+                    O caminho da pílula vermelha exige comprometimento.
+                  </p>
+                  <p className="text-gray-400 text-sm md:text-base font-light">
+                    FINGE que essa solução que estou te mostrando É DE GRAÇA, você apertaria a minha mão agora e nós seguiríamos em frente?
                   </p>
 
                   {/* Imagem da Pílula Vermelha centralizada abaixo do título */}
@@ -2397,7 +2422,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                   >
                     <CheckCircle2 className="w-8 h-8 text-gold-500 mx-auto mb-3" />
                     <span className="block text-base">Sim, faz total sentido!</span>
-                    <span className="text-[10px] text-gray-500 font-light block mt-1">Desejo iniciar a transformação hoje.</span>
+                    <span className="text-[10px] text-gray-500 font-light block mt-1">Desejo iniciar um caminho diferente hoje.</span>
                   </button>
 
                   {/* RESPOSTA NÃO */}
@@ -2428,18 +2453,18 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
               <div className="space-y-8 max-w-2xl mx-auto">
                 <div className="text-center space-y-4">
                   <h3 className="text-xs font-bold uppercase tracking-widest text-gold-500 font-mono">Alinhamento</h3>
-                  <h1 className="font-serif font-bold text-3xl md:text-5xl text-white">Valor vs. Preço</h1>
+                  <h1 className="font-serif font-bold text-3xl md:text-5xl text-white">Eu quero que você também tenha resultados!</h1>
                   <p className="text-gray-400 text-sm md:text-base font-light leading-relaxed">
-                    Antes de apresentarmos os números do investimento, é fundamental reforçar que o principal objetivo desta consultoria é gerar <strong>resultados reais e duradouros</strong>.
+                    Você entendeu o valor, o preço é apenas uma balança para medir o resultado que você procura.
                   </p>
                 </div>
 
                 <div className="bg-dark-900 border border-dark-800 rounded-3xl p-6 md:p-8 space-y-4 shadow-lg text-sm text-gray-300 font-light leading-relaxed">
                   <p>
-                    O valor da consultoria deve ser visto como uma <strong>ferramenta de retorno financeiro</strong>. A média dos nossos mentorados recupera o valor do investimento nas primeiras 6 a 8 semanas, apenas bloqueando perdas invisíveis que mapeamos no diagnóstico.
+                    O melhor é que a consultoria irá entrar no seu orçamento de maneira leve, sem comprometer nada do que você tenha.
                   </p>
                   <p>
-                    Queremos que esse passo seja <strong>totalmente saudável</strong> dentro do seu orçamento, gerando fôlego de caixa imediatamente, e não mais preocupações.
+                    "Investir em conhecimento rende sempre os melhores juros!"
                   </p>
                 </div>
 
