@@ -54,6 +54,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
     | 'decisao_matrix'
     | 'confirmacao_sentido'
     | 'reforco_valor'
+    | 'justica_valor'
     | 'investimento_padrao'
     | 'condicao_especial'
     | 'downsell'
@@ -73,6 +74,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
   const [slideHistory, setSlideHistory] = useState<SlideId[]>([]);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [showExitModal, setShowExitModal] = useState<boolean>(false);
+  const [justicaOption, setJusticaOption] = useState<'sim' | 'nao' | null>(null);
   // Controle de exibição de detalhes de formas de pagamento (negociação)
   const [paymentDetailsModal, setPaymentDetailsModal] = useState<'padrao' | 'especial' | 'downsell' | null>(null);
   const [copiedText, setCopiedText] = useState<string | null>(null);
@@ -362,6 +364,9 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
     if (nextSlide === 'decisao_matrix') {
       setMatrixStep(1);
     }
+    if (nextSlide === 'justica_valor') {
+      setJusticaOption(null);
+    }
   };
 
   const navigateBack = () => {
@@ -372,6 +377,9 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
       scrollToTop();
       if (previous === 'decisao_matrix') {
         setMatrixStep(1);
+      }
+      if (previous === 'justica_valor') {
+        setJusticaOption(null);
       }
     }
   };
@@ -417,6 +425,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
       'decisao_matrix',
       'confirmacao_sentido',
       'reforco_valor',
+      'justica_valor',
       'investimento_padrao',
       'proximos_passos',
       'agradecimento_final'
@@ -2459,24 +2468,149 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                   </p>
                 </div>
 
-                <div className="bg-dark-900 border border-dark-800 rounded-3xl p-6 md:p-8 space-y-4 shadow-lg text-sm text-gray-300 font-light leading-relaxed">
-                  <p>
-                    O melhor é que a consultoria irá entrar no seu orçamento de maneira leve, sem comprometer nada do que você tenha.
-                  </p>
-                  <p>
-                    "Investir em conhecimento rende sempre os melhores juros!"
-                  </p>
+                <div className="grid grid-cols-1 gap-6">
+                  {/* Card Principal: Informações Gerais */}
+                  <div className="bg-dark-900/60 backdrop-blur-md border border-dark-800 rounded-3xl p-6 md:p-8 flex gap-5 items-start shadow-xl relative overflow-hidden group hover:border-dark-750 transition-all duration-300">
+                    <div className="flex-shrink-0 w-12 h-12 bg-gold-500/10 border border-gold-500/20 rounded-2xl flex items-center justify-center text-gold-500 shadow-inner">
+                      <HeartHandshake className="w-6 h-6" />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm md:text-base text-gray-300 font-light leading-relaxed">
+                        O melhor é que a consultoria irá entrar no seu orçamento de maneira leve, sem comprometer nada do que você tenha.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Card Premium Destacado: Frase */}
+                  <div className="bg-gradient-to-r from-gold-500/15 via-gold-500/5 to-transparent border border-gold-500/20 rounded-3xl p-6 md:p-8 flex items-center gap-6 shadow-xl relative overflow-hidden group hover:border-gold-500/30 transition-all duration-300">
+                    {/* Efeito de brilho de fundo */}
+                    <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-gold-500/5 rounded-full blur-2xl group-hover:bg-gold-500/10 transition-all duration-300"></div>
+
+                    <div className="flex-shrink-0 w-12 h-12 bg-gold-500/20 border border-gold-500/40 rounded-2xl flex items-center justify-center text-gold-400 shadow-lg">
+                      <TrendingUp className="w-6 h-6 animate-pulse" />
+                    </div>
+
+                    <div className="space-y-1">
+                      <span className="text-[9px] text-gold-500 font-mono uppercase tracking-widest font-black">Princípio de Alinhamento</span>
+                      <p className="text-base md:text-lg font-serif italic text-white leading-relaxed font-bold">
+                        "Investir em conhecimento rende sempre os melhores juros!"
+                      </p>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="flex justify-center pt-4">
                   <button
-                    onClick={() => navigateTo('investimento_padrao')}
+                    onClick={() => navigateTo('justica_valor')}
                     className="px-8 py-4 bg-gradient-to-r from-gold-600 to-amber-500 hover:from-gold-500 hover:to-amber-400 text-dark-950 font-black rounded-xl shadow-lg transition-all duration-300 uppercase tracking-widest text-xs flex items-center gap-2"
                   >
-                    Conhecer Investimento
+                    Potencial Retorno
                     <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
+              </div>
+            )}
+
+            {/* SLIDE 14: ECONOMIA E VALOR JUSTO (NOVO) */}
+            {currentSlide === 'justica_valor' && (
+              <div className="space-y-8 max-w-2xl mx-auto">
+                <div className="text-center space-y-4">
+                  <h3 className="text-xs font-bold uppercase tracking-widest text-gold-500 font-mono">Alinhamento de Valor</h3>
+                  <h1 className="font-serif font-bold text-3xl md:text-5xl text-white">Impacto real no seu bolso</h1>
+                  <p className="text-gray-400 text-sm md:text-base font-light max-w-xl mx-auto">
+                    A média de economia que meus clientes têm no geral após os ajustes iniciais que faremos juntos é de, no mínimo, <span className="text-gold-500 font-bold">R$ 500,00 por mês</span>.
+                  </p>
+                </div>
+
+                {/* Exibição Visual da Economia */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-md mx-auto pt-2">
+                  <div className="p-6 bg-dark-900 border border-dark-800 rounded-3xl text-center space-y-2 shadow-lg">
+                    <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider font-mono">Economia Mensal</span>
+                    <h2 className="text-3xl font-serif font-extrabold text-gold-500">R$ 500,00</h2>
+                    <p className="text-[10px] text-gray-400">Recuperados todo mês</p>
+                  </div>
+                  <div className="p-6 bg-gradient-to-br from-gold-500/10 to-transparent border border-gold-500/20 rounded-3xl text-center space-y-2 shadow-lg">
+                    <span className="text-[10px] text-gold-500 uppercase font-bold tracking-wider font-mono">Economia no Ano</span>
+                    <h2 className="text-3xl font-serif font-extrabold text-white">R$ 6.000,00</h2>
+                    <p className="text-[10px] text-gray-400">Total acumulado em 12 meses</p>
+                  </div>
+                </div>
+
+                {justicaOption === null ? (
+                  <div className="bg-dark-900 border border-dark-800 rounded-3xl p-6 md:p-8 space-y-6 shadow-xl text-center max-w-xl mx-auto">
+                    <p className="text-sm md:text-base text-gray-300 font-light leading-relaxed italic">
+                      "Ter a capacidade de economizar esse valor com o que eu vou te passar nos próximos dias e eu te cobrar R$ 2.000,00 pela consultoria você acredita ser um valor justo?"
+                    </p>
+
+                    <div className="flex flex-col sm:flex-row justify-center gap-4 pt-2">
+                      <button
+                        onClick={() => setJusticaOption('sim')}
+                        className="px-6 py-3 bg-gradient-to-r from-gold-600 to-amber-500 hover:from-gold-500 hover:to-amber-400 text-dark-950 font-black rounded-xl text-xs uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-gold-500/5 hover:shadow-gold-500/20"
+                      >
+                        Sim, é justo
+                      </button>
+                      <button
+                        onClick={() => setJusticaOption('nao')}
+                        className="px-6 py-3 bg-dark-850 hover:bg-dark-800 text-gray-300 hover:text-white border border-dark-800 hover:border-dark-750 font-bold rounded-xl text-xs uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer"
+                      >
+                        Não, não acho justo
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-dark-900 border border-dark-800 rounded-3xl p-6 md:p-8 space-y-6 shadow-xl max-w-xl mx-auto"
+                  >
+                    {justicaOption === 'sim' ? (
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2 text-gold-500 border-b border-dark-800 pb-3">
+                          <CheckCircle2 className="w-5 h-5" />
+                          <h4 className="font-bold text-white text-base">Você reconhece o valor.</h4>
+                        </div>
+                        <p className="text-xs md:text-sm text-gray-350 font-light leading-relaxed">
+                          Recuperar <span className="text-gold-500 font-bold">R$ 6.000,00 por ano</span> investindo <span className="text-green-500 font-bold">R$ 2.000,00</span> é um excelente negócio — representa um saldo positivo de <span className="text-green-500 font-bold">R$ 4.000,00</span> que hoje, possivelmente, você não tem ou não consiga economizar.
+                        </p>
+
+                        <div className="text-center py-4 px-6 bg-red-950/20 border border-red-900/30 rounded-2xl max-w-lg mx-auto mt-6 animate-pulse">
+                          <p className="text-sm md:text-base text-red-500 font-extrabold leading-relaxed uppercase tracking-wide">
+                            Contudo, por mais que esse seja o valor considerado justo por nós dois, eu não vou te cobrar R$ 2.000,00 hoje pela minha consultoria.
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2 text-red-400 border-b border-dark-800 pb-3">
+                          <X className="w-5 h-5" />
+                          <h4 className="font-bold text-white text-base">Compreendo o seu ponto de vista...</h4>
+                        </div>
+                        <p className="text-xs md:text-sm text-gray-350 font-light leading-relaxed">
+                          Mas pense comigo: se eu te ajudar a ter <span className="text-green-500 font-bold">R$ 4.000,00 a mais</span> no bolso todos os anos (que hoje você não tem ou não consegue guardar sozinho), isso já seria um negócio extremamente vantajoso para você, concorda?
+                        </p>
+                        <p className="text-xs md:text-sm text-gray-350 font-light leading-relaxed">
+                          O justo aqui seria o compartilhamento de informações que traria não só <span className="text-green-500 font-bold">R$ 500,00 mensais</span> a você, da mesma forma que eu sou recompensado pelo meu tempo e esforço em te guiar. E note que em alguns meses você poderá conseguir muito mais, assim como os alunos que te mostrei que guardaram mais de <span className="text-gold-500 font-bold">R$ 1.500,00 por mês</span> no acompanhamento. Tende a ser um crescimento financeiro constante.
+                        </p>
+
+                        <div className="text-center py-4 px-6 bg-red-950/20 border border-red-900/30 rounded-2xl max-w-lg mx-auto mt-6 animate-pulse">
+                          <p className="text-sm md:text-base text-red-500 font-extrabold leading-relaxed uppercase tracking-wide">
+                            Mesmo assim, eu não vou te cobrar esse valor (R$ 2.000,00) por isso, por mais que eu acredite que seria o justo.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex justify-center pt-4 border-t border-dark-800/60">
+                      <button
+                        onClick={() => navigateTo('investimento_padrao')}
+                        className="px-8 py-4 bg-gradient-to-r from-gold-600 to-amber-500 hover:from-gold-500 hover:to-amber-400 text-dark-950 font-black rounded-xl shadow-lg transition-all duration-300 uppercase tracking-widest text-xs flex items-center gap-2"
+                      >
+                        Conhecer Investimento
+                        <ArrowRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
               </div>
             )}
 
@@ -3083,6 +3217,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
         {/* Botão de Avançar */}
         {currentSlide !== 'agradecimento_final' &&
           currentSlide !== 'confirmacao_sentido' &&
+          currentSlide !== 'justica_valor' &&
           currentSlide !== 'investimento_padrao' &&
           currentSlide !== 'condicao_especial' &&
           currentSlide !== 'downsell' &&
