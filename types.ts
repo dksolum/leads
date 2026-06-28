@@ -1,4 +1,12 @@
-export type IncomeRange = 'Até 5 mil' | '5 a 6 mil' | '6 a 8 mil' | '8 a 10 mil' | 'Acima de 10 mil';
+export type IncomeRange =
+  | 'Até 10 mil reais'
+  | 'Abaixo de 5 mil reais'
+  | 'De 5 a 8 mil reais'
+  | 'De 8 a 10 mil reais'
+  | 'De 10 a 12 mil reais'
+  | 'De 12 a 14 mil reais'
+  | 'De 14 a 18 mil reais'
+  | 'Acima de 18 mil reais';
 
 export type FinancialState =
   | 'Desorganizada e preocupante'
@@ -27,6 +35,7 @@ export interface UserAnswers {
   triedSolution: string;
   triedSolutionDescription?: string;
   incomeRange: IncomeRange | '';
+  subIncomeRange?: 'Abaixo de 5 mil reais' | 'De 5 a 8 mil reais' | 'De 8 a 10 mil reais' | '';
   profession: string;
   spouse: 'Cônjuge' | 'Sem cônjuge' | '';
   children: '1 filho' | '2 filhos' | '3 ou mais filhos' | 'Não possuo filhos' | '';
@@ -134,6 +143,7 @@ export interface QuestionStep {
     placeholder?: string;
     note?: string;
     inputType?: 'text' | 'textarea' | 'number' | 'radio';
+    options?: string[];
   };
 }
 

@@ -4025,7 +4025,10 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                                                     className="w-full bg-dark-950 border border-dark-800 rounded-lg p-3 text-sm outline-none focus:border-gold-500 transition-all font-medium cursor-pointer text-slate-200"
                                                 >
                                                     <option value="">Selecione...</option>
-                                                    <option value="Até 10 mil reais">Até 10 mil reais</option>
+                                                    <option value="Até 10 mil reais">Até 10 mil reais (Legado)</option>
+                                                    <option value="Abaixo de 5 mil reais">Abaixo de 5 mil reais</option>
+                                                    <option value="De 5 a 8 mil reais">De 5 a 8 mil reais</option>
+                                                    <option value="De 8 a 10 mil reais">De 8 a 10 mil reais</option>
                                                     <option value="De 10 a 12 mil reais">De 10 a 12 mil reais</option>
                                                     <option value="De 12 a 14 mil reais">De 12 a 14 mil reais</option>
                                                     <option value="De 14 a 18 mil reais">De 14 a 18 mil reais</option>

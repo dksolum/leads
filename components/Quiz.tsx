@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UserAnswers, QuestionStep, DependentType } from '../types';
 import { ProgressBar } from './ProgressBar';
-import { ArrowRight, Check } from 'lucide-react';
+import { ArrowRight, Check, AlertCircle } from 'lucide-react';
 
 interface Props {
   onComplete: (answers: UserAnswers) => void;
@@ -35,7 +35,14 @@ const questions: QuestionStep[] = [
     question: "Qual sua faixa de renda mensal?",
     type: 'radio',
     options: ['Até 10 mil reais', 'De 10 a 12 mil reais', 'De 12 a 14 mil reais', 'De 14 a 18 mil reais', 'Acima de 18 mil reais'],
-    field: 'incomeRange'
+    field: 'incomeRange',
+    conditional: {
+      triggerValue: 'Até 10 mil reais',
+      field: 'subIncomeRange',
+      question: "Especifique sua faixa de renda dentro de até 10 mil reais:",
+      inputType: 'radio',
+      options: ['Abaixo de 5 mil reais', 'De 5 a 8 mil reais', 'De 8 a 10 mil reais']
+    }
   },
   {
     id: 4,
@@ -128,11 +135,13 @@ const questions: QuestionStep[] = [
 
 export const Quiz: React.FC<Props> = ({ onComplete }) => {
   const [step, setStep] = useState(0);
+  const [isDisqualified, setIsDisqualified] = useState(false);
   const [answers, setAnswers] = useState<UserAnswers>({
     mainProblem: '',
     triedSolution: '',
     triedSolutionDescription: '',
     incomeRange: '',
+    subIncomeRange: '',
     profession: '',
     spouse: '',
     children: '',
@@ -163,6 +172,14 @@ export const Quiz: React.FC<Props> = ({ onComplete }) => {
 
   const currentQ = questions[step];
 
+  const getFinalAnswers = (rawAnswers: UserAnswers): UserAnswers => {
+    const finalAnswers = { ...rawAnswers };
+    if (finalAnswers.incomeRange === 'Até 10 mil reais' && finalAnswers.subIncomeRange) {
+      finalAnswers.incomeRange = finalAnswers.subIncomeRange as any;
+    }
+    return finalAnswers;
+  };
+
   const handleBack = () => {
     if (step > 0) {
       setStep(prev => prev - 1);
@@ -191,6 +208,12 @@ export const Quiz: React.FC<Props> = ({ onComplete }) => {
         setError('Por favor, preencha o campo adicional para continuar.');
         return;
       }
+
+      // Se for desqualificado por faixa de renda abaixo de 5 mil reais
+      if (currentQ.conditional.field === 'subIncomeRange' && condVal === 'Abaixo de 5 mil reais') {
+        setIsDisqualified(true);
+        return;
+      }
     }
 
     setError('');
@@ -198,7 +221,7 @@ export const Quiz: React.FC<Props> = ({ onComplete }) => {
       setIsTransitioning(true);
       setStep(prev => prev + 1);
     } else {
-      onComplete(answersRef.current);
+      onComplete(getFinalAnswers(answersRef.current));
     }
   };
 
@@ -220,7 +243,7 @@ export const Quiz: React.FC<Props> = ({ onComplete }) => {
         if (step < questions.length - 1) {
           setStep(prev => prev + 1);
         } else {
-          onComplete({ ...answersRef.current, [currentQ.field]: value });
+          onComplete(getFinalAnswers({ ...answersRef.current, [currentQ.field]: value }));
         }
       }, 350);
     }
@@ -255,6 +278,48 @@ export const Quiz: React.FC<Props> = ({ onComplete }) => {
     currentQ.type === 'text' ||
     currentQ.type === 'textarea' ||
     (currentQ.type === 'radio' && currentQ.conditional && answers[currentQ.field] === currentQ.conditional.triggerValue);
+
+  if (isDisqualified) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 max-w-lg mx-auto text-center space-y-6">
+        <div className="w-16 h-16 bg-red-500/10 text-red-500 rounded-2xl flex items-center justify-center border border-red-500/20 shadow-lg shadow-red-500/5">
+          <AlertCircle className="w-8 h-8" />
+        </div>
+
+        <div className="space-y-3">
+          <h2 className="text-2xl md:text-3xl font-serif text-white font-bold">Obrigado pelo seu interesse!</h2>
+          <p className="text-gray-400 text-sm leading-relaxed font-light">
+            No momento, a nossa consultoria financeira foi estruturada especificamente para acelerar perfis que já se encontram na faixa de renda de <strong>R$ 5.000,00 ou mais</strong>.
+          </p>
+          <p className="text-gray-400 text-sm leading-relaxed font-light">
+            Para faixas inferiores a esta, o valor do investimento não traria o retorno proporcional que acreditamos ser justo para você. Recomendamos focar primeiro no aumento de sua renda ativa para que possamos trabalhar juntos no futuro.
+          </p>
+        </div>
+
+        <div className="flex gap-4 pt-2">
+          <button
+            onClick={() => {
+              setAnswers(prev => ({
+                ...prev,
+                incomeRange: '',
+                subIncomeRange: ''
+              }));
+              setIsDisqualified(false);
+            }}
+            className="px-6 py-3 bg-dark-800 hover:bg-dark-750 text-gray-300 rounded-xl text-xs font-bold uppercase tracking-widest border border-dark-700 transition-colors cursor-pointer"
+          >
+            Voltar e Corrigir
+          </button>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-6 py-3 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-xl text-xs font-bold uppercase tracking-widest border border-red-500/20 transition-colors cursor-pointer"
+          >
+            Encerrar
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 max-w-2xl mx-auto">
@@ -340,18 +405,29 @@ export const Quiz: React.FC<Props> = ({ onComplete }) => {
                     </label>
 
                     {currentQ.conditional.inputType === 'radio' ? (
-                      <div className="flex gap-4 mt-2">
-                        {['Sim', 'Não'].map((opt) => (
+                      <div className={currentQ.conditional.options ? "flex flex-col gap-3 mt-2" : "flex gap-4 mt-2"}>
+                        {(currentQ.conditional.options || ['Sim', 'Não']).map((opt) => (
                           <button
                             key={opt}
                             type="button"
                             onClick={() => handleConditionalChange(opt)}
-                            className={`flex-1 py-3 px-4 rounded-lg border text-center font-semibold transition-all ${answers[currentQ.conditional.field] === opt
-                              ? 'bg-gold-500/10 border-gold-500 text-white shadow-[0_0_15px_rgba(245,158,11,0.2)]'
-                              : 'bg-dark-800 border-dark-600 text-gray-400 hover:border-gold-500/50'
-                              }`}
+                            className={currentQ.conditional.options
+                              ? `w-full text-left p-4 rounded-lg border font-semibold transition-all flex items-center group ${answers[currentQ.conditional.field] === opt
+                                ? 'bg-gold-500/10 border-gold-500 text-white shadow-[0_0_15px_rgba(245,158,11,0.1)]'
+                                : 'bg-dark-800 border-dark-600 text-gray-400 hover:border-gold-500/50 hover:text-white'
+                              }`
+                              : `flex-1 py-3 px-4 rounded-lg border text-center font-semibold transition-all ${answers[currentQ.conditional.field] === opt
+                                ? 'bg-gold-500/10 border-gold-500 text-white shadow-[0_0_15px_rgba(245,158,11,0.2)]'
+                                : 'bg-dark-800 border-dark-600 text-gray-450 hover:border-gold-500/50'
+                              }`
+                            }
                           >
-                            {opt}
+                            {currentQ.conditional.options && (
+                              <div className={`w-4 h-4 rounded-full border mr-3 flex items-center justify-center ${answers[currentQ.conditional.field] === opt ? 'border-gold-500' : 'border-gray-500'}`}>
+                                {answers[currentQ.conditional.field] === opt && <div className="w-2.5 h-2.5 bg-gold-500 rounded-full" />}
+                              </div>
+                            )}
+                            <span>{opt}</span>
                           </button>
                         ))}
                       </div>
