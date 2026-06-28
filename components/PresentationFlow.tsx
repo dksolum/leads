@@ -57,6 +57,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
     | 'reforco_valor'
     | 'justica_valor'
     | 'investimento_padrao'
+    | 'argumentacao_especial'
     | 'condicao_especial'
     | 'downsell'
     | 'proximos_passos'
@@ -431,16 +432,17 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
       'reforco_valor',
       'justica_valor',
       'investimento_padrao',
+      'argumentacao_especial',
+      'condicao_especial',
       'proximos_passos',
       'agradecimento_final'
     ];
 
     const index = slideOrder.indexOf(currentSlide);
     if (index === -1) {
-      // Se for condicional/ramificação (ex: condicao_especial, downsell) calcula próximo do preço
-      if (currentSlide === 'condicao_especial') return 80;
-      if (currentSlide === 'downsell') return 85;
-      if (currentSlide === 'proximos_passos_downsell') return 92;
+      // Se for condicional/ramificação (ex: downsell) calcula próximo do preço
+      if (currentSlide === 'downsell') return 88;
+      if (currentSlide === 'proximos_passos_downsell') return 94;
       return 50;
     }
     return Math.round(((index + 1) / slideOrder.length) * 100);
@@ -2835,7 +2837,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                             ...meetingAnswers,
                             investmentChoice: 'Recusou'
                           });
-                          navigateTo('condicao_especial');
+                          navigateTo('argumentacao_especial');
                         }}
                         className="w-full py-2 text-gray-600 hover:text-red-400 uppercase tracking-widest text-[9px] font-black opacity-0 hover:opacity-100 transition-all duration-300 cursor-pointer"
                       >
@@ -2847,18 +2849,80 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
               </div>
             )}
 
+            {/* SLIDE INTERMEDIÁRIO: ARGUMENTAÇÃO DA CONDIÇÃO ESPECIAL */}
+            {currentSlide === 'argumentacao_especial' && (
+              <div className="space-y-8 max-w-4xl mx-auto">
+                <div className="text-center space-y-3">
+                  <h3 className="text-xs font-bold uppercase tracking-widest text-gold-500 font-mono">Comprometimento</h3>
+                  <h1 className="font-serif font-bold text-3xl md:text-5xl text-white">Existem 2 tipos de pessoas que não pagam o valor normal</h1>
+                  <p className="text-gray-400 text-sm md:text-base max-w-xl mx-auto font-light">
+                    Abro uma condição exclusiva na consultoria, apenas, para esses perfis específicos de pessoas.
+                  </p>
+                </div>
+
+                {/* Os 2 tipos de pessoas colocados em cards premium */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto pt-2">
+                  <div className="bg-dark-900 border border-dark-800 rounded-2xl p-6 space-y-4 hover:border-gold-500/20 transition-all shadow-xl">
+                    <div className="w-12 h-12 bg-gold-500/10 rounded-xl flex items-center justify-center text-gold-400">
+                      <Users className="w-6 h-6" />
+                    </div>
+                    <h3 className="text-lg font-serif font-bold text-white">Indicados</h3>
+                    <p className="text-xs text-gray-400 leading-relaxed font-light">
+                      São parecidos com quem já está tendo resultados. Eu quero trabalhar com pessoas assim, porque também terão sucesso e é mais provável que também vão me indicar para outras pessoas iguais à ela.
+                    </p>
+                  </div>
+
+                  <div className="bg-dark-900 border border-dark-800 rounded-2xl p-6 space-y-4 hover:border-gold-500/20 transition-all shadow-xl">
+                    <div className="w-12 h-12 bg-sky-500/10 rounded-xl flex items-center justify-center text-sky-400">
+                      <Sparkles className="w-6 h-6" />
+                    </div>
+                    <h3 className="text-lg font-serif font-bold text-white">Comprometidos</h3>
+                    <p className="text-xs text-gray-400 leading-relaxed font-light">
+                      As que passam por uma reunião como essa e percebo que, mesmo tendo DESAFIOS que eu consigo resolver, elas APARENTAM ter o COMPROMETIMENTO para executar o que combinamos.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Frases de Argumentação e Comprometimento */}
+                <div className="text-center space-y-6 pt-4 max-w-2xl mx-auto">
+                  <div className="p-5 bg-red-950/20 border border-red-500/15 rounded-2xl animate-pulse">
+                    <p className="text-red-500 font-bold text-xs md:text-sm leading-relaxed">
+                      Quem demora 2, 3, 7 dias para decidir entrar, também são aqueles que demoram para executar, acabam não fazendo e, consequentemente, não tem resultado.
+                    </p>
+                  </div>
+
+                  <p className="text-sky-400 font-extrabold text-sm md:text-base">
+                    Por isso eu beneficio quem age rápido, porque eu sei que estes viram case de sucesso!
+                  </p>
+                </div>
+
+                <div className="text-center pt-2">
+                  <button
+                    onClick={() => navigateTo('condicao_especial')}
+                    className="px-8 py-4 bg-gold-500 hover:bg-gold-600 text-dark-950 font-black rounded-xl transition-all uppercase tracking-widest text-[11px] cursor-pointer shadow-lg hover:shadow-gold-500/10 inline-flex items-center gap-2"
+                  >
+                    <span>Condição Especial de Fechamento em Reunião</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* SLIDE 15: CONDIÇÃO ESPECIAL */}
             {currentSlide === 'condicao_especial' && (
               <div className="space-y-8">
                 <div className="text-center space-y-3">
-                  <h3 className="text-xs font-bold uppercase tracking-widest text-red-400 font-mono">Negociação</h3>
-                  <h1 className="font-serif font-bold text-3xl md:text-5xl text-white">Condição Especial Sob Medida</h1>
+                  <h3 className="text-xs font-bold uppercase tracking-widest text-red-400 font-mono">Exclusivo</h3>
+                  <h1 className="font-serif font-bold text-3xl md:text-5xl text-white">Condição especial</h1>
                   <p className="text-gray-400 text-sm md:text-base max-w-xl mx-auto font-light">
-                    Existem situações onde abrimos vagas especiais com menor suporte ou em projetos pilotos para viabilizar o orçamento do cliente.
+                    Existem situações onde abrimos vagas que viabilizam o orçamento do cliente, especificamente, daqueles que fazem parte dos 2 perfis apresentados.
                   </p>
                 </div>
 
-                <div className="bg-dark-900 border border-dark-800 max-w-lg mx-auto rounded-3xl p-6 md:p-8 space-y-6 text-center shadow-2xl relative overflow-hidden">
+                <div className="bg-dark-900 border border-dark-800 max-w-lg mx-auto rounded-3xl p-6 md:p-8 space-y-6 text-center shadow-2xl relative">
+                  <div className="absolute top-0 right-6 -translate-y-1/2 px-3 py-1 bg-red-500 text-dark-950 text-[10px] font-black rounded-full uppercase tracking-widest">
+                    Ao invés de {displayParcelado} (ou à vista {displayAVista})
+                  </div>
 
                   {/* Botão de Copiar Link Unificado (Canto Superior Esquerdo) */}
                   {(!!(especialParceladoOption && especialParceladoOption.checkoutType !== 'maquininha' && especialParceladoOption.link) ||
@@ -2940,20 +3004,15 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                     <Coins className="w-4 h-4" />
                   </button>
 
-                  <div className="mt-8 p-4 bg-dark-950 rounded-xl border border-dark-850 text-left space-y-2 text-xs text-gray-300 font-light">
-                    <p className="font-bold text-white text-sm">Condição Especial: Vaga Estrutural</p>
-                    <p>
-                      Para viabilizar a sua entrada agora, podemos flexibilizar a mentoria. A entrega será feita com encontros em grupo ou reduziremos para 2 encontros de onboarding individual mais acompanhamento simplificado.
-                    </p>
-                  </div>
+                  <div className="pt-4"></div>
 
                   <div className="space-y-2">
-                    <h4 className="text-sm text-gray-500 uppercase tracking-widest font-mono font-bold">Investimento Promocional</h4>
+                    <h4 className="text-sm text-gold-500 uppercase tracking-widest font-mono font-bold">Investimento</h4>
                     <div className="flex flex-col items-center justify-center gap-1">
                       {renderParceladoPremium(displayEspecial2, "text-3xl md:text-4xl")}
                     </div>
                     <div className="text-xs text-gray-455 font-light flex items-center justify-center gap-1.5 mt-1">
-                      ou <span className="text-sky-400 font-bold">{displayEspecial1}</span>
+                      ou à vista <span className="text-sky-400 font-bold">por {displayEspecial1}</span>
                     </div>
                   </div>
 
@@ -2970,7 +3029,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                       }}
                       className="w-full py-3.5 bg-gold-500 hover:bg-gold-600 text-dark-950 font-black rounded-xl transition-all uppercase tracking-widest text-[11px]"
                     >
-                      Aceitar Condição Especial (Entrada + 1x)
+                      Seguir com Pagamento à Vista
                     </button>
 
                     {/* Aceitou Parcelado */}
@@ -2985,7 +3044,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                       }}
                       className="w-full py-3.5 bg-dark-800 hover:bg-dark-750 text-white font-bold rounded-xl border border-dark-700 hover:border-gold-500/20 transition-all uppercase tracking-widest text-[11px]"
                     >
-                      Aceitar Condição Especial (Boleto Parcelado)
+                      Seguir com Pagamento Parcelado
                     </button>
 
                     {/* Ainda Não - Oculto por padrão, visível com hover */}
@@ -3365,7 +3424,10 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
           currentSlide !== 'condicao_especial' &&
           currentSlide !== 'downsell' &&
           currentSlide !== 'proximos_passos' &&
-          currentSlide !== 'proximos_passos_downsell' ? (
+          currentSlide !== 'proximos_passos_downsell' &&
+          currentSlide !== 'decisao_matrix' &&
+          currentSlide !== 'reforco_valor' &&
+          currentSlide !== 'argumentacao_especial' ? (
           <button
             onClick={() => {
               if (currentSlide === 'intro') {
