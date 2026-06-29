@@ -2669,9 +2669,9 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
               <div className="space-y-8">
                 <div className="text-center space-y-3">
                   <h3 className="text-xs font-bold uppercase tracking-widest text-gold-500 font-mono">Investimento</h3>
-                  <h1 className="font-serif font-bold text-3xl md:text-5xl text-white">Consultoria Estruturada</h1>
+                  <h1 className="font-serif font-bold text-3xl md:text-5xl text-white">Consultoria Financeira</h1>
                   <p className="text-gray-400 text-sm md:text-base max-w-xl mx-auto font-light">
-                    Escolha a opção de pagamento que melhor se adequa ao seu planejamento atual.
+                    Escolha a opção de pagamento que melhor se adequa para você, hoje.
                   </p>
                 </div>
 
@@ -2856,7 +2856,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                   <h3 className="text-xs font-bold uppercase tracking-widest text-gold-500 font-mono">Comprometimento</h3>
                   <h1 className="font-serif font-bold text-3xl md:text-5xl text-white">Existem 2 tipos de pessoas que não pagam o valor normal</h1>
                   <p className="text-gray-400 text-sm md:text-base max-w-xl mx-auto font-light">
-                    Abro uma condição exclusiva na consultoria, apenas, para esses perfis específicos de pessoas.
+                    Abro uma condição exclusiva na consultoria, apenas, para esses perfis de pessoas.
                   </p>
                 </div>
 
@@ -2901,7 +2901,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                     onClick={() => navigateTo('condicao_especial')}
                     className="px-8 py-4 bg-gold-500 hover:bg-gold-600 text-dark-950 font-black rounded-xl transition-all uppercase tracking-widest text-[11px] cursor-pointer shadow-lg hover:shadow-gold-500/10 inline-flex items-center gap-2"
                   >
-                    <span>Condição Especial de Fechamento em Reunião</span>
+                    <span>Condição Especial para Fechamento em Reunião</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
@@ -2913,7 +2913,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
               <div className="space-y-8">
                 <div className="text-center space-y-3">
                   <h3 className="text-xs font-bold uppercase tracking-widest text-red-400 font-mono">Exclusivo</h3>
-                  <h1 className="font-serif font-bold text-3xl md:text-5xl text-white">Condição especial</h1>
+                  <h1 className="font-serif font-bold text-3xl md:text-5xl text-white">Condição Especial</h1>
                   <p className="text-gray-400 text-sm md:text-base max-w-xl mx-auto font-light">
                     Existem situações onde abrimos vagas que viabilizam o orçamento do cliente, especificamente, daqueles que fazem parte dos 2 perfis apresentados.
                   </p>
@@ -3072,10 +3072,10 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
             {currentSlide === 'downsell' && (
               <div className="space-y-8">
                 <div className="text-center space-y-3">
-                  <h3 className="text-xs font-bold uppercase tracking-widest text-gold-500 font-mono">Produto de Entrada</h3>
-                  <h1 className="font-serif font-bold text-3xl md:text-5xl text-white">Sessão Expresso de Direcionamento</h1>
+                  <h3 className="text-xs font-bold uppercase tracking-widest text-gold-500 font-mono">Última Oportunidade</h3>
+                  <h1 className="font-serif font-bold text-3xl md:text-5xl text-white">Enquadramento Financeiro</h1>
                   <p className="text-gray-400 text-sm md:text-base max-w-xl mx-auto font-light">
-                    Uma alternativa mais acessível para dar os primeiros passos e estruturar suas metas imediatas de organização.
+                    Uma alternativa mais acessível para dar os primeiros passos e se organizar financeiramente, SOZINHO.
                   </p>
                 </div>
 

@@ -33,7 +33,8 @@ import {
     Eye,
     Presentation,
     ArrowRight,
-    Plus
+    Plus,
+    GripVertical
 } from 'lucide-react';
 import { PresentationFlow } from './PresentationFlow';
 
@@ -202,6 +203,8 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
     // Usuários e Precificação
     const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
     const [pricingPackages, setPricingPackages] = useState<PricingPackage[]>([]);
+    const [pricingFilter, setPricingFilter] = useState<'personal' | 'business' | 'complete'>('personal');
+    const [draggedPkgId, setDraggedPkgId] = useState<string | null>(null);
     const [loadingUsers, setLoadingUsers] = useState(false);
     const [loadingPricing, setLoadingPricing] = useState(false);
 
@@ -384,7 +387,7 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
             const { data, error } = await supabase
                 .from('pricing_packages')
                 .select('*')
-                .order('created_at', { ascending: false });
+                .order('created_at', { ascending: true });
             if (!error && data) {
                 if (data.length === 0) {
                     const { data: insertedData, error: insertError } = await supabase
@@ -406,6 +409,47 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
             console.error('Erro ao buscar precificações:', e);
         } finally {
             setLoadingPricing(false);
+        }
+    };
+
+    const handlePackageDrop = async (draggedId: string, targetId: string, currentList: PricingPackage[]) => {
+        if (draggedId === targetId) return;
+
+        const draggedIndex = currentList.findIndex(p => p.id === draggedId);
+        const targetIndex = currentList.findIndex(p => p.id === targetId);
+        if (draggedIndex === -1 || targetIndex === -1) return;
+
+        const newList = [...currentList];
+        const [removed] = newList.splice(draggedIndex, 1);
+        newList.splice(targetIndex, 0, removed);
+
+        const otherPackages = pricingPackages.filter(p => !currentList.some(item => item.id === p.id));
+        
+        const now = new Date();
+        const updatedListWithTimestamps = newList.map((pkg, idx) => {
+            const time = new Date(now.getTime() + idx * 1000);
+            return {
+                ...pkg,
+                created_at: time.toISOString()
+            };
+        });
+
+        const mergedPackages = [...otherPackages, ...updatedListWithTimestamps].sort((a, b) => {
+            return new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime();
+        });
+
+        setPricingPackages(mergedPackages);
+
+        try {
+            for (let i = 0; i < updatedListWithTimestamps.length; i++) {
+                const item = updatedListWithTimestamps[i];
+                await supabase
+                    .from('pricing_packages')
+                    .update({ created_at: item.created_at })
+                    .eq('id', item.id);
+            }
+        } catch (err) {
+            console.error('Erro ao salvar a ordem dos pacotes:', err);
         }
     };
 
@@ -652,6 +696,22 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
             ...opt,
             label: String(idx + 1)
         }));
+        setNewPricingOptions(remapped);
+    };
+
+    const handleReorderPricingOption = (currentIndex: number, newOrder: number) => {
+        const targetIndex = newOrder - 1;
+        if (targetIndex === currentIndex || targetIndex < 0 || targetIndex >= newPricingOptions.length) return;
+
+        const updated = [...newPricingOptions];
+        const [removed] = updated.splice(currentIndex, 1);
+        updated.splice(targetIndex, 0, removed);
+
+        const remapped = updated.map((opt, idx) => ({
+            ...opt,
+            label: String(idx + 1)
+        }));
+
         setNewPricingOptions(remapped);
     };
 
@@ -2298,7 +2358,7 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                                             setEditingPricing(null);
                                             setNewPricingName('');
                                             setNewPricingValue('');
-                                            setNewPricingPresentationType('personal');
+                                            setNewPricingPresentationType(pricingFilter);
                                             setNewPricingProductMoment('consultoria');
                                             setNewPricingOptions([
                                                 { label: '1', description: '', link: '', isCard: false, installments: 12, installmentValue: '', checkoutType: 'link' }
@@ -2312,21 +2372,61 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                                     </button>
                                 </div>
 
+                                {/* Filtros de Apresentação */}
+                                <div className="flex border-b border-dark-800 gap-2 font-sans">
+                                    <button
+                                        type="button"
+                                        onClick={() => setPricingFilter('personal')}
+                                        className={`px-4 py-3 border-b-2 text-xs font-bold transition-all uppercase tracking-wider cursor-pointer flex items-center gap-2 ${
+                                            pricingFilter === 'personal'
+                                                ? 'border-gold-500 text-gold-400 font-black'
+                                                : 'border-transparent text-gray-500 hover:text-gray-400'
+                                        }`}
+                                    >
+                                        <User className="w-3.5 h-3.5" />
+                                        Finanças Pessoais
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setPricingFilter('business')}
+                                        className={`px-4 py-3 border-b-2 text-xs font-bold transition-all uppercase tracking-wider cursor-pointer flex items-center gap-2 ${
+                                            pricingFilter === 'business'
+                                                ? 'border-gold-500 text-gold-400 font-black'
+                                                : 'border-transparent text-gray-500 hover:text-gray-400'
+                                        }`}
+                                    >
+                                        <DollarSign className="w-3.5 h-3.5" />
+                                        Finanças Empresariais
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setPricingFilter('complete')}
+                                        className={`px-4 py-3 border-b-2 text-xs font-bold transition-all uppercase tracking-wider cursor-pointer flex items-center gap-2 ${
+                                            pricingFilter === 'complete'
+                                                ? 'border-gold-500 text-gold-400 font-black'
+                                                : 'border-transparent text-gray-500 hover:text-gray-400'
+                                        }`}
+                                    >
+                                        <Layers className="w-3.5 h-3.5" />
+                                        Finanças Pessoais e Empresariais
+                                    </button>
+                                </div>
+
                                 {[
                                     {
                                         title: "Produto Principal (Consultoria Estruturada)",
                                         subtitle: "Pacotes de precificação da oferta principal",
-                                        packages: pricingPackages.filter(p => !p.product_moment || p.product_moment === 'consultoria')
+                                        packages: pricingPackages.filter(p => p.presentation_type === pricingFilter && (!p.product_moment || p.product_moment === 'consultoria'))
                                     },
                                     {
                                         title: "Produto Alternativo (Condição Especial)",
                                         subtitle: "Pacotes para condições alternativas e ofertas especiais",
-                                        packages: pricingPackages.filter(p => p.product_moment === 'especial')
+                                        packages: pricingPackages.filter(p => p.presentation_type === pricingFilter && p.product_moment === 'especial')
                                     },
                                     {
                                         title: "Produto Downsell (Produto de Entrada)",
                                         subtitle: "Pacotes mais acessíveis para conversão de entrada",
-                                        packages: pricingPackages.filter(p => p.product_moment === 'entrada')
+                                        packages: pricingPackages.filter(p => p.presentation_type === pricingFilter && p.product_moment === 'entrada')
                                     }
                                 ].map((section, sectionIdx) => (
                                     <div key={sectionIdx} className="bg-dark-900 border border-dark-800 rounded-xl overflow-hidden shadow-2xl font-sans">
@@ -2346,6 +2446,7 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                                                 <table className="w-full text-left">
                                                     <thead className="bg-dark-800/50 text-xs uppercase tracking-widest text-gray-500">
                                                         <tr>
+                                                            <th className="w-10 px-4 py-4"></th>
                                                             <th className="px-6 py-4 font-semibold font-sans">Nome</th>
                                                             <th className="px-6 py-4 font-semibold font-sans">Valor Total</th>
                                                             <th className="px-6 py-4 font-semibold font-sans">Formas Cadastradas</th>
@@ -2354,7 +2455,29 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                                                     </thead>
                                                     <tbody className="divide-y divide-dark-800">
                                                         {section.packages.map(pkg => (
-                                                            <tr key={pkg.id} className="hover:bg-dark-800/40 transition-colors">
+                                                            <tr
+                                                                key={pkg.id}
+                                                                draggable={true}
+                                                                onDragStart={(e) => {
+                                                                    setDraggedPkgId(pkg.id);
+                                                                    e.dataTransfer.effectAllowed = "move";
+                                                                }}
+                                                                onDragOver={(e) => {
+                                                                    e.preventDefault();
+                                                                }}
+                                                                onDrop={async (e) => {
+                                                                    e.preventDefault();
+                                                                    if (!draggedPkgId || draggedPkgId === pkg.id) return;
+                                                                    await handlePackageDrop(draggedPkgId, pkg.id, section.packages);
+                                                                    setDraggedPkgId(null);
+                                                                }}
+                                                                className={`hover:bg-dark-800/40 transition-colors cursor-grab active:cursor-grabbing ${
+                                                                    draggedPkgId === pkg.id ? 'opacity-30 bg-dark-950' : ''
+                                                                }`}
+                                                            >
+                                                                <td className="w-10 px-4 py-4 text-gray-600 hover:text-gray-400 transition-colors">
+                                                                    <GripVertical className="w-4 h-4" />
+                                                                </td>
                                                                 <td className="px-6 py-4 text-gray-300 font-medium">
                                                                     <div className="flex items-center gap-2">
                                                                         {pkg.name}
@@ -2428,7 +2551,6 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                                                                                     }
                                                                                 }
 
-                                                                                // Inferir checkoutType se não existir
                                                                                 let checkoutType = opt.checkoutType;
                                                                                 if (!checkoutType) {
                                                                                     const link = opt.link || '';
@@ -3649,9 +3771,18 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                                             {newPricingOptions.map((opt, idx) => (
                                                 <div key={idx} className="p-4 bg-dark-950 rounded-xl border border-dark-850 space-y-3 relative">
                                                     <div className="flex justify-between items-center">
-                                                        <span className="text-[10px] font-bold text-gold-500 bg-gold-500/10 px-2 py-0.5 rounded border border-gold-500/20">
-                                                            Forma {opt.label}
-                                                        </span>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Ordem:</span>
+                                                            <select
+                                                                value={idx + 1}
+                                                                onChange={(e) => handleReorderPricingOption(idx, parseInt(e.target.value, 10))}
+                                                                className="bg-dark-900 border border-dark-800 text-gold-400 text-[10px] font-bold rounded px-2 py-1 outline-none focus:border-gold-500 cursor-pointer font-sans"
+                                                            >
+                                                                {Array.from({ length: newPricingOptions.length }, (_, i) => i + 1).map(num => (
+                                                                    <option key={num} value={num}>Forma {num}</option>
+                                                                ))}
+                                                            </select>
+                                                        </div>
                                                         {newPricingOptions.length > 1 && (
                                                             <button
                                                                 type="button"
