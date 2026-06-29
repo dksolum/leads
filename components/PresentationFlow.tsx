@@ -2793,7 +2793,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                     </li>
                     <li className="flex items-center gap-2">
                       <GiftIcon className="w-4 h-4 text-gold-500" />
-                      Sessão de retorno (Aproximadamente 1h e 30min)
+                      Sessão de retorno <span className="text-gold-400 font-bold"> (APROX. 1H E 30MIN)</span>
                     </li>
                   </ul>
 
@@ -2915,7 +2915,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                   <h3 className="text-xs font-bold uppercase tracking-widest text-red-400 font-mono">Exclusivo</h3>
                   <h1 className="font-serif font-bold text-3xl md:text-5xl text-white">Condição Especial</h1>
                   <p className="text-gray-400 text-sm md:text-base max-w-xl mx-auto font-light">
-                    Existem situações onde abrimos vagas que viabilizam o orçamento do cliente, especificamente, daqueles que fazem parte dos 2 perfis apresentados.
+                    Existem situações onde abro vagas que viabilizam o orçamento do cliente, especificamente, daqueles que fazem parte dos 2 perfis apresentados.
                   </p>
                 </div>
 
@@ -3012,9 +3012,36 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                       {renderParceladoPremium(displayEspecial2, "text-3xl md:text-4xl")}
                     </div>
                     <div className="text-xs text-gray-455 font-light flex items-center justify-center gap-1.5 mt-1">
-                      ou à vista <span className="text-sky-400 font-bold">por {displayEspecial1}</span>
+                      ou à vista, com um desconto AINDA MELHOR <span className="text-sky-400 font-bold">por {displayEspecial1}</span>
                     </div>
                   </div>
+
+                  <ul className="text-xs text-gray-400 space-y-2 py-4 border-t border-b border-dark-800 text-left max-w-xs mx-auto">
+                    <li className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-gold-500" />
+                      Sessão de 1h 30min
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-gold-500" />
+                      Acompanhamento de 30 dias
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <GiftIcon className="w-4 h-4 text-gold-500" />
+                      Ferramenta de controle financeiro durante acompanhamento
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <GiftIcon className="w-4 h-4 text-gold-500" />
+                      Análise completa da sua situação financeira
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <GiftIcon className="w-4 h-4 text-gold-500" />
+                      Revisão dos seus gastos
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <GiftIcon className="w-4 h-4 text-gold-500" />
+                      Sessão de retorno <span className="text-gold-400 font-bold"> (APROX. 1H E 30MIN)</span>
+                    </li>
+                  </ul>
 
                   <div className="grid grid-cols-1 gap-3 pt-2">
                     {/* Aceitou à Vista */}
@@ -3075,11 +3102,16 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                   <h3 className="text-xs font-bold uppercase tracking-widest text-gold-500 font-mono">Última Oportunidade</h3>
                   <h1 className="font-serif font-bold text-3xl md:text-5xl text-white">Método Enquadramento Financeiro</h1>
                   <p className="text-gray-400 text-sm md:text-base max-w-xl mx-auto font-light">
-                    Se este ainda não é o momento para a consultoria, você pode começar sozinho com um método estruturado e utilizar as mesmas ferramentas que aplicamos com nossos clientes.
+                    Se este ainda não é o momento para a consultoria, você pode começar sozinho com um método estruturado e utilizar as mesmas ferramentas que eu disponibilizo aos meus clientes.
                   </p>
                 </div>
 
-                <div className="bg-dark-900 border border-dark-800 max-w-lg mx-auto rounded-3xl p-6 md:p-8 space-y-6 text-center shadow-2xl relative overflow-hidden">
+                <div className="bg-dark-900 border border-dark-800 max-w-lg mx-auto rounded-3xl p-6 md:p-8 space-y-6 text-center shadow-2xl relative">
+
+                  {/* Balão com valor normal de R$ 497,00 */}
+                  <div className="absolute top-0 right-6 -translate-y-1/2 px-3 py-1 bg-red-500 text-dark-950 text-[10px] font-black rounded-full uppercase tracking-widest z-20 shadow-md">
+                    O VALOR NORMAL É R$ 397
+                  </div>
 
                   {/* Botão de Copiar Link Unificado (Canto Superior Esquerdo) */}
                   {(!!(entradaParceladoOption && entradaParceladoOption.checkoutType !== 'maquininha' && entradaParceladoOption.link) ||
@@ -3167,38 +3199,79 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                       {renderParceladoPremium(entradaParceladoOption ? formatPaymentOptionValue(entradaParceladoOption, true) : '12x de R$ 15,20', "text-3xl md:text-4xl")}
                     </div>
                     <div className="text-xs text-gray-455 font-light flex items-center justify-center gap-1.5 mt-1">
-                      ou <span className="text-sky-400 font-bold">{entradaVistaOption ? formatPaymentOptionValue(entradaVistaOption) : 'R$ 147,00'}</span>
+                      ou à vista, com um desconto AINDA MELHOR <span className="text-sky-400 font-bold">por {entradaVistaOption ? formatPaymentOptionValue(entradaVistaOption) : 'R$ 147,00'}</span>
                     </div>
                   </div>
 
-                  <ul className="text-xs text-gray-400 space-y-2 py-4 border-t border-b border-dark-800 text-left max-w-xs mx-auto">
-                    <li className="flex items-center gap-2">
-                      <Check className="w-4 h-4 text-gold-500" />
-                      Organização Financeira
+                  <ul className="text-xs text-gray-400 space-y-4 py-4 border-t border-b border-dark-800 text-left max-w-md mx-auto">
+                    <li className="flex items-start gap-2.5">
+                      <Check className="w-4 h-4 text-gold-500 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-bold text-gray-200 text-xs">Planejamento</p>
+                        <p className="text-[10px] text-gray-500 font-light mt-0.5">Construir um planejamento financeiro sólido</p>
+                        <p className="text-[10px] text-gray-500 font-light mt-0.5">Projetar os próximos meses</p>
+                        <p className="text-[10px] text-gray-500 font-light mt-0.5">Equilibrar orçamento e objetivos</p>
+                      </div>
                     </li>
-                    <li className="flex items-center gap-2">
-                      <Check className="w-4 h-4 text-gold-500" />
-                      Planejamento
+                    <li className="flex items-start gap-2.5">
+                      <Check className="w-4 h-4 text-gold-500 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-bold text-gray-200 text-xs">Organização Financeira</p>
+                        <p className="text-[10px] text-gray-500 font-light mt-0.5">Entender sua realidade financeira</p>
+                        <p className="text-[10px] text-gray-500 font-light mt-0.5">Organizar contas e orçamento</p>
+                        <p className="text-[10px] text-gray-500 font-light mt-0.5">Controlar receitas, despesas e dívidas</p>
+                      </div>
                     </li>
-                    <li className="flex items-center gap-2">
-                      <Check className="w-4 h-4 text-gold-500" />
-                      Crescimento Patrimonial
+                    <li className="flex items-start gap-2.5">
+                      <Check className="w-4 h-4 text-gold-500 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-bold text-gray-200 text-xs">Crescimento Patrimonial</p>
+                        <p className="text-[10px] text-gray-500 font-light mt-0.5">Criar sua reserva financeira</p>
+                        <p className="text-[10px] text-gray-500 font-light mt-0.5">Quitar dívidas de forma inteligente</p>
+                        <p className="text-[10px] text-gray-500 font-light mt-0.5">Dar os primeiros passos nos investimentos</p>
+                      </div>
                     </li>
-                    <li className="flex items-center gap-2">
-                      <GiftIcon className="w-4 h-4 text-gold-500" />
-                      Ferramenta de controle financeiro (Solum Financeiro)
+                    <li className="flex items-start gap-2.5">
+                      <GiftIcon className="w-4 h-4 text-gold-500 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-bold text-gray-200 text-xs">Ferramenta de controle <span className="text-gold-400 font-bold">(SOLUM FINANCEIRO)</span></p>
+                        <p className="text-[10px] text-gray-500 font-light mt-0.5">A mesma ferramenta utilizada durante as minhas consultorias para você organizar, acompanhar e planejar a sua vida financeira <span className="text-gold-400 font-semi-bold">(acesso por 12 meses)</span></p>
+                      </div>
                     </li>
-                    <li className="flex items-center gap-2">
-                      <GiftIcon className="w-4 h-4 text-gold-500" />
-                      Cartão de Crédito sem Armadilhas
+                    <li className="flex items-start gap-2.5">
+                      <GiftIcon className="w-4 h-4 text-gold-500 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-bold text-gray-200 text-xs">Cartão de Crédito sem Armadilhas</p>
+                        <p className="text-[10px] text-gray-500 font-light mt-0.5">Aprenda a utilizar o cartão de crédito da forma correta</p>
+                      </div>
                     </li>
-                    <li className="flex items-center gap-2">
-                      <GiftIcon className="w-4 h-4 text-gold-500" />
-                      Guia das 10 Rotinas Financeiras
+                    <li className="flex items-start gap-2.5">
+                      <GiftIcon className="w-4 h-4 text-gold-500 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-bold text-gray-200 text-xs">Guia das 10 Rotinas para Sempre ter Dinheiro</p>
+                        <p className="text-[10px] text-gray-500 font-light mt-0.5">Hábitos rápidos diários e semanais para blindar seu orçamento</p>
+                      </div>
                     </li>
-                    <li className="flex items-center gap-2">
-                      <GiftIcon className="w-4 h-4 text-gold-500" />
-                      Amortização Inteligente
+                    <li className="flex items-start gap-2.5">
+                      <GiftIcon className="w-4 h-4 text-gold-500 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-bold text-gray-200 text-xs">Amortização Inteligente</p>
+                        <p className="text-[10px] text-gray-500 font-light mt-0.5">Aprenda quando vale a pena antecipar parcelas e como isso funciona na prática</p>
+                      </div>
+                    </li>
+                    <li className="flex items-start gap-2.5">
+                      <GiftIcon className="w-4 h-4 text-gold-500 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-bold text-gray-200 text-xs">Atualizações Futuras</p>
+                        <p className="text-[10px] text-gray-500 font-light mt-0.5">Receba acesso às novas funcionalidades da ferramenta conforme forem lançadas</p>
+                      </div>
+                    </li>
+                    <li className="flex items-start gap-2.5">
+                      <GiftIcon className="w-4 h-4 text-gold-500 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-bold text-gray-200 text-xs">Grupo Exclusivo <span className="text-gold-400 font-bold">(EM BREVE)</span></p>
+                        <p className="text-[10px] text-gray-500 font-light mt-0.5">Espaço para dúvidas e troca de experiências entre os participantes</p>
+                      </div>
                     </li>
                   </ul>
 
@@ -3215,7 +3288,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                       }}
                       className="w-full py-3.5 bg-gold-500 hover:bg-gold-600 text-dark-950 font-black rounded-xl transition-all uppercase tracking-widest text-[11px]"
                     >
-                      Adquirir Sessão Expresso (À Vista)
+                      Seguir com Pagamento à Vista
                     </button>
 
                     {/* Aceitou Parcelado */}
@@ -3230,7 +3303,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                       }}
                       className="w-full py-3.5 bg-dark-800 hover:bg-dark-750 text-white font-bold rounded-xl border border-dark-700 hover:border-gold-500/20 transition-all uppercase tracking-widest text-[11px]"
                     >
-                      Adquirir Sessão Expresso (Parcelado)
+                      Seguir com Pagamento Parcelado
                     </button>
 
                     {/* Recusou definitivo - Oculto por padrão, visível com hover */}
@@ -3261,7 +3334,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                   <h3 className="text-xs font-bold uppercase tracking-widest text-gold-500 font-mono">Boas Vindas</h3>
                   <h1 className="font-serif font-bold text-3xl md:text-5xl text-white">Próximos Passos</h1>
                   <p className="text-gray-400 text-sm md:text-base font-light">
-                    Parabéns pela decisão de iniciar sua consultoria! O seu caminho para a transformação começa agora.
+                    Parabéns pela decisão de iniciar sua consultoria!
                   </p>
                 </div>
 
@@ -3272,9 +3345,9 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                         1
                       </span>
                       <div>
-                        <h4 className="font-bold text-white">Aprovação do Link de Pagamento</h4>
+                        <h4 className="font-bold text-white">Aprovação do Pagamento</h4>
                         <p className="text-xs text-gray-400 font-light mt-1">
-                          O consultor enviará o link correspondente à opção escolhida (à vista ou parcelado) para aprovação e transação segura.
+                          Acesso ao método de pagamento correspondente à opção escolhida (à vista ou parcelado) para aprovação e transação segura.
                         </p>
                       </div>
                     </div>
@@ -3284,9 +3357,9 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                         2
                       </span>
                       <div>
-                        <h4 className="font-bold text-white">Contrato e Onboarding</h4>
+                        <h4 className="font-bold text-white">Grupo Fechado, Contrato e Onboarding</h4>
                         <p className="text-xs text-gray-400 font-light mt-1">
-                          Você receberá por e-mail/WhatsApp o contrato digital de prestação de serviços e o questionário complementar de onboarding.
+                          Você receberá o convite para participar do grupo da Consultoria no WhatsApp, onde receberá o contrato de prestação de serviços, para assinatura digital, e o acesso da ferramenta Solum Financeiro, para preencher o Mapeamento de Dívidas, Custo de Vida e Anamnese.
                         </p>
                       </div>
                     </div>
@@ -3298,7 +3371,43 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                       <div>
                         <h4 className="font-bold text-white">Agendamento da 1ª Sessão</h4>
                         <p className="text-xs text-gray-400 font-light mt-1">
-                          Bloquearemos na agenda o horário da sua primeira sessão oficial para iniciarmos o mapeamento detalhado dos gargalos.
+                          Após preenchimento do Onboarding, agendaremos o dia e o horário da sua primeira reunião.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-4">
+                      <span className="w-8 h-8 rounded-full bg-gold-500/10 text-gold-500 font-black text-xs flex items-center justify-center shrink-0 border border-gold-500/20">
+                        4
+                      </span>
+                      <div>
+                        <h4 className="font-bold text-white">1ª Sessão (Consultoria Financeira)</h4>
+                        <p className="text-xs text-gray-400 font-light mt-1">
+                          Será apresentado o diagnóstico financeiro, o plano de ação e como executar o plano de ação.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-4">
+                      <span className="w-8 h-8 rounded-full bg-gold-500/10 text-gold-500 font-black text-xs flex items-center justify-center shrink-0 border border-gold-500/20">
+                        5
+                      </span>
+                      <div>
+                        <h4 className="font-bold text-white">Acompanhamento de 30 dias</h4>
+                        <p className="text-xs text-gray-400 font-light mt-1">
+                          Haverá acompanhamento por 30 dias para tirar dúvidas. Pode acontecer de durar mais dias, pois ele se estenderá até o dia da reunião de retorno.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-4">
+                      <span className="w-8 h-8 rounded-full bg-gold-500/10 text-gold-500 font-black text-xs flex items-center justify-center shrink-0 border border-gold-500/20">
+                        6
+                      </span>
+                      <div>
+                        <h4 className="font-bold text-white">2ª Sessão (Pós-Consultoria)</h4>
+                        <p className="text-xs text-gray-400 font-light mt-1">
+                          Haverá uma reunião de retorno para entender como foi a execução do plano de ação, quais foram as dificuldades encontradas, quais foram os resultados alcançados e quais serão os próximos passos.
                         </p>
                       </div>
                     </div>
@@ -3322,9 +3431,9 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
               <div className="space-y-8 max-w-2xl mx-auto">
                 <div className="text-center space-y-3">
                   <h3 className="text-xs font-bold uppercase tracking-widest text-gold-500 font-mono">Boas Vindas</h3>
-                  <h1 className="font-serif font-bold text-3xl md:text-5xl text-white">Próximos Passos da Sessão Expresso</h1>
+                  <h1 className="font-serif font-bold text-3xl md:text-5xl text-white">Próximos Passos</h1>
                   <p className="text-gray-400 text-sm md:text-base font-light">
-                    Parabéns pela decisão de iniciar sua organização financeira com o direcionamento expresso!
+                    Parabéns pela decisão de iniciar sua organização financeira! O processo a partir de agora é rápido e simples. Basta seguir os próximos passos para liberar seu acesso.
                   </p>
                 </div>
 
@@ -3335,9 +3444,9 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                         1
                       </span>
                       <div>
-                        <h4 className="font-bold text-white">Link de Pagamento (R$ 197)</h4>
+                        <h4 className="font-bold text-white">Aprovação do Pagamento</h4>
                         <p className="text-xs text-gray-400 font-light mt-1">
-                          Enviaremos o link para transação do produto simplificado.
+                          Após a confirmação do pagamento, seu acesso será liberado automaticamente.
                         </p>
                       </div>
                     </div>
@@ -3347,9 +3456,9 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                         2
                       </span>
                       <div>
-                        <h4 className="font-bold text-white">Agendamento de Data Única</h4>
+                        <h4 className="font-bold text-white">Acesse a Plataforma</h4>
                         <p className="text-xs text-gray-400 font-light mt-1">
-                          Faremos o agendamento da nossa sessão individual de 1h30m focada em planilhamento rápido.
+                          Você receberá um e-mail da Hotmart com o link para criar sua senha e entrar na área de membros.
                         </p>
                       </div>
                     </div>
@@ -3359,9 +3468,33 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                         3
                       </span>
                       <div>
-                        <h4 className="font-bold text-white">Entrega de Planilha de Apoio</h4>
+                        <h4 className="font-bold text-white">Comece pelo 1º Módulo (Boas Vindas)</h4>
                         <p className="text-xs text-gray-400 font-light mt-1">
-                          Você receberá a planilha de controle de fluxo de caixa diretamente no seu WhatsApp antes do encontro.
+                          Siga a sequência das aulas e utilize os materiais de apoio em cada etapa para aplicar tudo na prática.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-4">
+                      <span className="w-8 h-8 rounded-full bg-gold-500/10 text-gold-500 font-black text-xs flex items-center justify-center shrink-0 border border-gold-500/20">
+                        4
+                      </span>
+                      <div>
+                        <h4 className="font-bold text-white">Acesso à Solum Financeiro</h4>
+                        <p className="text-xs text-gray-400 font-light mt-1">
+                          Você receberá um e-mail com login e senha para entrar na ferramenta e começar a utilizar.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-4">
+                      <span className="w-8 h-8 rounded-full bg-gold-500/10 text-gold-500 font-black text-xs flex items-center justify-center shrink-0 border border-gold-500/20">
+                        5
+                      </span>
+                      <div>
+                        <h4 className="font-bold text-white">Atualizações</h4>
+                        <p className="text-xs text-gray-400 font-light mt-1">
+                          Dentro da Área de Membros você terá acesso a todas atualizações (inclusive às aulas da ferramenta e do grupo do whatsapp)
                         </p>
                       </div>
                     </div>
