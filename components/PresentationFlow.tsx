@@ -3073,9 +3073,9 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
               <div className="space-y-8">
                 <div className="text-center space-y-3">
                   <h3 className="text-xs font-bold uppercase tracking-widest text-gold-500 font-mono">Última Oportunidade</h3>
-                  <h1 className="font-serif font-bold text-3xl md:text-5xl text-white">Enquadramento Financeiro</h1>
+                  <h1 className="font-serif font-bold text-3xl md:text-5xl text-white">Método Enquadramento Financeiro</h1>
                   <p className="text-gray-400 text-sm md:text-base max-w-xl mx-auto font-light">
-                    Uma alternativa mais acessível para dar os primeiros passos e se organizar financeiramente, SOZINHO.
+                    Se este ainda não é o momento para a consultoria, você pode começar sozinho com um método estruturado e utilizar as mesmas ferramentas que aplicamos com nossos clientes.
                   </p>
                 </div>
 
@@ -3161,15 +3161,8 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                     <Coins className="w-4 h-4" />
                   </button>
 
-                  <div className="mt-8 p-4 bg-dark-950 rounded-xl border border-dark-850 text-left space-y-2 text-xs text-gray-300 font-light">
-                    <p className="font-bold text-white text-sm">Entrega do Produto Expresso</p>
-                    <p>
-                      Consiste em 1 única sessão individual de 1h30m focado puramente em estancar vazamento de caixa, mais a planilha automatizada para controle. Sem suporte diário, mas com direcionamento prático.
-                    </p>
-                  </div>
-
                   <div className="space-y-2">
-                    <h4 className="text-sm text-gray-500 uppercase tracking-widest font-bold font-mono">Investimento Acessível</h4>
+                    <h4 className="text-sm text-gold-500 uppercase tracking-widest font-bold font-mono">Investimento Mais Acessível</h4>
                     <div className="flex flex-col items-center justify-center gap-1">
                       {renderParceladoPremium(entradaParceladoOption ? formatPaymentOptionValue(entradaParceladoOption, true) : '12x de R$ 15,20', "text-3xl md:text-4xl")}
                     </div>
@@ -3177,6 +3170,37 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                       ou <span className="text-sky-400 font-bold">{entradaVistaOption ? formatPaymentOptionValue(entradaVistaOption) : 'R$ 147,00'}</span>
                     </div>
                   </div>
+
+                  <ul className="text-xs text-gray-400 space-y-2 py-4 border-t border-b border-dark-800 text-left max-w-xs mx-auto">
+                    <li className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-gold-500" />
+                      Organização Financeira
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-gold-500" />
+                      Planejamento
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-gold-500" />
+                      Crescimento Patrimonial
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <GiftIcon className="w-4 h-4 text-gold-500" />
+                      Ferramenta de controle financeiro (Solum Financeiro)
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <GiftIcon className="w-4 h-4 text-gold-500" />
+                      Cartão de Crédito sem Armadilhas
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <GiftIcon className="w-4 h-4 text-gold-500" />
+                      Guia das 10 Rotinas Financeiras
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <GiftIcon className="w-4 h-4 text-gold-500" />
+                      Amortização Inteligente
+                    </li>
+                  </ul>
 
                   <div className="grid grid-cols-1 gap-3 pt-2">
                     {/* Aceitou à Vista */}
@@ -3376,7 +3400,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                     onClick={onClose}
                     className="px-8 py-4 bg-dark-800 hover:bg-dark-750 text-gold-500 hover:text-gold-400 border border-dark-700 hover:border-gold-500/20 font-black rounded-xl text-xs uppercase tracking-widest transition-all duration-300 hover:scale-105 active:scale-95 shadow-md"
                   >
-                    Voltar ao Painel de Leads
+                    Sair da Reunião
                   </button>
                 </div>
               </div>
