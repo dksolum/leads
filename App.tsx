@@ -9,6 +9,7 @@ import { AdminDashboard } from './components/AdminDashboard';
 import { supabase } from './lib/supabase';
 import { HubPage } from './components/HubPage';
 import { ComingSoonPage } from './components/ComingSoonPage';
+import { PortfolioPage } from './components/PortfolioPage';
 
 // Componente que encapsula toda a lógica e fluxo originais de Finanças Pessoais
 const PersonalFinanceFlow: React.FC<{ onBack: () => void; onAdminClick: () => void }> = ({ onBack, onAdminClick }) => {
@@ -181,12 +182,18 @@ function App() {
           />
         )
       )}
+
+      {(currentPath === '/portfolio' || currentPath === '/portifolio') && (
+        <PortfolioPage navigate={navigate} />
+      )}
       
       {currentPath !== '/financas-pessoais' && 
        currentPath !== '/financas-empresariais' && 
        currentPath !== '/financas-completas' && 
        currentPath !== '/solum-financeiro' && 
-       currentPath !== '/administrativo' && (
+       currentPath !== '/administrativo' && 
+       currentPath !== '/portfolio' && 
+       currentPath !== '/portifolio' && (
         <HubPage navigate={navigate} />
       )}
     </div>

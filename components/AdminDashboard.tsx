@@ -34,7 +34,8 @@ import {
     Presentation,
     ArrowRight,
     Plus,
-    GripVertical
+    GripVertical,
+    Download
 } from 'lucide-react';
 import { PresentationFlow } from './PresentationFlow';
 
@@ -713,6 +714,650 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
         }));
 
         setNewPricingOptions(remapped);
+    };
+
+    const handleDownloadPortfolioHTML = () => {
+        const origin = window.location.origin;
+        const htmlContent = `<!DOCTYPE html>
+<html lang="pt-BR" style="scroll-behavior: smooth;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Diego Kloppel - Consultoria Financeira</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Playfair+Display:ital,wght@0,700;1,400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #030712;
+      --bg-card: #0b0f19;
+      --border-dark: #1f2937;
+      --gold-500: #f59e0b;
+      --gold-600: #d97706;
+      --text-main: #e2e8f0;
+      --text-muted: #94a3b8;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: 'Inter', sans-serif;
+      overflow-x: hidden;
+      line-height: 1.6;
+    }
+    h1, h2, h3, .font-serif {
+      font-family: 'Playfair Display', serif;
+    }
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+    
+    /* Glows */
+    .glow-container {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+      max-width: 1200px;
+      height: 100%;
+      pointer-events: none;
+      opacity: 0.15;
+      z-index: 0;
+    }
+    .glow-1 {
+      position: absolute;
+      top: -100px;
+      left: -100px;
+      width: 500px;
+      height: 500px;
+      background: var(--gold-500);
+      border-radius: 50%;
+      filter: blur(180px);
+    }
+    .glow-2 {
+      position: absolute;
+      top: 40%;
+      right: -200px;
+      width: 600px;
+      height: 600px;
+      background: var(--gold-600);
+      border-radius: 50%;
+      filter: blur(200px);
+    }
+    
+    /* Animação Scroll */
+    .reveal {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: all 0.8s ease;
+    }
+    .reveal.active {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    
+    /* Header/Capa */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      position: relative;
+      z-index: 10;
+    }
+    .badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      color: var(--gold-500);
+      background: rgba(245, 158, 11, 0.1);
+      padding: 6px 16px;
+      border-radius: 30px;
+      border: 1px solid rgba(245, 158, 11, 0.2);
+      margin-bottom: 24px;
+    }
+    .hero h1 {
+      font-size: 48px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 16px;
+      line-height: 1.1;
+    }
+    @media (min-width: 768px) {
+      .hero h1 { font-size: 72px; }
+    }
+    .hero p {
+      font-size: 18px;
+      color: var(--text-muted);
+      font-weight: 300;
+      max-width: 600px;
+      margin-bottom: 32px;
+    }
+    .btn-gold {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: linear-gradient(135deg, var(--gold-600), var(--gold-500));
+      color: #030712;
+      font-weight: 800;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      padding: 16px 32px;
+      border-radius: 12px;
+      text-decoration: none;
+      transition: all 0.3s;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 10px 20px rgba(245, 158, 11, 0.15);
+    }
+    .btn-gold:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 25px rgba(245, 158, 11, 0.3);
+    }
+    .btn-outline {
+      display: inline-flex;
+      align-items: center;
+      padding: 16px 32px;
+      border: 1px solid var(--border-dark);
+      background: rgba(11, 15, 25, 0.4);
+      color: var(--text-main);
+      font-weight: 800;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      border-radius: 12px;
+      text-decoration: none;
+      transition: all 0.3s;
+      margin-left: 16px;
+    }
+    .btn-outline:hover {
+      border-color: rgba(245, 158, 11, 0.3);
+      color: #fff;
+    }
+    
+    /* Seções */
+    section {
+      padding: 100px 0;
+      border-top: 1px solid rgba(31, 41, 55, 0.4);
+      position: relative;
+      z-index: 10;
+    }
+    .section-title {
+      font-size: 32px;
+      color: #fff;
+      margin-bottom: 24px;
+    }
+    @media (min-width: 768px) {
+      .section-title { font-size: 40px; }
+    }
+    .section-label {
+      font-size: 10px;
+      color: var(--gold-500);
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      display: block;
+      margin-bottom: 8px;
+    }
+    
+    /* Sobre */
+    .grid-sobre {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 48px;
+      align-items: center;
+    }
+    @media (min-width: 768px) {
+      .grid-sobre { grid-template-columns: 5fr 7fr; }
+    }
+    .profile-card {
+      background: rgba(11, 15, 25, 0.4);
+      border: 1px solid var(--border-dark);
+      padding: 12px;
+      border-radius: 20px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+    }
+    .profile-img {
+      width: 100%;
+      height: 320px;
+      object-fit: contain;
+      object-position: top;
+      background: #080c14;
+      border-radius: 12px;
+    }
+    .sobre-txt p {
+      color: var(--text-muted);
+      font-weight: 300;
+      margin-bottom: 20px;
+    }
+    .features-row {
+      display: flex;
+      gap: 24px;
+      margin-top: 32px;
+      border-top: 1px solid var(--border-dark);
+      padding-top: 24px;
+    }
+    .feature-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--text-main);
+      letter-spacing: 1px;
+    }
+    .check-icon {
+      color: var(--gold-500);
+      width: 16px;
+      height: 16px;
+    }
+    
+    /* O Problema */
+    .problema {
+      text-align: center;
+    }
+    .grid-cards-3 {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 24px;
+      margin-top: 48px;
+      text-align: left;
+    }
+    @media (min-width: 768px) {
+      .grid-cards-3 { grid-template-columns: 1fr 1fr 1fr; }
+    }
+    .problem-card {
+      background: rgba(11, 15, 25, 0.3);
+      border: 1px solid var(--border-dark);
+      padding: 32px;
+      border-radius: 24px;
+      transition: all 0.3s;
+    }
+    .problem-card:hover {
+      border-color: rgba(245, 158, 11, 0.2);
+    }
+    .num-badge {
+      display: inline-flex;
+      width: 32px;
+      height: 32px;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      color: #ef4444;
+      border-radius: 8px;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      margin-bottom: 20px;
+    }
+    .card-title {
+      font-size: 16px;
+      color: #fff;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+    .card-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      font-weight: 300;
+      line-height: 1.5;
+    }
+    
+    /* O Método */
+    .metodo-card {
+      background: rgba(11, 15, 25, 0.5);
+      border: 1px solid var(--border-dark);
+      padding: 40px;
+      border-radius: 32px;
+      text-align: center;
+      transition: all 0.3s;
+    }
+    .metodo-card:hover {
+      border-color: rgba(245, 158, 11, 0.2);
+    }
+    .metodo-icon {
+      width: 48px;
+      height: 48px;
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px solid rgba(245, 158, 11, 0.2);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 24px;
+      color: var(--gold-500);
+    }
+    
+    /* Inclusos */
+    .inclusos-box {
+      background: rgba(11, 15, 25, 0.3);
+      border: 1px solid var(--border-dark);
+      border-radius: 32px;
+      padding: 40px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+    }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 32px;
+    }
+    @media (min-width: 768px) {
+      .grid-2 { grid-template-columns: 1fr 1fr; }
+    }
+    .incl-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+    }
+    .incl-item h4 {
+      font-size: 15px;
+      color: #fff;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .incl-item p {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 300;
+    }
+    
+    /* CTA */
+    .cta-box {
+      background: rgba(11, 15, 25, 0.8);
+      border: 1px solid var(--border-dark);
+      padding: 32px;
+      border-radius: 30px;
+      max-width: 450px;
+      margin: 32px auto 0;
+      text-align: center;
+    }
+    .cta-icon {
+      color: var(--gold-500);
+      margin-bottom: 12px;
+      width: 40px;
+      height: 40px;
+    }
+    .cta-box h4 {
+      font-size: 18px;
+      color: #fff;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .cta-box p {
+      font-size: 13px;
+      color: var(--text-muted);
+      font-weight: 300;
+    }
+    
+    /* Footer */
+    footer {
+      text-align: center;
+      padding: 40px 0;
+      color: #4b5563;
+      font-size: 12px;
+      border-top: 1px solid rgba(31, 41, 55, 0.5);
+      background: #030712;
+      position: relative;
+      z-index: 10;
+    }
+    
+    /* SVG icons helper */
+    .svg-icon {
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="glow-container">
+    <div class="glow-1"></div>
+    <div class="glow-2"></div>
+  </div>
+
+  <div class="container">
+    
+    <!-- CAPA -->
+    <section class="hero reveal active">
+      <span class="badge">Apresentação Exclusiva</span>
+      <h1>Consultoria Financeira</h1>
+      <p>Transforme a sua renda em patrimônio sólido e viva com a tranquilidade que você merece.</p>
+      <div>
+        <a href="https://wa.me/5565984633457?text=Ol%C3%A1%20Diego%2C%20gostaria%20de%20agendar%20um%20diagn%C3%B3stico%20financeiro%20personalizado." target="_blank" class="btn-gold">
+          <svg class="svg-icon" style="width: 16px; height: 16px;" viewBox="0 0 24 24">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+          </svg>
+          Agendar Diagnóstico Gratuito
+        </a>
+        <a href="#sobre" class="btn-outline">Saiba Mais</a>
+      </div>
+    </section>
+
+    <!-- QUEM É DIEGO -->
+    <section id="sobre" class="reveal">
+      <div class="grid-sobre">
+        <div class="profile-card">
+          <img src="${origin}/images/profile.webp" alt="Diego Kloppel" class="profile-img" onerror="this.src='https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&amp;fit=crop&amp;q=80&amp;w=400';">
+        </div>
+        <div class="sobre-txt">
+          <span class="section-label">O Consultor</span>
+          <h2 class="section-title" style="margin-bottom: 8px;">Diego Kloppel</h2>
+          <p style="font-size: 12px; font-weight: bold; color: var(--gold-500); margin-bottom: 24px; text-transform: uppercase; letter-spacing: 2px;">Educador Financeiro e Contador</p>
+          <p>Minha missão é guiar você no processo de reestruturação financeira para que consiga se organizar em até 30 dias, criando as bases para transformar a sua renda mensal em patrimônio real.</p>
+          <p>Com sólida formação contábil e anos de experiência em planejamento financeiro estratégico, desenvolvi um método dinâmico, focado na prática diária, sem planilhas complexas ou restrições extremas que travam sua rotina.</p>
+          <div class="features-row">
+            <div class="feature-item">
+              <svg class="svg-icon check-icon" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+              Método Validado
+            </div>
+            <div class="feature-item">
+              <svg class="svg-icon check-icon" viewBox="0 0 24 24"><path d="M23 6l-9.5 9.5-5-5L1 18"></path><polyline points="17 6 23 6 23 12"></polyline></svg>
+              Foco em Patrimônio
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- O PROBLEMA -->
+    <section class="reveal">
+      <div class="problema">
+        <span class="section-label">A Realidade</span>
+        <h2 class="section-title" style="max-width: 600px; margin: 0 auto 16px;">Você ganha bem, mas seu dinheiro simplesmente "desaparece"?</h2>
+        <p style="color: var(--text-muted); font-weight: 300; max-width: 600px; margin: 0 auto;">É muito comum vermos profissionais de alta renda que recebem excelentes salários, mas que vivem em uma roda-gigante financeira constante, sem conseguir construir patrimônio ou investir com segurança.</p>
+        
+        <div class="grid-cards-3">
+          <div class="problem-card">
+            <div class="num-badge">1</div>
+            <h4 class="card-title">Gargalo Oculto</h4>
+            <p class="card-desc">Você não sabe exatamente onde seu dinheiro está indo até o fim do mês chegar.</p>
+          </div>
+          <div class="problem-card">
+            <div class="num-badge">2</div>
+            <h4 class="card-title">Falta de Planejamento</h4>
+            <p class="card-desc">Ausência de metas de curto e longo prazo estruturadas para crescimento real.</p>
+          </div>
+          <div class="problem-card">
+            <div class="num-badge">3</div>
+            <h4 class="card-title">Armadilha do Crédito</h4>
+            <p class="card-desc">O limite do cartão de crédito é usado incorretamente, impedindo investimentos.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- O MÉTODO -->
+    <section class="reveal">
+      <div style="text-align: center; margin-bottom: 48px;">
+        <span class="section-label">A Solução</span>
+        <h2 class="section-title">Como Funciona a Consultoria</h2>
+        <p style="color: var(--text-muted); font-weight: 300; max-width: 400px; margin: 0 auto;">Um método estruturado em três pilares fundamentais para blindar a sua vida financeira.</p>
+      </div>
+      
+      <div class="grid-cards-3">
+        <div class="metodo-card">
+          <div class="metodo-icon">
+            <svg class="svg-icon" style="width: 24px; height: 24px;" viewBox="0 0 24 24">
+              <rect x="2" y="4" width="20" height="16" rx="2" ry="2"></rect>
+              <line x1="12" y1="20" x2="12" y2="4"></line>
+            </svg>
+          </div>
+          <h3 style="color: #fff; font-size: 18px; margin-bottom: 12px;">1. Organização Financeira</h3>
+          <p class="card-desc">Mapeamos com precisão sua realidade. Eliminamos vazamentos e criamos uma visualização simples das suas despesas e receitas sem travar sua rotina.</p>
+        </div>
+        <div class="metodo-card">
+          <div class="metodo-icon">
+            <svg class="svg-icon" style="width: 24px; height: 24px;" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon>
+            </svg>
+          </div>
+          <h3 style="color: #fff; font-size: 18px; margin-bottom: 12px;">2. Planejamento Sólido</h3>
+          <p class="card-desc">Projetamos suas finanças para os próximos meses de forma previsível, construindo um orçamento equilibrado focado nas suas metas e prioridades de vida.</p>
+        </div>
+        <div class="metodo-card">
+          <div class="metodo-icon">
+            <svg class="svg-icon" style="width: 24px; height: 24px;" viewBox="0 0 24 24">
+              <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+              <polyline points="17 6 23 6 23 12"></polyline>
+            </svg>
+          </div>
+          <h3 style="color: #fff; font-size: 18px; margin-bottom: 12px;">3. Crescimento Patrimonial</h3>
+          <p class="card-desc">Aprenda a amortizar dívidas rapidamente, construir sua reserva financeira estratégica e dar os primeiros passos seguros no universo de investimentos.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- INCLUSOS -->
+    <section class="reveal">
+      <div style="text-align: center; margin-bottom: 48px;">
+        <span class="section-label">Diferenciais</span>
+        <h2 class="section-title">O que Você Recebe na Consultoria</h2>
+        <p style="color: var(--text-muted); font-weight: 300; max-width: 400px; margin: 0 auto;">Todo o suporte e ferramentas que você precisa para assumir o controle definitivo do seu dinheiro.</p>
+      </div>
+      
+      <div class="inclusos-box">
+        <div class="grid-2">
+          <div class="incl-item">
+            <svg class="svg-icon check-icon" style="margin-top: 2px; flex-shrink: 0;" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <div>
+              <h4>Sessões Individuais de Direcionamento</h4>
+              <p>Encontros focados em mapear gargalos e construir o plano estratégico de ação personalizado.</p>
+            </div>
+          </div>
+          <div class="incl-item">
+            <svg class="svg-icon check-icon" style="margin-top: 2px; flex-shrink: 0;" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <div>
+              <h4>Acompanhamento e Suporte Diário</h4>
+              <p>Acesso direto ao consultor para tirar dúvidas e realizar ajustes de rota ao longo do processo.</p>
+            </div>
+          </div>
+          <div class="incl-item">
+            <svg class="svg-icon check-icon" style="margin-top: 2px; flex-shrink: 0;" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <div>
+              <h4>Ferramenta Solum Financeiro</h4>
+              <p>Plataforma exclusiva de controle de receitas, despesas, caixa e metas de investimentos por 12 meses.</p>
+            </div>
+          </div>
+          <div class="incl-item">
+            <svg class="svg-icon check-icon" style="margin-top: 2px; flex-shrink: 0;" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <div>
+              <h4>Guia Cartão de Crédito sem Armadilhas</h4>
+              <p>Aprenda a acumular pontos, milhas e obter benefícios, anulando o risco de endividamento.</p>
+            </div>
+          </div>
+          <div class="incl-item">
+            <svg class="svg-icon check-icon" style="margin-top: 2px; flex-shrink: 0;" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <div>
+              <h4>Manual de Amortização Inteligente</h4>
+              <p>Como negociar taxas e antecipar parcelas de financiamentos ou dívidas reduzindo juros em até 3x.</p>
+            </div>
+          </div>
+          <div class="incl-item">
+            <svg class="svg-icon check-icon" style="margin-top: 2px; flex-shrink: 0;" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <div>
+              <h4>Grupo de Apoio &amp; Networking</h4>
+              <p>Espaço reservado para trocar experiências e esclarecer dúvidas comuns entre mentorados.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="reveal" style="text-align: center; margin-bottom: 60px;">
+      <span class="section-label">Seu Próximo Passo</span>
+      <h2 class="section-title">Pronto para colocar as suas finanças no rumo certo?</h2>
+      <p style="color: var(--text-muted); font-weight: 300; max-width: 500px; margin: 0 auto 32px;">Como cada pessoa tem uma renda, um custo de vida e objetivos totalmente únicos, a consultoria é desenhada de forma 100% individualizada e exclusiva.</p>
+      
+      <div class="cta-box">
+        <svg class="svg-icon cta-icon" viewBox="0 0 24 24">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+          <line x1="16" y1="2" x2="16" y2="6"></line>
+          <line x1="8" y1="2" x2="8" y2="6"></line>
+          <line x1="3" y1="10" x2="21" y2="10"></line>
+        </svg>
+        <h4>Diagnóstico Financeiro Gratuito</h4>
+        <p>Faremos uma chamada rápida no WhatsApp para analisar o seu perfil e identificar o plano de ação imediato para a sua realidade.</p>
+      </div>
+      
+      <div style="margin-top: 40px;">
+        <a href="https://wa.me/5565984633457?text=Ol%C3%A1%20Diego%2C%20gostaria%20de%20agendar%20um%20diagn%C3%B3stico%20financeiro%20personalizado." target="_blank" class="btn-gold">
+          <svg class="svg-icon" style="width: 16px; height: 16px;" viewBox="0 0 24 24">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+          </svg>
+          Agendar no WhatsApp
+        </a>
+      </div>
+    </section>
+
+  </div>
+
+  <footer>
+    <p>© ${new Date().getFullYear()} Diego Kloppel. Todos os direitos reservados.</p>
+  </footer>
+
+  <script>
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('active');
+        }
+      });
+    }, {
+      threshold: 0.1
+    });
+
+    document.querySelectorAll('.reveal').forEach((el) => {
+      observer.observe(el);
+    });
+  </script>
+</body>
+</html>`;
+
+        const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', 'portfolio_diego_kloppel.html');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     };
 
     const handleSavePricing = async (e: React.FormEvent) => {
@@ -2164,21 +2809,32 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                                     </div>
 
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                        {/* Card 1: Planejamento de Metas */}
+                                        {/* Card 1: Portfólio */}
                                         <div className="bg-dark-900/40 border border-dark-800/80 p-6 rounded-2xl flex flex-col justify-between hover:border-dark-700 transition-all hover:shadow-[0_0_15px_rgba(255,255,255,0.01)]">
                                             <div className="space-y-2">
-                                                <span className="text-[9px] text-gold-500 font-black uppercase tracking-widest bg-gold-500/10 px-2 py-0.5 rounded border border-gold-500/20">Em Breve</span>
-                                                <h3 className="text-base font-bold text-white font-serif mt-2">Planejamento de Metas Rápidas</h3>
+                                                <span className="text-[9px] text-green-400 font-black uppercase tracking-widest bg-green-500/10 px-2 py-0.5 rounded border border-green-500/20">Ativo</span>
+                                                <h3 className="text-base font-bold text-white font-serif mt-2">Portfólio</h3>
                                                 <p className="text-xs text-gray-500 font-light leading-relaxed">
-                                                    Estrutura direta para desenhar prazos e valores para objetivos prioritários.
+                                                    Página interativa resumida da Consultoria Financeira, voltada para atração de novos leads (sem valores comerciais).
                                                 </p>
                                             </div>
-                                            <button
-                                                onClick={() => setShowSimplePresentationInfo('Planejamento de Metas Rápidas')}
-                                                className="w-full mt-6 py-2 bg-dark-800 hover:bg-dark-750 text-gray-400 hover:text-white rounded-lg text-xs uppercase tracking-wider transition-colors cursor-pointer border border-dark-700"
-                                            >
-                                                Visualizar Roteiro
-                                            </button>
+                                            <div className="space-y-2 mt-6">
+                                                <a
+                                                    href="/portfolio"
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="w-full py-2 bg-gradient-to-r from-gold-600 to-amber-500 hover:from-gold-500 hover:to-amber-400 text-dark-950 font-bold rounded-lg text-xs uppercase tracking-wider transition-all text-center block"
+                                                >
+                                                    Visualizar Portfólio
+                                                </a>
+                                                <button
+                                                    onClick={handleDownloadPortfolioHTML}
+                                                    className="w-full py-2 bg-dark-800 hover:bg-dark-750 text-gold-400 hover:text-gold-300 border border-dark-700 hover:border-gold-500/20 rounded-lg text-xs uppercase tracking-wider transition-colors cursor-pointer flex items-center justify-center gap-1.5 font-bold"
+                                                >
+                                                    <Download className="w-3.5 h-3.5" />
+                                                    Baixar HTML (.html)
+                                                </button>
+                                            </div>
                                         </div>
 
                                         {/* Card 2: Diagnóstico Expresso */}
