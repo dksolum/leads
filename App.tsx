@@ -10,6 +10,7 @@ import { supabase } from './lib/supabase';
 import { HubPage } from './components/HubPage';
 import { ComingSoonPage } from './components/ComingSoonPage';
 import { PortfolioPage } from './components/PortfolioPage';
+import { PricingBusinessPage } from './components/PricingBusinessPage';
 
 // Componente que encapsula toda a lógica e fluxo originais de Finanças Pessoais
 const PersonalFinanceFlow: React.FC<{ onBack: () => void; onAdminClick: () => void }> = ({ onBack, onAdminClick }) => {
@@ -186,6 +187,10 @@ function App() {
       {(currentPath === '/portfolio' || currentPath === '/portifolio') && (
         <PortfolioPage navigate={navigate} />
       )}
+
+      {currentPath === '/precificacao-empresas' && (
+        <PricingBusinessPage navigate={navigate} />
+      )}
       
       {currentPath !== '/financas-pessoais' && 
        currentPath !== '/financas-empresariais' && 
@@ -193,7 +198,8 @@ function App() {
        currentPath !== '/solum-financeiro' && 
        currentPath !== '/administrativo' && 
        currentPath !== '/portfolio' && 
-       currentPath !== '/portifolio' && (
+       currentPath !== '/portifolio' && 
+       currentPath !== '/precificacao-empresas' && (
         <HubPage navigate={navigate} />
       )}
     </div>
