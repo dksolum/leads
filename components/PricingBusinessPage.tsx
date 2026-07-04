@@ -17,9 +17,10 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
   const [migracaoMei, setMigracaoMei] = useState(false);
   const [certificadoDigital, setCertificadoDigital] = useState(false);
 
-  const [emissaoFaixa, setEmissaoFaixa] = useState<'ate5' | 'ate10' | 'ate20' | 'ate30' | 'none'>('none');
+  const [emissaoFaixa, setEmissaoFaixa] = useState<'ate5' | 'ate10' | 'ate20' | 'ate30' | 'none' | 'mais30'>('none');
   const [pagamentoCartao, setPagamentoCartao] = useState(true); // Começa ativo pois contabilidadeAnual começa true
   const [orcamentoFinalizado, setOrcamentoFinalizado] = useState(false);
+  const [mostrarBloqueioFinanceiro, setMostrarBloqueioFinanceiro] = useState(false);
 
   // ==========================================
   // TABELA DE VALORES DE PROPOSTA CORPORATIVA
@@ -118,7 +119,7 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
     (cobranca ? valNormalCobranca : 0) +
     getValorNota(emissaoFaixa);
 
-  const economia = (contabilidadeAnual && pagamentoCartao) ? Math.max(0, totalReferenciaAvulso - precoFechamento) : 0;
+  const economia = Math.max(0, totalReferenciaAvulso - precoFechamento);
   const valorCartao = Math.min(precoFechamento, 249);
   const valorRestante = Math.max(0, precoFechamento - valorCartao);
 
@@ -148,7 +149,15 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
     if (contabilidadeSemBonus && inscricaoEstadual) list.push('Inscrição Estadual (R$ 350)');
     if (contabilidadeSemBonus && migracaoMei) list.push('Migração MEI p/ ME & Contrato (R$ 350)');
     if (emissaoFaixa !== 'none') {
-      const rotulo = emissaoFaixa === 'ate5' ? 'Até 5 Notas (R$ 47)' : emissaoFaixa === 'ate10' ? 'Até 10 Notas (R$ 87)' : emissaoFaixa === 'ate20' ? 'Até 20 Notas (R$ 127)' : 'Até 30 Notas (R$ 147)';
+      const rotulo = emissaoFaixa === 'ate5'
+        ? 'Até 5 Notas (R$ 47)'
+        : emissaoFaixa === 'ate10'
+          ? 'Até 10 Notas (R$ 87)'
+          : emissaoFaixa === 'ate20'
+            ? 'Até 20 Notas (R$ 127)'
+            : emissaoFaixa === 'ate30'
+              ? 'Até 30 Notas (R$ 147)'
+              : 'Acima de 30 Notas (Orçamento Exclusivo)';
       list.push(rotulo);
     }
     const servicosTexto = list.length > 0 ? list.join(', ') : 'Nenhum serviço selecionado';
@@ -179,6 +188,7 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
       tag: { text: 'OBRIGATÓRIO', type: 'required' },
       inclusos: [
         'Controle financeiro (até 1 conta bancária)',
+        'Controle de vendas em máquina de cartão (até 1 máquina)',
         'Categorização organizada de despesas e receitas',
         'Controle de contas a pagar e a receber básico',
         'Conciliação bancária de lançamentos',
@@ -213,6 +223,7 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
       icon: <FileText className="w-6 h-6 text-gold-500" />,
       tag: { text: 'OBRIGATÓRIA', type: 'required' },
       inclusos: [
+        '*Verificação das Notas Fiscais emitidas com o extrato de vendas',
         '*Emissão de até 05 Notas Fiscais de Serviços (NFS-e)/Produtos (NF-e)',
         '*Envio mensal das NFes (via e-mail/WhatsApp) para o cliente (caso não tenha contabilidade incluída)',
         '*Envio mensal automático para a contabilidade (caso tenha contabilidade incluída)'
@@ -290,7 +301,7 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
       <div className="relative z-10">
 
         {/* SEÇÃO 1: CAPA */}
-        <section className="min-h-[85vh] flex flex-col justify-center items-center px-6 py-20 text-center relative">
+        <section className="min-h-[80vh] flex flex-col justify-center items-center px-6 py-20 text-center relative">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
@@ -299,29 +310,17 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
           >
             <span className="text-[10px] md:text-xs font-bold tracking-[0.3em] uppercase text-gold-500 bg-gold-500/10 px-3 py-1.5 rounded-full border border-gold-500/20 shadow-inner inline-flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5 text-gold-500" />
-              Tabela de Serviços Corporativos
+              Migração Estratégica
             </span>
             <h1 className="text-4xl md:text-6xl lg:text-7xl font-serif font-bold text-white leading-tight">
-              Precificação & Serviços
+              Migração de MEI para ME
             </h1>
-            <p className="text-lg md:text-xl text-gray-400 font-light leading-relaxed max-w-2xl mx-auto">
-              Contratação sob demanda, modular e flexível. Monte a estrutura de assistência financeira e contábil perfeita para a sua empresa.
+            <p className="text-lg md:text-xl text-gray-400 font-light leading-relaxed max-w-3xl mx-auto">
+              O MEI (Microempreendedor Individual) é uma excelente porta de entrada, mas possui um limite de crescimento. A transição para ME (Microempresa) torna-se obrigatória quando o faturamento da empresa ultrapassa o teto anual estabelecido por lei.
             </p>
-            <div className="pt-8 flex flex-col sm:flex-row justify-center items-center gap-4">
-              <a
-                href="#plano-completo"
-                className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-gold-600 via-amber-500 to-gold-500 text-dark-950 font-black rounded-xl text-xs uppercase tracking-widest transition-all duration-300 hover:scale-[1.03] active:scale-[0.97] shadow-xl shadow-gold-500/10 hover:shadow-gold-500/25 cursor-pointer flex items-center justify-center gap-2"
-              >
-                <Sparkles className="w-4 h-4 text-dark-950 animate-pulse" />
-                Ver Plano Completo (Recomendado)
-              </a>
-              <a
-                href="#servicos"
-                className="w-full sm:w-auto px-8 py-4 bg-dark-900 hover:bg-dark-850 border border-dark-800 hover:border-gold-500/20 text-gray-300 hover:text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-all duration-300 flex items-center justify-center"
-              >
-                Módulos Avulsos
-              </a>
-            </div>
+            <p className="text-sm md:text-base text-gray-500 font-light leading-relaxed max-w-2xl mx-auto pt-2 border-t border-dark-900">
+              ⚠️ <strong>Atenção ao limite legal:</strong> Até o ano de 2026, o limite de faturamento oficial do MEI permanece em <strong>R$ 81.000,00</strong> anual. Quaisquer outros valores ou notícias sobre limites maiores em 2026 referem-se a projetos de lei em andamento e <strong>não possuem validade legal atualmente</strong>.
+            </p>
           </motion.div>
 
           <div className="absolute bottom-10 left-1/2 -translate-x-1/2 animate-bounce hidden md:block">
@@ -330,14 +329,207 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
           </div>
         </section>
 
-        {/* SEÇÃO 2: A FILOSOFIA DE CONTRATAÇÃO */}
-        <section className="py-16 px-6 border-t border-dark-900/60 bg-dark-900/20">
-          <div className="max-w-4xl mx-auto text-center space-y-6">
-            <span className="text-[10px] font-bold text-gold-500 uppercase tracking-widest font-mono">Modelo Flexível</span>
-            <h2 className="text-2xl md:text-3xl font-serif font-bold text-white">Contratos que acompanham o seu ritmo</h2>
-            <p className="text-gray-400 font-light leading-relaxed max-w-2xl mx-auto text-sm md:text-base">
-              Acreditamos que uma empresa de sucesso não deve ser engessada por mensalidades contábeis fixas que não refletem sua operação real. Cada um de nossos serviços possui um valor específico e pode ser ativado ou desativado mediante <strong>termos aditivos simples</strong>, adaptando-se às necessidades do seu negócio.
-            </p>
+        {/* SEÇÃO 2: CENÁRIO ATUAL & ANÁLISE DE FATURAMENTO */}
+        <section className="py-20 px-6 border-t border-dark-900/60 bg-dark-900/20">
+          <div className="max-w-6xl mx-auto text-center space-y-12">
+            <div className="space-y-4 max-w-4xl mx-auto">
+              <span className="text-[10px] font-bold text-gold-500 uppercase tracking-widest font-mono">Estrutura e Transição</span>
+              <h2 className="text-3xl md:text-4xl font-serif font-bold text-white">Nosso Trabalho Atual & Necessidade de Migração</h2>
+              <p className="text-gray-400 font-light leading-relaxed max-w-3xl mx-auto text-sm md:text-base">
+                Como sua empresa atualmente está enquadrada como MEI, nós estruturamos o trabalho focando no que é estritamente necessário para manter sua operação organizada. No entanto, por meio de uma análise detalhada do faturamento recente, identificamos a necessidade de planejar a migração de MEI para ME.
+              </p>
+            </div>
+
+            {/* Cards do Trabalho Atual (Idênticos aos de baixo, porém sem preços e período) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 pt-4 text-left max-w-4xl mx-auto">
+
+              {/* Card 1: Assistência Financeira (Sem Preço) */}
+              <div className="bg-dark-900/60 backdrop-blur-md border border-dark-800/80 hover:border-gold-500/20 rounded-3xl p-6 md:p-8 flex flex-col justify-between transition-all duration-300 shadow-xl group relative overflow-hidden">
+                <div className="space-y-6">
+                  <div className="flex justify-between items-start">
+                    <div className="w-12 h-12 bg-gold-500/10 rounded-2xl flex items-center justify-center border border-gold-500/20 group-hover:scale-110 transition-transform">
+                      <Landmark className="w-6 h-6 text-gold-500" />
+                    </div>
+                    <div className="text-right">
+                      <span className="text-xs text-gray-550 font-light block">Regime Atual</span>
+                      <span className="text-sm font-bold text-gold-450 uppercase tracking-wider">MEI</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="text-lg font-bold text-white leading-tight font-serif">Assistência Financeira</h3>
+                      <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full border bg-red-500/10 border-red-500/30 text-red-400">
+                        OBRIGATÓRIO
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-450 font-light leading-relaxed">
+                      Gestão básica de fluxo de caixa para correta organização, tomada de decisões e escrituração contábil.
+                    </p>
+                    <div className="space-y-2 pt-2">
+                      <span className="text-[10px] text-gray-550 font-bold uppercase tracking-wider block">O que está incluso:</span>
+                      <ul className="space-y-1.5 text-xs text-gray-400">
+                        <li className="flex items-start gap-2">
+                          <Check className="w-3.5 h-3.5 text-gold-500 shrink-0 mt-0.5" />
+                          <span>Controle financeiro (até 1 conta bancária)</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <Check className="w-3.5 h-3.5 text-gold-500 shrink-0 mt-0.5" />
+                          <span>Controle de vendas em máquina de cartão (até 1 máquina)</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <Check className="w-3.5 h-3.5 text-gold-500 shrink-0 mt-0.5" />
+                          <span>Categorização organizada de despesas e receitas</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <Check className="w-3.5 h-3.5 text-gold-500 shrink-0 mt-0.5" />
+                          <span>Controle de contas a pagar e a receber básico</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <Check className="w-3.5 h-3.5 text-gold-500 shrink-0 mt-0.5" />
+                          <span>Conciliação bancária de lançamentos</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <Check className="w-3.5 h-3.5 text-gold-500 shrink-0 mt-0.5" />
+                          <span>Organização de documentos</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <Check className="w-3.5 h-3.5 text-gold-500 shrink-0 mt-0.5" />
+                          <span>
+                            Relatório Mensal de Faturamento e Declaração Anual <span className="text-gold-500 font-bold">[SE MEI]</span>
+                          </span>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-6 pt-4 border-t border-dark-850/60">
+                  <p className="text-[10px] text-gold-500/75 font-medium leading-relaxed italic">
+                    💡 Taxa adicional por conta bancária extra incluída na operação.
+                  </p>
+                </div>
+              </div>
+
+              {/* Card 2: Atendimento Personalizado (Sem Preço) */}
+              <div className="bg-dark-900/60 backdrop-blur-md border border-dark-800/80 hover:border-gold-500/20 rounded-3xl p-6 md:p-8 flex flex-col justify-between transition-all duration-300 shadow-xl group relative overflow-hidden">
+                <div className="space-y-6">
+                  <div className="flex justify-between items-start">
+                    <div className="w-12 h-12 bg-gold-500/10 rounded-2xl flex items-center justify-center border border-gold-500/20 group-hover:scale-110 transition-transform">
+                      <MessageSquare className="w-6 h-6 text-gold-500" />
+                    </div>
+                    <div className="text-right">
+                      <span className="text-xs text-gray-550 font-light block">Regime Atual</span>
+                      <span className="text-sm font-bold text-gold-450 uppercase tracking-wider">MEI</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="text-lg font-bold text-white leading-tight font-serif">Atendimento Personalizado</h3>
+                      <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full border bg-amber-500/10 border-amber-500/30 text-amber-400">
+                        IMPORTANTE
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-450 font-light leading-relaxed">
+                      Suporte contínuo via WhatsApp para tomadas de decisão rápidas e alinhamentos.
+                    </p>
+                    <div className="space-y-2 pt-2">
+                      <span className="text-[10px] text-gray-550 font-bold uppercase tracking-wider block">O que está incluso:</span>
+                      <ul className="space-y-1.5 text-xs text-gray-400">
+                        <li className="flex items-start gap-2">
+                          <Check className="w-3.5 h-3.5 text-gold-500 shrink-0 mt-0.5" />
+                          <span>Suporte direto no WhatsApp</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <Check className="w-3.5 h-3.5 text-gold-500 shrink-0 mt-0.5" />
+                          <span>Até 01 Reunião Estratégica Mensal de alinhamento</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <Check className="w-3.5 h-3.5 text-gold-500 shrink-0 mt-0.5" />
+                          <span>Análise interpretada de indicadores e gargalos</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <Check className="w-3.5 h-3.5 text-gold-500 shrink-0 mt-0.5" />
+                          <span>Apoio rápido em decisões de caixa no dia a dia</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <Check className="w-3.5 h-3.5 text-gold-500 shrink-0 mt-0.5" />
+                          <span>Explicações contábeis e financeiras de maneira simples</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-6 pt-4 border-t border-dark-850/60">
+                  <p className="text-[10px] text-gold-500/75 font-medium leading-relaxed italic">
+                    💡 Reunião estratégica extra pode ser solicitada como aditivo contratual.
+                  </p>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Diagnóstico de Faturamento com 3 Cards Premium */}
+            <div className="pt-12 space-y-8 border-t border-dark-900/60">
+              <div className="text-center space-y-3">
+                <span className="text-[10px] font-bold text-gold-500 uppercase tracking-widest font-mono">Regras Tributárias e de Crescimento</span>
+                <h3 className="text-2xl md:text-3xl font-serif font-bold text-white">Análise de Faturamento & Enquadramento</h3>
+                <p className="text-xs md:text-sm text-gray-500 max-w-2xl mx-auto font-light leading-relaxed">
+                  Dependendo do nível de faturamento da sua empresa, as regras de permanência e as obrigações tributárias de migração mudam severamente:
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 text-left">
+
+                {/* Card 1: MEI Regular */}
+                <div className="bg-dark-900/40 border border-green-500/20 hover:border-green-500/45 rounded-2xl p-6 transition-all duration-300 shadow-lg flex flex-col justify-between group relative overflow-hidden">
+                  <div className="space-y-4">
+                    <span className="text-[9px] text-green-400 font-black uppercase tracking-widest bg-green-500/10 px-2.5 py-0.5 rounded border border-green-500/20 inline-block">
+                      Enquadramento Regular
+                    </span>
+                    <h4 className="text-lg font-bold text-white font-serif">Até R$ 81.000,00</h4>
+                    <p className="text-xs text-gray-400 font-light leading-relaxed">
+                      Sua empresa continua sendo MEI e seguindo o que já faz hoje, sem obrigações tributárias de transição ou multas extras.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Card 2: Excesso de até 20% */}
+                <div className="bg-dark-900/40 border border-amber-500/20 hover:border-amber-500/45 rounded-2xl p-6 transition-all duration-300 shadow-lg flex flex-col justify-between group relative overflow-hidden">
+                  <div className="space-y-4">
+                    <span className="text-[9px] text-amber-400 font-black uppercase tracking-widest bg-amber-500/10 px-2.5 py-0.5 rounded border border-amber-500/20 inline-block">
+                      Transição Programada
+                    </span>
+                    <h4 className="text-lg font-bold text-white font-serif">De R$ 81.000,00 a R$ 97.200,00</h4>
+                    <p className="text-xs text-gray-400 font-light leading-relaxed">
+                      O faturamento foi superior ao teto, mas dentro de até 20% a mais. A empresa continua sendo MEI até o final do exercício atual e, no ano seguinte, precisa fazer a transformação de MEI para ME a partir de 1º de janeiro.
+                    </p>
+                    <p className="text-xs text-red-500 font-bold leading-relaxed pt-3 border-t border-dark-850">
+                      ⚠️ Observação: É realizado o pagamento do imposto de acordo com a tabela do Simples Nacional, porém, apenas sobre o valor que ultrapassou os R$ 81.000,00.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Card 3: Excesso superior a 20% */}
+                <div className="bg-dark-900/40 border border-red-500/30 hover:border-red-500/50 rounded-2xl p-6 transition-all duration-300 shadow-lg flex flex-col justify-between group relative overflow-hidden shadow-red-950/10">
+                  <div className="space-y-4">
+                    <span className="text-[9px] text-red-400 font-black uppercase tracking-widest bg-red-500/10 px-2.5 py-0.5 rounded border border-red-500/20 inline-block">
+                      Migração Imediata
+                    </span>
+                    <h4 className="text-lg font-bold text-white font-serif">Superior a R$ 97.200,00</h4>
+                    <p className="text-xs text-gray-400 font-light leading-relaxed">
+                      O faturamento ultrapassou mais de 20% do teto. A empresa precisa fazer a transformação de MEI para ME o quanto antes, pois se desenquadra durante o exercício, o que obriga a pagar os impostos retroativos, desde janeiro do ano corrente.
+                    </p>
+                    <p className="text-xs text-red-450 font-medium leading-relaxed pt-3 border-t border-dark-850">
+                      💡 Quanto mais demorar para migrar e pagar os impostos, maiores serão os juros e multa. O imposto ao sair do MEI, começa a partir de 4% do faturamento total, de acordo com a tabela do Simples Nacional.
+                    </p>
+                  </div>
+                </div>
+
+              </div>
+            </div>
           </div>
         </section>
 
@@ -348,7 +540,7 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
               <span className="text-[10px] font-bold text-gold-500 uppercase tracking-widest font-mono">Serviços Disponíveis</span>
               <h2 className="text-3xl md:text-4xl font-serif font-bold text-white">Estrutura de Soluções</h2>
               <p className="text-xs md:text-sm text-gray-500 max-w-xl mx-auto font-light">
-                Escolha os módulos de serviços que deseja e pague apenas pelo que utilizar na sua operação.
+                Esses são os módulos de serviços que trabalhamos na sua operação.
               </p>
             </div>
 
@@ -454,7 +646,7 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
                   <div className="space-y-1 text-left">
                     <h4 className="text-xs font-bold text-white uppercase tracking-wider">Inscrição Estadual</h4>
                     <p className="text-[11px] text-gray-400 font-light leading-relaxed max-w-[220px]">
-                      Regularização fiscal estadual para emissão de Notas Fiscais de Venda (caso a empresa ainda não possua).
+                      Regularização fiscal estadual para emissão de Notas Fiscais de Venda (caso a empresa ainda não possua) e regularidade para o comércio de mercadorias.
                     </p>
                   </div>
                   <div className="text-right shrink-0 px-4 py-2 bg-dark-950/80 rounded-xl border border-dark-800">
@@ -691,7 +883,7 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
 
                     <div className="space-y-3 border-t border-dark-850/60 pt-5">
                       <h4 className="text-xs text-gold-500 font-bold uppercase tracking-wider text-left">Franquia de Notas Fiscais</h4>
-                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 text-xs">
                         <button
                           onClick={() => !orcamentoFinalizado && setEmissaoFaixa('none')}
                           className={`p-2 py-2.5 rounded-xl border text-center font-medium transition-all ${orcamentoFinalizado ? 'pointer-events-none opacity-80' : ''} ${emissaoFaixa === 'none' ? 'bg-gold-500/15 border-gold-500 text-white' : 'bg-dark-900/40 border-dark-800 text-gray-400 hover:border-dark-700'}`}
@@ -718,10 +910,55 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
                         </button>
                         <button
                           onClick={() => !orcamentoFinalizado && setEmissaoFaixa('ate30')}
-                          className={`p-2 py-2.5 rounded-xl border text-center font-medium transition-all col-span-2 sm:col-span-1 ${orcamentoFinalizado ? 'pointer-events-none opacity-80' : ''} ${emissaoFaixa === 'ate30' ? 'bg-gold-500/15 border-gold-500 text-white' : 'bg-dark-900/40 border-dark-800 text-gray-400 hover:border-dark-700'}`}
+                          className={`p-2 py-2.5 rounded-xl border text-center font-medium transition-all ${orcamentoFinalizado ? 'pointer-events-none opacity-80' : ''} ${emissaoFaixa === 'ate30' ? 'bg-gold-500/15 border-gold-500 text-white' : 'bg-dark-900/40 border-dark-800 text-gray-400 hover:border-dark-700'}`}
                         >
                           Até 30
                         </button>
+                        <button
+                          onClick={() => !orcamentoFinalizado && setEmissaoFaixa('mais30')}
+                          className={`p-2 py-2.5 rounded-xl border text-center font-medium transition-all ${orcamentoFinalizado ? 'pointer-events-none opacity-80' : ''} ${emissaoFaixa === 'mais30' ? 'bg-gold-500/15 border-gold-500 text-white' : 'bg-dark-900/40 border-dark-800 text-gray-400 hover:border-dark-700'}`}
+                        >
+                          Acima de 30
+                        </button>
+                      </div>
+
+                      {/* Informativos Condicionais de Emissão de Notas */}
+                      <div className="mt-3">
+                        {emissaoFaixa === 'none' && (
+                          <div className="p-3.5 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl text-[11px] leading-relaxed text-left">
+                            <strong>⚠️ Informativo Sem Emissão:</strong> As informações enviadas à RFB são de acordo com o faturamento da empresa. As notas são de responsabilidade integral do empresário e, mesmo se não coincidir o valor total das vendas com o valor total de notas emitidas, será enviado o valor total registrado de vendas na conta bancária pela contabilidade <strong>(SEM VERIFICAÇÃO DAS NOTAS EMITIDAS PELA EMPRESA E SEM A CORREÇÃO DE EMISSÃO SE AS MOVIMENTAÇÕES DE VENDAS FOREM MAIORES)</strong>.
+                          </div>
+                        )}
+
+                        {emissaoFaixa === 'ate5' && (
+                          <div className="p-3.5 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-xl text-[11px] leading-relaxed text-left">
+                            <strong>⚠️ Informativo Até 5 Notas:</strong> As informações enviadas à RFB são de acordo com o faturamento da empresa. Nesse formato, NÃO É REALIZADA a verificação mensal das notas, isso é responsabilidade do empresário e, somente com solicitação de emissão que será realizada a emissão <strong>[A QUANTIDADE DE EMISSÃO SERÁ INDEPENDENTE SE FOR EMISSÃO POR SOLICITAÇÃO OU POR CONCILIAÇÃO DE EMISSÃO DE NOTAS (QUE AINDA É VERIFICADA PELO EMPRESÁRIO)]</strong>.
+                          </div>
+                        )}
+
+                        {emissaoFaixa === 'ate10' && (
+                          <div className="p-3.5 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-xl text-[11px] leading-relaxed text-left">
+                            <strong>⚠️ Informativo Até 10 Notas:</strong> As informações enviadas à RFB são de acordo com o faturamento da empresa. Nesse formato, NÃO É REALIZADA a verificação mensal das notas, isso é responsabilidade do empresário e, somente com solicitação de emissão que será realizada a emissão <strong>[A QUANTIDADE DE EMISSÃO SERÁ INDEPENDENTE SE FOR EMISSÃO POR SOLICITAÇÃO OU POR CONCILIAÇÃO DE EMISSÃO DE NOTAS (QUE AINDA É VERIFICADA PELO EMPRESÁRIO)]</strong>.
+                          </div>
+                        )}
+
+                        {emissaoFaixa === 'ate20' && (
+                          <div className="p-3.5 bg-green-500/10 border border-green-500/20 text-green-400 rounded-xl text-[11px] leading-relaxed text-left">
+                            <strong>💡 Informativo Até 20 Notas:</strong> As informações enviadas à RFB são de acordo com o faturamento da empresa. Nesse formato, É REALIZADA a verificação mensal das notas, porém a emissão das notas durante a venda, ainda é de responsabilidade do empresário e, somente com solicitação de emissão que será realizada a emissão  <strong>[A QUANTIDADE DE EMISSÃO SERÁ INDEPENDENTE SE FOR EMISSÃO POR SOLICITAÇÃO OU POR CONCILIAÇÃO DE EMISSÃO DE NOTAS (QUE AINDA É VERIFICADA PELO EMPRESÁRIO COM AUXÍLIO DA FRANQUIA)]</strong>.
+                          </div>
+                        )}
+
+                        {emissaoFaixa === 'ate30' && (
+                          <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-450 rounded-xl text-[11px] leading-relaxed text-left font-semibold">
+                            <strong>✨ Informativo Até 30 Notas:</strong> As informações enviadas à RFB são de acordo com o faturamento da empresa. Nesse formato, É REALIZADA a verificação mensal das notas, porém a emissão das notas durante a venda, ainda é de responsabilidade do empresário e, somente com solicitação de emissão que será realizada a emissão <strong>[A QUANTIDADE DE EMISSÃO SERÁ INDEPENDENTE SE FOR EMISSÃO POR SOLICITAÇÃO OU POR CONCILIAÇÃO DE EMISSÃO DE NOTAS (QUE AINDA É VERIFICADA PELO EMPRESÁRIO COM AUXÍLIO DA FRANQUIA)]</strong>.
+                          </div>
+                        )}
+
+                        {emissaoFaixa === 'mais30' && (
+                          <div className="p-3.5 bg-amber-600/10 border border-amber-650/20 text-amber-500 rounded-xl text-[11px] leading-relaxed text-left">
+                            <strong>💼 Informativo Acima de 30 Notas:</strong> Será realizado um orçamento exclusivo e de acordo com a demanda de vendas da empresa. Essa opção não irá somar ao fechar o orçamento.
+                          </div>
+                        )}
                       </div>
                       <p className="text-[10px] text-gray-400 font-light mt-2 leading-relaxed text-left">
                         * A emissão de Notas Fiscais é obrigatória e deve ser realizada pelo estabelecimento no ato da venda. Nossas franquias destinam-se ao fechamento e escrituração contábil semanal/mensal. Caso necessite de um serviço de emissão diária integral, solicite um orçamento em separado.
@@ -749,7 +986,7 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
                     <p className="text-[11px] text-gray-400 font-light leading-relaxed text-left">
                       {pagamentoCartao
                         ? 'Realizando o pagamento de 12x R$ 249,00 no cartão para o parceiro, você ganha a Inscrição Estadual, a Migração MEI p/ ME, o Contrato Social e o Certificado Digital como super bônus gratuitos!'
-                        : 'Sem cartão, nenhum bônus será concedido. Os custos com Certificado Digital (R$ 287), Inscrição Estadual (R$ 350) e Migração (R$ 350) serão cobrados de forma avulsa.'
+                        : 'Sem cartão, nenhum bônus será concedido. Os custos com Certificado Digital, Inscrição Estadual e Migração serão cobrados de forma avulsa.'
                       }
                     </p>
                   </div>
@@ -816,6 +1053,12 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
                           const temServico = contabilidadeAnual || contabilidadeMensal || financeiro || atendimento || cobranca || certificadoDigital || inscricaoEstadual || migracaoMei || emissaoFaixa !== 'none';
                           if (!temServico) {
                             setErroModalMsg('Por favor, selecione pelo menos um serviço ou a franquia de notas fiscais antes de finalizar.');
+                            return;
+                          }
+
+                          // Trava ao finalizar: se contabilidade (anual ou mensal) selecionada mas sem assistência financeira
+                          if ((contabilidadeAnual || contabilidadeMensal) && !financeiro) {
+                            setMostrarBloqueioFinanceiro(true);
                             return;
                           }
 
@@ -922,7 +1165,7 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
                       <div className="text-center py-6 px-6 bg-dark-950/90 rounded-3xl border border-dark-800 shadow-2xl flex flex-col justify-between space-y-4">
                         <div className="space-y-1">
                           <span className="text-[10px] text-gray-550 uppercase tracking-widest font-black font-mono">Mensalidade do Plano Customizado</span>
-                          {contabilidadeAnual && pagamentoCartao && (
+                          {economia > 0 && (
                             <div className="text-gray-500 text-xs line-through decoration-red-500/70 font-light">R$ {totalReferenciaAvulso.toFixed(2)}</div>
                           )}
                           <div className="text-3xl md:text-4xl font-serif font-black text-gold-500 my-1">
@@ -964,9 +1207,9 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
                               </div>
                             ) : (
                               <div className="p-3 bg-red-500/5 border border-red-500/20 rounded-2xl space-y-1 text-left">
-                                <span className="text-[8px] text-red-400 font-bold uppercase tracking-widest block font-mono">Contratação Individual/Avulsa</span>
+                                <span className="text-[8px] text-red-400 font-bold uppercase tracking-widest block font-mono">Contratação da Contabilidade é Obrigatória</span>
                                 <div className="text-[11px] text-gray-300 font-light">
-                                  Sem o parcelamento recorrente em cartão do parceiro, a contratação mensal dos serviços unificados segue o valor de mercado (integral).
+                                  Sem uma contabilidade a empresa não pode operar, pois ficaria irregular sem o envio de obrigações e sem o vínculo de responsabilidade de um contador na assinatura da documentação.
                                 </div>
                               </div>
                             )}
@@ -974,7 +1217,7 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
                         )}
 
                         <div className="pt-3 border-t border-dark-850">
-                          {contabilidadeAnual && pagamentoCartao && (
+                          {economia > 0 && (
                             <p className="text-[10px] text-green-400/90 font-medium leading-relaxed uppercase tracking-wider mb-3">
                               Economia mensal de R$ {economia.toFixed(2)}
                             </p>
@@ -997,6 +1240,22 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
                           </div>
                         </div>
                       </div>
+                    </div>
+                  )}
+
+                  {/* Card Azul de Parceria Contábil */}
+                  {(contabilidadeAnual || contabilidadeMensal) && (
+                    <div className="mt-6 p-5 bg-blue-950/20 border border-blue-500/25 rounded-2xl space-y-3 text-left">
+                      <div className="flex items-center gap-2.5">
+                        <Building2 className="w-5 h-5 text-blue-400 shrink-0" />
+                        <h4 className="text-xs font-bold text-white uppercase tracking-wider font-serif">Entenda a Parceria Contábil</h4>
+                      </div>
+                      <p className="text-[11px] text-gray-300 font-light leading-relaxed">
+                        O pagamento da contabilidade é feito de forma separada porque ela é prestada por um parceiro contábil homologado. Não se trata de uma burocracia, mas sim de uma exigência legal para o correto vínculo e distribuição de receitas de acordo com o faturamento de cada profissional (motivo pelo qual eu não posso receber esse valor e repassá-lo).
+                      </p>
+                      <p className="text-[11px] text-gray-300 font-light leading-relaxed">
+                        <strong>Seu Benefício:</strong> Essa parceria garante um valor muito abaixo do praticado pelo mercado para uma contabilidade integrada. A gestão fica dividida entre dois especialistas focados em seu negócio: eu cuido de toda a parte técnica, financeira e operacional, enquanto meu parceiro assume a parte sistêmica e de obrigações legais da contabilidade. Consegui negociar o exato valor que eu mesmo cobraria se fizesse sozinho, mas a operação dividida oferece dois olhos acompanhando seu caixa, garantindo maior segurança e um atendimento muito mais ágil e robusto.
+                      </p>
                     </div>
                   )}
                 </div>
@@ -1091,6 +1350,69 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
                 className="w-full py-2.5 bg-gradient-to-r from-gold-600 to-amber-500 hover:from-gold-500 hover:to-amber-400 text-dark-950 font-black rounded-xl text-xs uppercase tracking-widest transition-all cursor-pointer"
               >
                 Entendido
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Premium de Bloqueio de Assistência Financeira */}
+      {mostrarBloqueioFinanceiro && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-dark-950/80 backdrop-blur-md animate-fadeIn">
+          <div className="bg-dark-900 border-2 border-red-500/40 rounded-3xl p-6 md:p-8 max-w-xl w-full shadow-2xl relative space-y-5 text-left">
+            <div className="flex items-center gap-3 border-b border-dark-800 pb-3">
+              <AlertTriangle className="w-6 h-6 text-red-500 shrink-0 animate-bounce" />
+              <h3 className="text-lg font-bold text-white uppercase tracking-wider font-serif">Aviso sobre Integração Contábil</h3>
+            </div>
+
+            <div className="space-y-4 text-xs md:text-sm text-gray-350 leading-relaxed font-light">
+              <p className="text-red-400 font-bold border-l-2 border-red-500 pl-3 py-1 text-xs uppercase tracking-wider">
+                ⚠️ Atenção: A contratação de Contabilidade (Anual ou Mensal) só pode ser orçada se o serviço de Assistência Financeira estiver incluído no plano.
+              </p>
+              <p>
+                A parte contábil não funciona da maneira que deveria se as informações não forem claras o suficiente.
+              </p>
+              <p>
+                Isso pode gerar envio de informações equivocadas que interferem diretamente na saúde da empresa e podem vir a prejudicá-la, com <span className="text-red-500 font-bold">MULTAS e JUROS por omissão</span> (motivada por não ter uma boa gestão).
+              </p>
+              <p>
+                O meu trabalho é voltado em fazer o certo, dentro de tudo que uma empresa precisa e a boa gestão está justamente na <span className="text-gold-500 font-bold">assistência financeira</span>.
+              </p>
+              <p className="italic text-gray-450 border-t border-dark-850 pt-3">
+                "Esse é o meu lema, prestar o melhor para as empresas, evitando o máximo de erros que podem acontecer."
+              </p>
+            </div>
+
+            <div className="pt-4 flex flex-col gap-3">
+              {/* Botão Principal: Adicionar Assistência */}
+              <button
+                onClick={() => {
+                  setFinanceiro(true);
+                  setMostrarBloqueioFinanceiro(false);
+                  setOrcamentoFinalizado(true);
+                }}
+                className="w-full py-3.5 bg-gradient-to-r from-gold-600 to-amber-500 hover:from-gold-500 hover:to-amber-400 text-dark-950 font-black rounded-xl text-xs uppercase tracking-widest transition-all duration-300 hover:scale-[1.02] shadow-lg shadow-gold-500/10 cursor-pointer"
+              >
+                Adicionar Assistência Financeira e Finalizar
+              </button>
+
+              {/* Botão Secundário: Remover Contabilidade */}
+              <button
+                onClick={() => {
+                  setContabilidadeAnual(false);
+                  setContabilidadeMensal(false);
+                  setMostrarBloqueioFinanceiro(false);
+                  // Verifica se ainda resta algum outro serviço ativo
+                  const temServicoRestante = atendimento || cobranca || certificadoDigital || inscricaoEstadual || migracaoMei || emissaoFaixa !== 'none';
+                  if (temServicoRestante) {
+                    setOrcamentoFinalizado(true);
+                  } else {
+                    setErroModalMsg('Por favor, selecione pelo menos um serviço ou a franquia de notas fiscais antes de finalizar.');
+                  }
+                }}
+                className="w-full py-2.5 bg-dark-850 hover:bg-dark-800 border border-dark-700 text-gray-400 hover:text-white rounded-xl text-xs uppercase tracking-wider font-bold transition-all cursor-pointer text-center block"
+              >
+                Não Adicionar Assistência (Remover Contabilidade)
               </button>
             </div>
           </div>

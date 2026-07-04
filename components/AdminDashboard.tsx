@@ -2883,13 +2883,13 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                                             </button>
                                         </div>
 
-                                        {/* Card 4: Precificação para Empresas */}
+                                        {/* Card 4: Migração de MEI para ME */}
                                         <div className="bg-dark-900/40 border border-dark-800/80 p-6 rounded-2xl flex flex-col justify-between hover:border-dark-700 transition-all hover:shadow-[0_0_15px_rgba(255,255,255,0.01)]">
                                             <div className="space-y-2">
                                                 <span className="text-[9px] text-green-400 font-black uppercase tracking-widest bg-green-500/10 px-2 py-0.5 rounded border border-green-500/20">Ativo</span>
-                                                <h3 className="text-base font-bold text-white font-serif mt-2">Precificação para Empresas</h3>
+                                                <h3 className="text-base font-bold text-white font-serif mt-2">Migração de MEI para ME</h3>
                                                 <p className="text-xs text-gray-500 font-light leading-relaxed">
-                                                    Detalhamento modular de serviços corporativos sob demanda, com desconto por indicação e aditivos.
+                                                    Apresentação estratégica detalhando as regras de faturamento, obrigações de transição e a estrutura de soluções necessária para a migração segura.
                                                 </p>
                                             </div>
                                             <div className="space-y-2 mt-6">
@@ -2899,7 +2899,7 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                                                     rel="noopener noreferrer"
                                                     className="w-full py-2 bg-gradient-to-r from-gold-600 to-amber-500 hover:from-gold-500 hover:to-amber-400 text-dark-950 font-bold rounded-lg text-xs uppercase tracking-wider transition-all text-center block"
                                                 >
-                                                    Visualizar Precificação
+                                                    Visualizar Apresentação
                                                 </a>
                                                 <button
                                                     onClick={handleDownloadPricingBusinessHTML}
