@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Check, ArrowLeft, MessageSquare, Building2, FileText, Landmark, RefreshCw, Sparkles, Percent, ShieldCheck, HelpCircle, XCircle, AlertTriangle } from 'lucide-react';
+import { Check, ArrowLeft, MessageSquare, Building2, FileText, Landmark, RefreshCw, Sparkles, Percent, ShieldCheck, HelpCircle, XCircle, AlertTriangle, X } from 'lucide-react';
 
 interface PricingBusinessPageProps {
   navigate: (path: string) => void;
@@ -232,7 +232,7 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
     {
       title: 'Contabilidade',
       description: 'Gestão fiscal para o cumprimento das obrigações mensais e anuais de empresas com faturamento de até R$ 60.000,00.',
-      additional: 'Aberturas, alterações, inscrições, consultorias complexas, pró-labore, folha de pagamento* e outros serviços são cobrados à parte. - (Não estão inclusos taxas e impostos)',
+      additional: 'Aberturas, alterações, inscrições, consultorias complexas, pró-labore*, folha de pagamento* e outros serviços são cobrados à parte. (Não estão inclusos taxas e impostos)',
       referenceValue: 'R$ 450',
       period: 'mês',
       isMonthly: true,
@@ -240,8 +240,10 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
       tag: { text: 'OBRIGATÓRIO', type: 'required' },
       inclusos: [
         'Apuração de guias de impostos',
+        'Pró-labore de até 01 sócio',
         'Folha de pagamento de até 02 funcionários',
-        'Envio das declarações'
+        'Envio das declarações',
+        'Parte técnica, financeira, operacional e sistêmica'
       ]
     },
     {
@@ -1086,11 +1088,11 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
                             <ul className="space-y-1.5 text-[11px] text-gray-300">
                               <li className="flex items-center gap-1.5">
                                 <Check className="w-3.5 h-3.5 text-green-400 shrink-0" />
-                                <span>Certificado Digital e-CNPJ A1 (Todo Ano)</span>
+                                <span>Certificado Digital e-CNPJ A1 (12 meses)</span>
                               </li>
                               <li className="flex items-center gap-1.5">
                                 <Check className="w-3.5 h-3.5 text-green-400 shrink-0" />
-                                <span>Inscrição Estadual (Isenção da taxa)</span>
+                                <span>Inscrição Estadual</span>
                               </li>
                               <li className="flex items-center gap-1.5">
                                 <Check className="w-3.5 h-3.5 text-green-400 shrink-0" />
@@ -1254,7 +1256,7 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
                         O pagamento da contabilidade é feito de forma separada porque ela é prestada por um parceiro contábil homologado. Não se trata de uma burocracia, mas sim de uma exigência legal para o correto vínculo e distribuição de receitas de acordo com o faturamento de cada profissional (motivo pelo qual eu não posso receber esse valor e repassá-lo).
                       </p>
                       <p className="text-[11px] text-gray-300 font-light leading-relaxed">
-                        <strong>Seu Benefício:</strong> Essa parceria garante um valor muito abaixo do praticado pelo mercado para uma contabilidade integrada. A gestão fica dividida entre dois especialistas focados em seu negócio: eu cuido de toda a parte técnica, financeira e operacional, enquanto meu parceiro assume a parte sistêmica e de obrigações legais da contabilidade. Consegui negociar o exato valor que eu mesmo cobraria se fizesse sozinho, mas a operação dividida oferece dois olhos acompanhando seu caixa, garantindo maior segurança e um atendimento muito mais ágil e robusto.
+                        <strong>Seu Benefício:</strong> Essa parceria garante um valor muito abaixo do praticado pelo mercado para uma contabilidade integrada. A gestão fica dividida entre dois especialistas focados em seu negócio: eu cuido de toda a parte técnica, financeira e operacional, enquanto meu parceiro assume a parte sistêmica e de obrigações legais da contabilidade. Consegui negociar um valor melhor do que eu ofereceria se fizesse sozinho (por questão de ter a assistência financeira vinculada), mas a operação dividida oferece dois olhos acompanhando seu caixa, garantindo maior segurança e um atendimento muito mais ágil e robusto.
                       </p>
                     </div>
                   )}
@@ -1360,7 +1362,17 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
       {mostrarBloqueioFinanceiro && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-dark-950/80 backdrop-blur-md animate-fadeIn">
           <div className="bg-dark-900 border-2 border-red-500/40 rounded-3xl p-6 md:p-8 max-w-xl w-full shadow-2xl relative space-y-5 text-left">
-            <div className="flex items-center gap-3 border-b border-dark-800 pb-3">
+
+            {/* Botão de Fechar X no Canto Superior Direito */}
+            <button
+              onClick={() => setMostrarBloqueioFinanceiro(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors cursor-pointer p-1.5 bg-dark-850 hover:bg-dark-800 rounded-full border border-dark-800"
+              title="Fechar e continuar selecionando"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="flex items-center gap-3 border-b border-dark-800 pb-3 pr-8">
               <AlertTriangle className="w-6 h-6 text-red-500 shrink-0 animate-bounce" />
               <h3 className="text-lg font-bold text-white uppercase tracking-wider font-serif">Aviso sobre Integração Contábil</h3>
             </div>

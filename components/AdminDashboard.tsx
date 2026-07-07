@@ -3507,24 +3507,33 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1">
                                                     <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Economia Mensal Média</p>
-                                                    <p className="text-sm text-white font-medium">{selectedLead.answers.meeting.monthlySavings || 'Não respondido'}</p>
+                                                    <p className="text-sm text-white font-medium">
+                                                        {selectedLead.answers.meeting.quantoGuardaMensalmente || selectedLead.answers.meeting.monthlySavings || (selectedLead.answers.meeting.consegueGuardarDinheiro === 'Não' ? 'Não consegue guardar' : 'Não respondido')}
+                                                    </p>
                                                 </div>
 
                                                 <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1">
                                                     <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Prioridade Financeira Atual</p>
-                                                    <p className="text-sm text-white font-medium">{selectedLead.answers.meeting.financialPriority || 'Não respondido'}</p>
+                                                    <p className="text-sm text-white font-medium">
+                                                        {selectedLead.answers.meeting.financialPriority || (selectedLead.answers.meeting.guardadoTemFinalidade === 'Sim' ? `Sim - ${selectedLead.answers.meeting.guardadoQualFinalidade}` : selectedLead.answers.meeting.guardadoTemFinalidade === 'Não' ? 'Reserva de emergência / Sem finalidade específica' : 'Não respondido')}
+                                                    </p>
                                                 </div>
 
                                                 <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1">
                                                     <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Maior Desperdício / Ralo</p>
-                                                    <p className="text-sm text-white font-medium">{selectedLead.answers.meeting.biggestWaste || 'Não respondido'}</p>
+                                                    <p className="text-sm text-white font-medium">
+                                                        {selectedLead.answers.meeting.biggestWaste || (selectedLead.answers.meeting.gastaMaisDoQueDeveria === 'Sim' ? `Sim - ${selectedLead.answers.meeting.comOQueGastaMais}` : selectedLead.answers.meeting.gastaMaisDoQueDeveria === 'Não' ? 'Não' : 'Não respondido')}
+                                                    </p>
                                                 </div>
 
                                                 <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1">
                                                     <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Tem reserva?</p>
                                                     <p className="text-sm text-white font-medium">
-                                                        {selectedLead.answers.meeting.hasReserve || 'Não respondido'}
-                                                        {selectedLead.answers.meeting.reserveMonths && ` (${selectedLead.answers.meeting.reserveMonths} meses)`}
+                                                        {selectedLead.answers.meeting.quantoTemDeReserva || (
+                                                            selectedLead.answers.meeting.hasReserve
+                                                                ? `${selectedLead.answers.meeting.hasReserve}${selectedLead.answers.meeting.reserveMonths ? ` (${selectedLead.answers.meeting.reserveMonths} meses)` : ''}`
+                                                                : 'Não respondido'
+                                                        )}
                                                     </p>
                                                 </div>
 
@@ -3568,7 +3577,7 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
 
                                                 <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1">
                                                     <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Como estará a vida financeira daqui a 6 meses?</p>
-                                                    <p className="text-sm text-white font-medium">{selectedLead.answers.meeting.vidaDaquiSeisMeses || 'Não respondido'}</p>
+                                                    <p className="text-sm text-white font-medium">{selectedLead.answers.meeting.vidaDaquiSeisMeses || selectedLead.answers.futureOutlook || 'Não respondido'}</p>
                                                 </div>
 
                                                 <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1">
@@ -3576,13 +3585,15 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                                                     <p className="text-sm text-white font-medium">{selectedLead.answers.meeting.seisMesesAssustaOuConforta || 'Não respondido'}</p>
                                                 </div>
 
-                                                <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1">
-                                                    <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Tempo de dedicação semanal (horas)</p>
-                                                    <p className="text-sm text-white font-medium">{selectedLead.answers.meeting.timeCommitment || 'Não respondido'}</p>
-                                                </div>
+                                                {selectedLead.answers.meeting.timeCommitment && (
+                                                    <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1">
+                                                        <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Tempo de dedicação semanal (horas)</p>
+                                                        <p className="text-sm text-white font-medium">{selectedLead.answers.meeting.timeCommitment}</p>
+                                                    </div>
+                                                )}
 
                                                 <div className="p-4 bg-dark-850 rounded-xl border border-dark-800 space-y-1">
-                                                    <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Se a rotina tem pouco tempo, aceita 10-15m/dia?</p>
+                                                    <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Rotina muito corrida e com pouco tempo?</p>
                                                     <p className="text-sm text-white font-medium">{selectedLead.answers.meeting.rotinaPoucoTempo || 'Não respondido'}</p>
                                                 </div>
                                             </div>

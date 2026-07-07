@@ -81,6 +81,18 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
   const [paymentDetailsModal, setPaymentDetailsModal] = useState<'padrao' | 'especial' | 'downsell' | null>(null);
   const [copiedText, setCopiedText] = useState<string | null>(null);
   const [activeCopyMenu, setActiveCopyMenu] = useState<'padrao' | 'especial' | 'downsell' | null>(null);
+  const [revelarPrecoPadrao, setRevelarPrecoPadrao] = useState(false);
+  const [revelarPrecoEspecial, setRevelarPrecoEspecial] = useState(false);
+  const [revelarPrecoDownsell, setRevelarPrecoDownsell] = useState(false);
+  const [confirmarEncerramentoModal, setConfirmarEncerramentoModal] = useState(false);
+
+  useEffect(() => {
+    setRevelarPrecoPadrao(false);
+    setRevelarPrecoEspecial(false);
+    setRevelarPrecoDownsell(false);
+    setConfirmarEncerramentoModal(false);
+  }, [currentSlide]);
+
   const handleCopyLink = async (text: string, label: string) => {
     if (!text) return;
     try {
@@ -277,58 +289,14 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
     guardadoQualFinalidade: lead.answers.meeting?.guardadoQualFinalidade || '',
   });
 
-  // Função para formatar input para moeda brasileira (R$ 0,00) em tempo real
-  const handleCurrencyChange = (field: keyof MeetingAnswers, rawValue: string) => {
-    // Remove tudo o que não é dígito
-    const digits = rawValue.replace(/\D/g, '');
-    if (!digits) {
-      setMeetingAnswers(prev => ({ ...prev, [field]: '' }));
-      return;
-    }
+  // Timeout para controle do Debounce
+  const saveTimeoutRef = React.useRef<any>(null);
 
-    // Converte para valor numérico
-    const cents = parseInt(digits, 10);
-    const formatted = (cents / 100).toLocaleString('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    });
-
-    setMeetingAnswers(prev => ({
-      ...prev,
-      [field]: formatted
-    }));
-  };
-
-  const handleColetaNext = () => {
-    if (coletaStep < 6) {
-      setColetaStep(prev => prev + 1);
-      scrollToTop();
-    } else {
-      handleSaveAndNavigate('coleta_informacoes_2');
-    }
-  };
-
-  const handleColetaBack = () => {
-    if (coletaStep > 1) {
-      setColetaStep(prev => prev - 1);
-      scrollToTop();
-    } else {
-      navigateBack();
-    }
-  };
-
-  // Salvar automaticamente as respostas locais sempre que houver mudanças nos dados de inputs
-  const handleInputChange = (field: keyof MeetingAnswers, value: any) => {
-    setMeetingAnswers(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  // Persistir dados no Supabase e atualizar estado do pai
+  // Persistir dados no Supabase e atualizar estado do pai (Imediato)
   const saveToSupabase = async (updatedAnswers: MeetingAnswers) => {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
     setIsSaving(true);
     try {
       const updatedUserAnswers = {
@@ -357,6 +325,81 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
     } finally {
       setIsSaving(false);
     }
+  };
+
+  // Versão Debounced para digitação e seleções rápidas
+  const saveToSupabaseDebounced = (updatedAnswers: MeetingAnswers) => {
+    setIsSaving(true);
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    saveTimeoutRef.current = setTimeout(() => {
+      saveToSupabase(updatedAnswers);
+    }, 1000); // 1 segundo de debounce
+  };
+
+  // Função para formatar input para moeda brasileira (R$ 0,00) em tempo real
+  const handleCurrencyChange = (field: keyof MeetingAnswers, rawValue: string) => {
+    // Remove tudo o que não é dígito
+    const digits = rawValue.replace(/\D/g, '');
+    if (!digits) {
+      setMeetingAnswers(prev => {
+        const updated = { ...prev, [field]: '' };
+        saveToSupabaseDebounced(updated);
+        return updated;
+      });
+      return;
+    }
+
+    // Converte para valor numérico
+    const cents = parseInt(digits, 10);
+    const formatted = (cents / 100).toLocaleString('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+
+    setMeetingAnswers(prev => {
+      const updated = {
+        ...prev,
+        [field]: formatted
+      };
+      saveToSupabaseDebounced(updated);
+      return updated;
+    });
+  };
+
+  const handleColetaNext = () => {
+    // Força salvamento imediato do estado atual antes de passar de sub-passo
+    saveToSupabase(meetingAnswers);
+    if (coletaStep < 6) {
+      setColetaStep(prev => prev + 1);
+      scrollToTop();
+    } else {
+      handleSaveAndNavigate('coleta_informacoes_2');
+    }
+  };
+
+  const handleColetaBack = () => {
+    if (coletaStep > 1) {
+      setColetaStep(prev => prev - 1);
+      scrollToTop();
+    } else {
+      navigateBack();
+    }
+  };
+
+  // Salvar automaticamente as respostas locais sempre que houver mudanças nos dados de inputs
+  const handleInputChange = (field: keyof MeetingAnswers, value: any) => {
+    setMeetingAnswers(prev => {
+      const updated = {
+        ...prev,
+        [field]: value
+      };
+      saveToSupabaseDebounced(updated);
+      return updated;
+    });
   };
 
   // Controlar navegação manual e registrar no histórico
@@ -1845,65 +1888,70 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 pt-4">
 
                   {/* Para quem serve (4 Cards) */}
-                  <div className="lg:col-span-7 bg-dark-900 border border-gold-500/10 p-6 md:p-8 rounded-3xl space-y-6 shadow-lg relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-gold-500/5 rounded-full filter blur-2xl"></div>
-                    <h3 className="text-lg font-bold text-gold-400 flex items-center gap-2">
-                      <Check className="w-5 h-5 text-gold-500 animate-pulse" />
-                      {leadFormType === 'business' ? 'A Assistência é ideal para:' : 'A Consultoria é ideal para:'}
-                    </h3>
+                  <div className="lg:col-span-7 bg-dark-900 border border-emerald-500/15 p-6 md:p-8 rounded-3xl space-y-6 shadow-lg relative overflow-hidden flex flex-col justify-center">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full filter blur-2xl"></div>
+                    <div>
+                      <h3 className="text-lg font-bold text-emerald-400 flex items-center gap-2 border-b border-dark-800/60 pb-3">
+                        <Check className="w-5 h-5 text-emerald-400 animate-pulse" />
+                        {leadFormType === 'business' ? 'A Assistência é ideal para:' : 'A Consultoria é ideal para:'}
+                      </h3>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {/* Card 1 */}
-                      <div className="bg-dark-950 border border-dark-800/80 p-4 rounded-2xl flex gap-3 hover:border-gold-500/20 transition-all group">
-                        <div className="w-8 h-8 rounded-lg bg-gold-500/10 flex items-center justify-center text-gold-500 shrink-0 mt-0.5 group-hover:scale-110 transition-transform">
-                          <HelpCircle className="w-4 h-4" />
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 md:gap-x-5 gap-y-6 md:gap-y-8 pt-6">
+                        {/* Card 1 */}
+                        <div className="bg-dark-950 border border-dark-800/80 p-5 md:p-6 rounded-2xl flex gap-4 hover:border-emerald-500/20 transition-all group min-h-[140px] flex-col md:flex-row items-start md:items-center">
+                          <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 shrink-0 group-hover:scale-110 transition-transform">
+                            <HelpCircle className="w-5 h-5 md:w-6 h-6" />
+                          </div>
+                          <p className="text-xs md:text-sm text-gray-300 font-light leading-relaxed">
+                            {leadFormType === 'business' ? 'Quem fatura bem, mas sente que o caixa da empresa poderia render muito mais.' : 'Quem tem uma boa renda, mas sente que poderia administrar melhor os seus recursos.'}
+                          </p>
                         </div>
-                        <p className="text-xs text-gray-300 font-light leading-relaxed">
-                          {leadFormType === 'business' ? 'Quem fatura bem, mas sente que o caixa da empresa poderia render muito mais.' : 'Quem tem uma boa renda, mas sente que poderia administrar melhor os seus recursos.'}
-                        </p>
-                      </div>
 
-                      {/* Card 2 */}
-                      <div className="bg-dark-950 border border-dark-800/80 p-4 rounded-2xl flex gap-3 hover:border-gold-500/20 transition-all group">
-                        <div className="w-8 h-8 rounded-lg bg-gold-500/10 flex items-center justify-center text-gold-500 shrink-0 mt-0.5 group-hover:scale-110 transition-transform">
-                          <Target className="w-4 h-4" />
+                        {/* Card 2 */}
+                        <div className="bg-dark-950 border border-dark-800/80 p-5 md:p-6 rounded-2xl flex gap-4 hover:border-emerald-500/20 transition-all group min-h-[140px] flex-col md:flex-row items-start md:items-center">
+                          <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 shrink-0 group-hover:scale-110 transition-transform">
+                            <Target className="w-5 h-5 md:w-6 h-6" />
+                          </div>
+                          <p className="text-xs md:text-sm text-gray-300 font-light leading-relaxed">
+                            {leadFormType === 'business' ? 'Quem tem metas de expansão para a empresa, mas não desenhou a rota financeira e contábil.' : 'Quem tem objetivos importantes, mas ainda não transformou tudo em um plano claro (com prazos e valores).'}
+                          </p>
                         </div>
-                        <p className="text-xs text-gray-300 font-light leading-relaxed">
-                          {leadFormType === 'business' ? 'Quem tem metas de expansão para a empresa, mas não desenhou a rota financeira e contábil.' : 'Quem tem objetivos importantes, mas ainda não transformou tudo em um plano claro (com prazos e valores).'}
-                        </p>
-                      </div>
 
-                      {/* Card 3 */}
-                      <div className="bg-dark-950 border border-dark-800/80 p-4 rounded-2xl flex gap-3 hover:border-gold-500/20 transition-all group">
-                        <div className="w-8 h-8 rounded-lg bg-gold-500/10 flex items-center justify-center text-gold-500 shrink-0 mt-0.5 group-hover:scale-110 transition-transform">
-                          <TrendingDown className="w-4 h-4" />
+                        {/* Card 3 */}
+                        <div className="bg-dark-950 border border-dark-800/80 p-5 md:p-6 rounded-2xl flex gap-4 hover:border-emerald-500/20 transition-all group min-h-[140px] flex-col md:flex-row items-start md:items-center">
+                          <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 shrink-0 group-hover:scale-110 transition-transform">
+                            <TrendingDown className="w-5 h-5 md:w-6 h-6" />
+                          </div>
+                          <p className="text-xs md:text-sm text-gray-300 font-light leading-relaxed">
+                            {leadFormType === 'business' ? 'Quem sofre com a mistura de contas (PF/PJ) e quer separar definitivamente.' : 'Quem sente que algumas decisões financeiras do passado ainda limitam o seu crescimento.'}
+                          </p>
                         </div>
-                        <p className="text-xs text-gray-300 font-light leading-relaxed">
-                          {leadFormType === 'business' ? 'Quem sofre com a mistura de contas (PF/PJ) e quer separar definitivamente.' : 'Quem sente que algumas decisões financeiras do passado ainda limitam o seu crescimento.'}
-                        </p>
-                      </div>
 
-                      {/* Card 4 */}
-                      <div className="bg-dark-950 border border-dark-800/80 p-4 rounded-2xl flex gap-3 hover:border-gold-500/20 transition-all group">
-                        <div className="w-8 h-8 rounded-lg bg-gold-500/10 flex items-center justify-center text-gold-500 shrink-0 mt-0.5 group-hover:scale-110 transition-transform">
-                          <TrendingUp className="w-4 h-4" />
+                        {/* Card 4 */}
+                        <div className="bg-dark-950 border border-dark-800/80 p-5 md:p-6 rounded-2xl flex gap-4 hover:border-emerald-500/20 transition-all group min-h-[140px] flex-col md:flex-row items-start md:items-center">
+                          <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 shrink-0 group-hover:scale-110 transition-transform">
+                            <TrendingUp className="w-5 h-5 md:w-6 h-6" />
+                          </div>
+                          <p className="text-xs md:text-sm text-gray-300 font-light leading-relaxed">
+                            {leadFormType === 'business' ? 'Quem quer otimizar a carga tributária de forma legal e segura para reter mais lucros.' : 'Quem quer fazer seu patrimônio crescer com mais segurança e estratégia.'}
+                          </p>
                         </div>
-                        <p className="text-xs text-gray-300 font-light leading-relaxed">
-                          {leadFormType === 'business' ? 'Quem quer otimizar a carga tributária de forma legal e segura para reter mais lucros.' : 'Quem quer fazer seu patrimônio crescer com mais segurança e estratégia.'}
-                        </p>
                       </div>
                     </div>
                   </div>
 
                   {/* Problemas que resolve (Gargalos) */}
-                  <div className="lg:col-span-5 bg-dark-900 border border-dark-800 p-6 md:p-8 rounded-3xl space-y-6 shadow-lg">
-                    <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                      <AlertCircle className="w-5 h-5 text-gray-500" />
+                  <div className="lg:col-span-5 bg-dark-900 border border-gold-500/15 p-6 md:p-8 rounded-3xl space-y-6 shadow-lg relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-gold-500/5 rounded-full filter blur-2xl"></div>
+                    <h3 className="text-lg font-bold text-gold-400 flex items-center gap-2 border-b border-dark-800/60 pb-3">
+                      <AlertCircle className="w-5 h-5 text-gold-500 animate-pulse" />
                       Desafios mais comuns dos meus clientes:
                     </h3>
-                    <ul className="space-y-4 text-sm text-gray-300 font-light">
-                      <li className="flex items-start gap-3">
-                        <span className="text-gold-500 font-bold shrink-0 mt-0.5">•</span>
+                    <ul className="space-y-3.5 text-sm text-gray-300 font-light">
+                      <li className="flex items-start gap-3 bg-dark-950 p-4 rounded-2xl border border-dark-800/80 hover:border-gold-500/20 transition-all group">
+                        <div className="w-8 h-8 rounded-lg bg-gold-500/10 flex items-center justify-center text-gold-500 shrink-0 mt-0.5 group-hover:scale-110 transition-transform">
+                          <TrendingDown className="w-4 h-4" />
+                        </div>
                         <div>
                           <strong className="block text-white text-sm font-semibold">{leadFormType === 'business' ? 'Falta de controle de fluxo de caixa' : 'Falta de clareza financeira'}</strong>
                           <span className="text-gray-400 text-xs font-light block mt-0.5">
@@ -1911,8 +1959,10 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                           </span>
                         </div>
                       </li>
-                      <li className="flex items-start gap-3">
-                        <span className="text-gold-500 font-bold shrink-0 mt-0.5">•</span>
+                      <li className="flex items-start gap-3 bg-dark-950 p-4 rounded-2xl border border-dark-800/80 hover:border-gold-500/20 transition-all group">
+                        <div className="w-8 h-8 rounded-lg bg-gold-500/10 flex items-center justify-center text-gold-500 shrink-0 mt-0.5 group-hover:scale-110 transition-transform">
+                          <Compass className="w-4 h-4" />
+                        </div>
                         <div>
                           <strong className="block text-white text-sm font-semibold">{leadFormType === 'business' ? 'Insegurança tributária e contábil' : 'Incerteza sobre o futuro'}</strong>
                           <span className="text-gray-400 text-xs font-light block mt-0.5">
@@ -1920,17 +1970,21 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                           </span>
                         </div>
                       </li>
-                      <li className="flex items-start gap-3">
-                        <span className="text-gold-500 font-bold shrink-0 mt-0.5">•</span>
+                      <li className="flex items-start gap-3 bg-dark-950 p-4 rounded-2xl border border-dark-800/80 hover:border-gold-500/20 transition-all group">
+                        <div className="w-8 h-8 rounded-lg bg-gold-500/10 flex items-center justify-center text-gold-500 shrink-0 mt-0.5 group-hover:scale-110 transition-transform">
+                          <HelpCircle className="w-4 h-4" />
+                        </div>
                         <div>
                           <strong className="block text-white text-sm font-semibold">{leadFormType === 'business' ? 'Ausência de capital de giro' : 'Excesso de dúvidas nas decisões'}</strong>
                           <span className="text-gray-400 text-xs font-light block mt-0.5">
-                            {leadFormType === 'business' ? 'Qualquer oscilação de mercado ou atraso de cliente ameaça a sobrevivência da operação.' : 'Muitas opções, informações e decisões importantes sem saber qual o melhor caminho deveria seguir.'}
+                            {leadFormType === 'business' ? 'Qualquer oscilação de mercado ou atraso de cliente ameaça a sobrevivência da operação.' : 'Muitas options, informações e decisões importantes sem saber qual o melhor caminho deveria seguir.'}
                           </span>
                         </div>
                       </li>
-                      <li className="flex items-start gap-3">
-                        <span className="text-gold-500 font-bold shrink-0 mt-0.5">•</span>
+                      <li className="flex items-start gap-3 bg-dark-950 p-4 rounded-2xl border border-dark-800/80 hover:border-gold-500/20 transition-all group">
+                        <div className="w-8 h-8 rounded-lg bg-gold-500/10 flex items-center justify-center text-gold-500 shrink-0 mt-0.5 group-hover:scale-110 transition-transform">
+                          <Target className="w-4 h-4" />
+                        </div>
                         <div>
                           <strong className="block text-white text-sm font-semibold">Falta de execução e acompanhamento</strong>
                           <span className="text-gray-400 text-xs font-light block mt-0.5">
@@ -2152,7 +2206,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-4">
                   {/* Tópico 1: O que iremos fazer? */}
-                  <div className="bg-dark-900 border border-dark-800 p-6 md:p-8 rounded-3xl space-y-6 shadow-lg relative overflow-hidden">
+                  <div className="bg-dark-900 border border-dark-800 p-6 md:p-8 rounded-3xl space-y-6 shadow-lg relative overflow-hidden text-left flex flex-col justify-center">
                     <div className="absolute top-0 right-0 w-24 h-24 bg-gold-500/5 rounded-full filter blur-2xl"></div>
                     <h3 className="text-lg font-bold text-gold-400 flex items-center gap-2 border-b border-dark-800/60 pb-3">
                       <Sparkles className="w-5 h-5 text-gold-500" />
@@ -2160,7 +2214,9 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                     </h3>
                     <div className="space-y-4">
                       <div className="flex gap-4 items-start bg-dark-950 p-4 rounded-xl border border-dark-800/60 hover:border-gold-500/20 transition-all group">
-                        <span className="w-8 h-8 rounded-lg bg-gold-500/10 text-gold-500 flex items-center justify-center font-bold text-xs shrink-0 group-hover:scale-110 transition-transform">1</span>
+                        <span className="w-8 h-8 rounded-lg bg-gold-500/10 text-gold-500 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                          <Eye className="w-4 h-4" />
+                        </span>
                         <div>
                           <h4 className="text-sm font-bold text-white">{leadFormType === 'business' ? 'Mapear o fluxo de caixa diário' : 'Ver para onde o dinheiro está indo'}</h4>
                           <p className="text-xs text-gray-400 font-light mt-1 leading-relaxed">
@@ -2169,7 +2225,9 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                         </div>
                       </div>
                       <div className="flex gap-4 items-start bg-dark-950 p-4 rounded-xl border border-dark-800/60 hover:border-gold-500/20 transition-all group">
-                        <span className="w-8 h-8 rounded-lg bg-gold-500/10 text-gold-500 flex items-center justify-center font-bold text-xs shrink-0 group-hover:scale-110 transition-transform">2</span>
+                        <span className="w-8 h-8 rounded-lg bg-gold-500/10 text-gold-500 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                          <Link className="w-4 h-4" />
+                        </span>
                         <div>
                           <h4 className="text-sm font-bold text-white">{leadFormType === 'business' ? 'Separar contas PF e PJ' : 'Unificar suas contas'}</h4>
                           <p className="text-xs text-gray-400 font-light mt-1 leading-relaxed">
@@ -2178,7 +2236,9 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                         </div>
                       </div>
                       <div className="flex gap-4 items-start bg-dark-950 p-4 rounded-xl border border-dark-800/60 hover:border-gold-500/20 transition-all group">
-                        <span className="w-8 h-8 rounded-lg bg-gold-500/10 text-gold-500 flex items-center justify-center font-bold text-xs shrink-0 group-hover:scale-110 transition-transform">3</span>
+                        <span className="w-8 h-8 rounded-lg bg-gold-500/10 text-gold-500 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                          <Target className="w-4 h-4" />
+                        </span>
                         <div>
                           <h4 className="text-sm font-bold text-white">{leadFormType === 'business' ? 'Planejar orçamentos por setor' : 'Criar um orçamento mensal'}</h4>
                           <p className="text-xs text-gray-400 font-light mt-1 leading-relaxed">
@@ -2190,16 +2250,16 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                   </div>
 
                   {/* Tópico 2: O que isso muda para você? */}
-                  <div className="bg-dark-900 border border-dark-800 p-6 md:p-8 rounded-3xl space-y-6 shadow-lg relative overflow-hidden">
+                  <div className="bg-dark-900 border border-dark-800 p-6 md:p-8 rounded-3xl space-y-6 shadow-lg relative overflow-hidden text-left flex flex-col justify-center">
                     <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full filter blur-2xl"></div>
-                    <h3 className="text-lg font-bold text-white flex items-center gap-2 border-b border-dark-800/60 pb-3">
-                      <Target className="w-5 h-5 text-gray-400" />
+                    <h3 className="text-lg font-bold text-emerald-400 flex items-center gap-2 border-b border-dark-800/60 pb-3">
+                      <Target className="w-5 h-5 text-emerald-400" />
                       O que isso muda para você?
                     </h3>
                     <div className="space-y-4">
                       <div className="flex gap-4 items-start bg-dark-950 p-4 rounded-xl border border-dark-800/60 hover:border-emerald-500/20 transition-all group">
                         <span className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                          <Check className="w-4 h-4" />
+                          <ShieldCheck className="w-4 h-4" />
                         </span>
                         <div>
                           <h4 className="text-sm font-bold text-white font-serif">{leadFormType === 'business' ? 'Eliminar ansiedade sobre folha e impostos' : 'Eliminar ansiedade e incerteza'}</h4>
@@ -2210,7 +2270,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                       </div>
                       <div className="flex gap-4 items-start bg-dark-950 p-4 rounded-xl border border-dark-800/60 hover:border-emerald-500/20 transition-all group">
                         <span className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                          <Check className="w-4 h-4" />
+                          <Coins className="w-4 h-4" />
                         </span>
                         <div>
                           <h4 className="text-sm font-bold text-white font-serif">{leadFormType === 'business' ? 'Visualizar lucratividade real' : 'Saber tudo por categoria'}</h4>
@@ -2221,7 +2281,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                       </div>
                       <div className="flex gap-4 items-start bg-dark-950 p-4 rounded-xl border border-dark-800/60 hover:border-emerald-500/20 transition-all group">
                         <span className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                          <Check className="w-4 h-4" />
+                          <Brain className="w-4 h-4" />
                         </span>
                         <div>
                           <h4 className="text-sm font-bold text-white font-serif">{leadFormType === 'business' ? 'Tomar decisões baseadas em dados' : 'Conseguir trabalhar por tópicos'}</h4>
@@ -2232,7 +2292,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                       </div>
                       <div className="flex gap-4 items-start bg-dark-950 p-4 rounded-xl border border-dark-800/60 hover:border-emerald-500/20 transition-all group">
                         <span className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                          <Check className="w-4 h-4" />
+                          <Compass className="w-4 h-4" />
                         </span>
                         <div>
                           <h4 className="text-sm font-bold text-white font-serif">{leadFormType === 'business' ? 'Blindagem e segurança fiscal' : 'Ver a verdadeira realidade'}</h4>
@@ -2624,9 +2684,15 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                   <h3 className="text-xs font-bold uppercase tracking-widest text-gold-500 font-mono">Alinhamento de Valor</h3>
                   <h1 className="font-serif font-bold text-3xl md:text-5xl text-white">Impacto real no seu bolso</h1>
                   <p className="text-gray-400 text-sm md:text-base font-light max-w-xl mx-auto">
-                    {leadFormType === 'business'
-                      ? 'A média de recuperação de caixa ou aumento de lucros que meus clientes empresariais têm no geral após os ajustes iniciais que faremos juntos é de, no mínimo, <span className="text-gold-500 font-bold">R$ 2.000,00 por mês</span>.'
-                      : 'A média de economia que meus clientes têm no geral após os ajustes iniciais que faremos juntos é de, no mínimo, <span className="text-gold-500 font-bold">R$ 500,00 por mês</span>.'}
+                    {leadFormType === 'business' ? (
+                      <>
+                        A média de recuperação de caixa ou aumento de lucros que meus clientes empresariais têm no geral após os ajustes iniciais que faremos juntos é de, no mínimo, <span className="text-gold-500 font-bold">R$ 2.000,00 por mês</span>.
+                      </>
+                    ) : (
+                      <>
+                        A média de economia que meus clientes têm no geral após os ajustes iniciais que faremos juntos é de, no mínimo, <span className="text-gold-500 font-bold">R$ 500,00 por mês</span>.
+                      </>
+                    )}
                   </p>
                 </div>
 
@@ -2680,9 +2746,15 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                           <h4 className="font-bold text-white text-base">Você reconhece o valor.</h4>
                         </div>
                         <p className="text-xs md:text-sm text-gray-350 font-light leading-relaxed">
-                          {leadFormType === 'business'
-                            ? 'Recuperar <span className="text-gold-500 font-bold">R$ 24.000,00 por ano</span> investindo <span className="text-green-500 font-bold">R$ 5.000,00</span> é um excelente negócio — representa um saldo positivo de <span className="text-green-500 font-bold">R$ 19.000,00</span> que hoje, possivelmente, sua empresa não tem ou não consiga economizar.'
-                            : 'Recuperar <span className="text-gold-500 font-bold">R$ 6.000,00 por ano</span> investindo <span className="text-green-500 font-bold">R$ 2.000,00</span> é um excelente negócio — representa um saldo positivo de <span className="text-green-500 font-bold">R$ 4.000,00</span> que hoje, possivelmente, você não tem ou não consiga economizar.'}
+                          {leadFormType === 'business' ? (
+                            <>
+                              Recuperar <span className="text-gold-500 font-bold">R$ 24.000,00 por ano</span> investindo <span className="text-green-500 font-bold">R$ 5.000,00</span> é um excelente negócio — representa um saldo positivo de <span className="text-green-500 font-bold">R$ 19.000,00</span> que hoje, possivelmente, sua empresa não tem ou não consiga economizar.
+                            </>
+                          ) : (
+                            <>
+                              Recuperar <span className="text-gold-500 font-bold">R$ 6.000,00 por ano</span> investindo <span className="text-green-500 font-bold">R$ 2.000,00</span> é um excelente negócio — representa um saldo positivo de <span className="text-green-500 font-bold">R$ 4.000,00</span> que hoje, possivelmente, você não tem ou não consiga economizar.
+                            </>
+                          )}
                         </p>
 
                         <div className="text-center py-4 px-6 bg-red-950/20 border border-red-900/30 rounded-2xl max-w-lg mx-auto mt-6 animate-pulse">
@@ -2738,9 +2810,11 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                 </div>
 
                 <div className="bg-dark-900 border border-gold-500/20 max-w-lg mx-auto rounded-3xl p-6 md:p-8 space-y-6 text-center shadow-2xl relative">
-                  <div className="absolute top-0 right-6 -translate-y-1/2 px-3 py-1 bg-red-500 text-dark-950 text-[10px] font-black rounded-full uppercase tracking-widest">
-                    {leadFormType === 'business' ? 'Ao invés de R$ 5.000' : 'Ao invés de R$ 2.000'}
-                  </div>
+                  {revelarPrecoPadrao && (
+                    <div className="absolute top-0 right-6 -translate-y-1/2 px-3 py-1 bg-red-500 text-dark-950 text-[10px] font-black rounded-full uppercase tracking-widest">
+                      {leadFormType === 'business' ? 'Ao invés de R$ 5.000' : 'Ao invés de R$ 2.000'}
+                    </div>
+                  )}
 
                   {/* Botão de Copiar Link Unificado (Canto Superior Esquerdo) */}
                   {(!!(consultoriaParceladoOption && consultoriaParceladoOption.checkoutType !== 'maquininha' && consultoriaParceladoOption.link) ||
@@ -2824,12 +2898,27 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
 
                   <div className="space-y-2">
                     <h4 className="text-sm text-gold-500 uppercase tracking-widest font-bold font-mono">Programa Completo</h4>
-                    <div className="flex flex-col items-center justify-center gap-1">
-                      {renderParceladoPremium(displayParcelado, "text-3xl md:text-4xl")}
-                    </div>
-                    <div className="text-xs text-gray-455 font-light flex items-center justify-center gap-1.5 mt-1">
-                      ou à vista, com um desconto AINDA MELHOR <span className="text-sky-400 font-bold"> por {displayAVista}</span>
-                    </div>
+                    {!revelarPrecoPadrao ? (
+                      <div className="py-2 flex justify-center">
+                        <button
+                          type="button"
+                          onClick={() => setRevelarPrecoPadrao(true)}
+                          className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-500 hover:from-blue-500 hover:to-indigo-400 text-white font-black rounded-xl text-xs uppercase tracking-widest transition-all duration-300 hover:scale-[1.03] shadow-lg shadow-blue-500/20 cursor-pointer flex items-center gap-2"
+                        >
+                          <Coins className="w-4 h-4 animate-bounce" />
+                          Revelar Investimento
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex flex-col items-center justify-center gap-1">
+                          {renderParceladoPremium(displayParcelado, "text-3xl md:text-4xl")}
+                        </div>
+                        <div className="text-xs text-gray-455 font-light flex items-center justify-center gap-1.5 mt-1">
+                          ou à vista, com um desconto AINDA MELHOR <span className="text-sky-400 font-bold"> por {displayAVista}</span>
+                        </div>
+                      </>
+                    )}
                   </div>
 
                   <ul className="text-xs text-gray-400 space-y-2 py-4 border-t border-b border-dark-800 text-left max-w-xs mx-auto">
@@ -2904,6 +2993,19 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                         className="w-full py-2 text-gray-600 hover:text-red-400 uppercase tracking-widest text-[9px] font-black opacity-0 hover:opacity-100 transition-all duration-300 cursor-pointer"
                       >
                         Não é viável neste valor
+                      </button>
+                    </div>
+
+                    {/* Encerrar Apresentação - Oculto por padrão, visível com hover */}
+                    <div className="h-9 flex items-center justify-center">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setConfirmarEncerramentoModal(true);
+                        }}
+                        className="w-full py-2 text-gray-600 hover:text-red-500 uppercase tracking-widest text-[9px] font-black opacity-0 hover:opacity-100 transition-all duration-300 cursor-pointer"
+                      >
+                        Encerrar a Apresentação
                       </button>
                     </div>
                   </div>
@@ -2982,9 +3084,11 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                 </div>
 
                 <div className="bg-dark-900 border border-dark-800 max-w-lg mx-auto rounded-3xl p-6 md:p-8 space-y-6 text-center shadow-2xl relative">
-                  <div className="absolute top-0 right-6 -translate-y-1/2 px-3 py-1 bg-red-500 text-dark-950 text-[10px] font-black rounded-full uppercase tracking-widest">
-                    Ao invés de {displayParcelado} (ou à vista {displayAVista})
-                  </div>
+                  {revelarPrecoEspecial && (
+                    <div className="absolute top-0 right-6 -translate-y-1/2 px-3 py-1 bg-red-500 text-dark-950 text-[10px] font-black rounded-full uppercase tracking-widest">
+                      Ao invés de {displayParcelado} (ou à vista {displayAVista})
+                    </div>
+                  )}
 
                   {/* Botão de Copiar Link Unificado (Canto Superior Esquerdo) */}
                   {(!!(especialParceladoOption && especialParceladoOption.checkoutType !== 'maquininha' && especialParceladoOption.link) ||
@@ -3070,12 +3174,27 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
 
                   <div className="space-y-2">
                     <h4 className="text-sm text-gold-500 uppercase tracking-widest font-mono font-bold">Investimento</h4>
-                    <div className="flex flex-col items-center justify-center gap-1">
-                      {renderParceladoPremium(displayEspecial2, "text-3xl md:text-4xl")}
-                    </div>
-                    <div className="text-xs text-gray-455 font-light flex items-center justify-center gap-1.5 mt-1">
-                      ou à vista, com um desconto AINDA MELHOR <span className="text-sky-400 font-bold">por {displayEspecial1}</span>
-                    </div>
+                    {!revelarPrecoEspecial ? (
+                      <div className="py-2 flex justify-center">
+                        <button
+                          type="button"
+                          onClick={() => setRevelarPrecoEspecial(true)}
+                          className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-500 hover:from-blue-500 hover:to-indigo-400 text-white font-black rounded-xl text-xs uppercase tracking-widest transition-all duration-300 hover:scale-[1.03] shadow-lg shadow-blue-500/20 cursor-pointer flex items-center gap-2"
+                        >
+                          <Coins className="w-4 h-4 animate-bounce" />
+                          Revelar Condição Especial
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex flex-col items-center justify-center gap-1">
+                          {renderParceladoPremium(displayEspecial2, "text-3xl md:text-4xl")}
+                        </div>
+                        <div className="text-xs text-gray-455 font-light flex items-center justify-center gap-1.5 mt-1">
+                          ou à vista, com um desconto AINDA MELHOR <span className="text-sky-400 font-bold">por {displayEspecial1}</span>
+                        </div>
+                      </>
+                    )}
                   </div>
 
                   <ul className="text-xs text-gray-400 space-y-2 py-4 border-t border-b border-dark-800 text-left max-w-xs mx-auto">
@@ -3152,6 +3271,19 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                         Ainda não é viável para mim
                       </button>
                     </div>
+
+                    {/* Encerrar Apresentação - Oculto por padrão, visível com hover */}
+                    <div className="h-9 flex items-center justify-center">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setConfirmarEncerramentoModal(true);
+                        }}
+                        className="w-full py-2 text-gray-600 hover:text-red-500 uppercase tracking-widest text-[9px] font-black opacity-0 hover:opacity-100 transition-all duration-300 cursor-pointer"
+                      >
+                        Encerrar a Apresentação
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -3164,7 +3296,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                   <h3 className="text-xs font-bold uppercase tracking-widest text-gold-500 font-mono">Última Oportunidade</h3>
                   <h1 className="font-serif font-bold text-3xl md:text-5xl text-white">Método Enquadramento Financeiro</h1>
                   <p className="text-gray-400 text-sm md:text-base max-w-xl mx-auto font-light">
-                    Se este ainda não é o momento para a consultoria, você pode começar sozinho com um método estruturado e utilizar as mesmas ferramentas que eu disponibilizo aos meus clientes.
+                    Se hoje a consultoria ainda não faz sentido para você, existe uma forma de começar sozinho, no seu ritmo, seguindo exatamente o mesmo método, os mesmos materiais e a mesma ferramenta que utilizo com meus clientes.
                   </p>
                 </div>
 
@@ -3253,41 +3385,77 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                   </button>
 
                   <div className="space-y-2">
-                    <h4 className="text-sm text-gold-500 uppercase tracking-widest font-bold font-mono">Investimento Mais Acessível</h4>
-                    <div className="flex flex-col items-center justify-center gap-1">
-                      {renderParceladoPremium(leadFormType === 'business' ? '12x de R$ 99,70' : (entradaParceladoOption ? formatPaymentOptionValue(entradaParceladoOption, true) : '12x de R$ 15,20'), "text-3xl md:text-4xl")}
-                    </div>
-                    <div className="text-xs text-gray-455 font-light flex items-center justify-center gap-1.5 mt-1">
-                      ou à vista, com um desconto AINDA MELHOR <span className="text-sky-400 font-bold">por {leadFormType === 'business' ? 'R$ 997,00' : (entradaVistaOption ? formatPaymentOptionValue(entradaVistaOption) : 'R$ 147,00')}</span>
-                    </div>
+                    <h4 className="text-sm text-gold-500 uppercase tracking-widest font-bold font-mono">Tudo o que Você Recebe</h4>
+                    {!revelarPrecoDownsell ? (
+                      <div className="py-2 flex justify-center">
+                        <button
+                          type="button"
+                          onClick={() => setRevelarPrecoDownsell(true)}
+                          className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-500 hover:from-blue-500 hover:to-indigo-400 text-white font-black rounded-xl text-xs uppercase tracking-widest transition-all duration-300 hover:scale-[1.03] shadow-lg shadow-blue-500/20 cursor-pointer flex items-center gap-2"
+                        >
+                          <Coins className="w-4 h-4 animate-bounce" />
+                          Revelar Investimento
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex flex-col items-center justify-center gap-1">
+                          {renderParceladoPremium(leadFormType === 'business' ? '12x de R$ 99,70' : (entradaParceladoOption ? formatPaymentOptionValue(entradaParceladoOption, true) : '12x de R$ 15,20'), "text-3xl md:text-4xl")}
+                        </div>
+                        <div className="text-xs text-gray-455 font-light flex items-center justify-center gap-1.5 mt-1">
+                          ou à vista, com um desconto AINDA MELHOR <span className="text-sky-400 font-bold">por {leadFormType === 'business' ? 'R$ 997,00' : (entradaVistaOption ? formatPaymentOptionValue(entradaVistaOption) : 'R$ 147,00')}</span>
+                        </div>
+                      </>
+                    )}
                   </div>
 
                   <ul className="text-xs text-gray-400 space-y-2 py-4 border-t border-b border-dark-800 text-left max-w-xs mx-auto font-light">
                     <li className="flex items-center gap-2">
                       <Check className="w-4 h-4 text-gold-500" />
-                      Sessão de 1h 30min
+                      Todo o passo a passo para organizar sua vida financeira
                     </li>
                     <li className="flex items-center gap-2">
                       <Check className="w-4 h-4 text-gold-500" />
-                      Acompanhamento de 30 dias
+                      Plataforma exclusiva "Solum Financeiro"
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-gold-500" />
+                      Garantia incondicional de 7 dias
                     </li>
                     <li className="flex items-center gap-2">
                       <GiftIcon className="w-4 h-4 text-gold-500" />
-                      Ferramenta de controle financeiro durante acompanhamento
+                      Materiais práticos para aplicar durante o processo
                     </li>
                     <li className="flex items-center gap-2">
                       <GiftIcon className="w-4 h-4 text-gold-500" />
-                      Análise completa da sua situação financeira
+                      Como usar o cartão de crédito de maneira inteligente
                     </li>
                     <li className="flex items-center gap-2">
                       <GiftIcon className="w-4 h-4 text-gold-500" />
-                      Revisão dos seus gastos
+                      Calculadora para quitar empréstimos mais rápido
                     </li>
                     <li className="flex items-center gap-2">
                       <GiftIcon className="w-4 h-4 text-gold-500" />
-                      Sessão de retorno <span className="text-gold-400 font-bold"> (APROX. 1H E 30MIN)</span>
+                      10 Rotinas para Sempre Ter Dinheiro
                     </li>
                   </ul>
+
+                  {/* Card Premium de Garantia Incondicional */}
+                  <div className="bg-emerald-500/10 border border-emerald-500/25 rounded-2xl p-4 max-w-xs mx-auto text-left flex gap-3 items-start shadow-md">
+                    <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5 animate-pulse" />
+                    <div className="space-y-0.5">
+                      <span className="text-[10px] text-emerald-400 font-mono font-bold uppercase tracking-wider block">Sem risco para você</span>
+                      <h5 className="text-xs font-serif font-bold text-white leading-tight">Garantia Incondicional de 7 dias</h5>
+                      <p className="text-[10px] text-gray-400 font-light leading-relaxed">
+                        Aprende todo o método e experimenta a ferramenta. Se achar que não é para você, eu te devolvo o valor total investido.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Observação em Gold */}
+                  <div className="text-[10px] text-gold-500/90 font-medium max-w-xs mx-auto text-center leading-relaxed">
+                    💡 Acesso anual à plataforma, atualizações, comunidade e materiais durante a vigência da assinatura.
+                  </div>
 
                   <div className="grid grid-cols-1 gap-3 pt-2">
                     {/* Aceitou à Vista */}
@@ -3334,6 +3502,19 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                         className="w-full py-2 text-gray-600 hover:text-red-400 uppercase tracking-widest text-[9px] font-black opacity-0 hover:opacity-100 transition-all duration-300 cursor-pointer"
                       >
                         Prefiro não seguir agora
+                      </button>
+                    </div>
+
+                    {/* Encerrar Apresentação - Oculto por padrão, visível com hover */}
+                    <div className="h-9 flex items-center justify-center">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setConfirmarEncerramentoModal(true);
+                        }}
+                        className="w-full py-2 text-gray-600 hover:text-red-500 uppercase tracking-widest text-[9px] font-black opacity-0 hover:opacity-100 transition-all duration-300 cursor-pointer"
+                      >
+                        Encerrar a Apresentação
                       </button>
                     </div>
                   </div>
@@ -3754,6 +3935,59 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
               >
                 Voltar
               </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal de Confirmação para Encerrar Apresentação e ir para Obrigado */}
+      <AnimatePresence>
+        {confirmarEncerramentoModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            {/* Backdrop com blur */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setConfirmarEncerramentoModal(false)}
+              className="absolute inset-0 bg-black/80 backdrop-blur-md"
+            ></motion.div>
+
+            {/* Caixa do Modal */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-md bg-dark-900 border border-dark-800 rounded-3xl p-8 shadow-2xl space-y-6 z-10 text-center"
+            >
+              <div className="w-16 h-16 bg-gold-500/10 text-gold-500 rounded-2xl flex items-center justify-center mx-auto border border-gold-500/20">
+                <HelpCircle className="w-8 h-8" />
+              </div>
+
+              <div className="space-y-2">
+                <h3 className="text-xl font-bold text-white font-serif">Encerrar a Apresentação?</h3>
+                <p className="text-gray-400 text-sm font-light leading-relaxed">
+                  Você deseja encerrar a apresentação agora e ir diretamente para a tela de agradecimento final?
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <button
+                  onClick={() => setConfirmarEncerramentoModal(false)}
+                  className="py-3 px-6 bg-dark-800 hover:bg-dark-750 text-gray-300 font-bold rounded-xl text-xs uppercase tracking-widest border border-dark-700 transition-colors cursor-pointer"
+                >
+                  Voltar
+                </button>
+                <button
+                  onClick={() => {
+                    setConfirmarEncerramentoModal(false);
+                    navigateTo('agradecimento_final');
+                  }}
+                  className="py-3 px-6 bg-gradient-to-r from-gold-600 to-amber-500 hover:from-gold-500 hover:to-amber-400 text-dark-950 font-black rounded-xl text-xs uppercase tracking-widest transition-colors shadow-lg shadow-gold-500/10 cursor-pointer"
+                >
+                  Confirmar
+                </button>
+              </div>
             </motion.div>
           </div>
         )}
