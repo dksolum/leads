@@ -166,6 +166,7 @@ export const Quiz: React.FC<Props> = ({ onComplete }) => {
 
   const [isTransitioning, setIsTransitioning] = useState(false);
   const isTransitioningRef = useRef(false);
+  const lastActionTimeRef = useRef(0);
   const [leadContact, setLeadContact] = useState({
     name: '',
     email: '',
@@ -269,17 +270,23 @@ export const Quiz: React.FC<Props> = ({ onComplete }) => {
   };
 
   const handleBack = () => {
-    if (isTransitioningRef.current) return;
+    const now = Date.now();
+    if (now - lastActionTimeRef.current < 450) return;
+    lastActionTimeRef.current = now;
+
+    isTransitioningRef.current = true;
+    setIsTransitioning(true);
     if (step > 0) {
-      isTransitioningRef.current = true;
-      setIsTransitioning(true);
       setStep(prev => prev - 1);
       setError('');
     }
   };
 
   const handleNext = () => {
-    if (isTransitioningRef.current) return;
+    const now = Date.now();
+    if (now - lastActionTimeRef.current < 450) return;
+    lastActionTimeRef.current = now;
+
     isTransitioningRef.current = true;
     setIsTransitioning(true);
 
@@ -294,6 +301,7 @@ export const Quiz: React.FC<Props> = ({ onComplete }) => {
       setError('Por favor, preencha este campo para continuar.');
       isTransitioningRef.current = false;
       setIsTransitioning(false);
+      lastActionTimeRef.current = 0;
       return;
     }
 
@@ -304,6 +312,7 @@ export const Quiz: React.FC<Props> = ({ onComplete }) => {
         setError('Por favor, preencha o campo adicional para continuar.');
         isTransitioningRef.current = false;
         setIsTransitioning(false);
+        lastActionTimeRef.current = 0;
         return;
       }
 
@@ -312,6 +321,7 @@ export const Quiz: React.FC<Props> = ({ onComplete }) => {
         setIsDisqualified(true);
         isTransitioningRef.current = false;
         setIsTransitioning(false);
+        lastActionTimeRef.current = 0;
         return;
       }
     }
@@ -330,23 +340,32 @@ export const Quiz: React.FC<Props> = ({ onComplete }) => {
   };
 
   const handleOptionSelect = (value: string) => {
-    setAnswers(prev => ({ ...prev, [currentQ.field]: value }));
-    if (error) setError('');
+    const now = Date.now();
+    if (now - lastActionTimeRef.current < 450) return;
+    lastActionTimeRef.current = now;
 
     const triggersConditional = currentQ.conditional && value === currentQ.conditional.triggerValue;
 
-    if (!triggersConditional) {
-      if (isTransitioningRef.current) return;
-      isTransitioningRef.current = true;
-      setIsTransitioning(true);
-      setTimeout(() => {
-        if (step < questions.length - 1) {
-          setStep(prev => prev + 1);
-        } else {
-          setStep(questions.length);
-        }
-      }, 350);
+    if (triggersConditional) {
+      setAnswers(prev => ({ ...prev, [currentQ.field]: value }));
+      if (error) setError('');
+      lastActionTimeRef.current = 0;
+      return;
     }
+
+    isTransitioningRef.current = true;
+    setIsTransitioning(true);
+
+    setAnswers(prev => ({ ...prev, [currentQ.field]: value }));
+    if (error) setError('');
+
+    setTimeout(() => {
+      if (step < questions.length - 1) {
+        setStep(prev => prev + 1);
+      } else {
+        setStep(questions.length);
+      }
+    }, 350);
   };
 
   const handleConditionalChange = (value: string) => {
@@ -523,7 +542,7 @@ export const Quiz: React.FC<Props> = ({ onComplete }) => {
           animate={{ x: 0, opacity: 1 }}
           exit={{ x: -20, opacity: 0 }}
           transition={{ duration: 0.3 }}
-          className={`w-full ${isTransitioning ? 'pointer-events-none opacity-80' : ''}`}
+          className="w-full"
         >
           <h2 className="text-2xl md:text-3xl font-serif text-white mb-8 leading-snug">
             {currentQ.question}
@@ -559,27 +578,21 @@ export const Quiz: React.FC<Props> = ({ onComplete }) => {
             {currentQ.type === 'radio' && (
               <div className="space-y-4">
                 {currentQ.options?.map((opt) => (
-                  <label
+                  <button
                     key={opt}
-                    className={`flex items-center p-4 rounded-lg border cursor-pointer transition-all group ${answers[currentQ.field] === opt
+                    type="button"
+                    onClick={() => handleOptionSelect(opt)}
+                    className={`w-full text-left p-4 rounded-lg border font-semibold transition-all flex items-center group ${answers[currentQ.field] === opt
                       ? 'bg-gold-500/10 border-gold-500 text-white'
-                      : 'bg-dark-800 border-dark-600 text-gray-400 hover:border-gold-500/50'
+                      : 'bg-dark-800 border-dark-600 text-gray-400 hover:border-gold-500/50 hover:text-white'
                       }`}
                   >
-                    <input
-                      type="radio"
-                      name={currentQ.field}
-                      value={opt}
-                      checked={answers[currentQ.field] === opt}
-                      onChange={() => handleOptionSelect(opt)}
-                      className="hidden"
-                    />
                     <div className={`w-5 h-5 rounded-full border mr-4 flex items-center justify-center ${answers[currentQ.field] === opt ? 'border-gold-500' : 'border-gray-500'
                       }`}>
                       {answers[currentQ.field] === opt && <div className="w-3 h-3 bg-gold-500 rounded-full" />}
                     </div>
                     <span className="text-lg">{opt}</span>
-                  </label>
+                  </button>
                 ))}
 
                 {/* Conditional Field Rendering */}
@@ -684,8 +697,7 @@ export const Quiz: React.FC<Props> = ({ onComplete }) => {
             {step > 0 ? (
               <button
                 onClick={handleBack}
-                disabled={isTransitioning}
-                className={`text-gray-500 hover:text-white transition-colors text-sm underline underline-offset-4 ${isTransitioning ? 'opacity-50 pointer-events-none' : ''}`}
+                className="text-gray-500 hover:text-white transition-colors text-sm underline underline-offset-4"
               >
                 Voltar
               </button>
@@ -694,8 +706,7 @@ export const Quiz: React.FC<Props> = ({ onComplete }) => {
             {showNextButton && (
               <button
                 onClick={handleNext}
-                disabled={isTransitioning}
-                className={`flex items-center gap-2 px-8 py-3 bg-white text-dark-950 font-bold rounded-lg hover:bg-gray-100 transition-colors ${isTransitioning ? 'opacity-50 pointer-events-none' : ''}`}
+                className="flex items-center gap-2 px-8 py-3 bg-white text-dark-950 font-bold rounded-lg hover:bg-gray-100 transition-colors"
               >
                 {step === questions.length - 1 ? 'Ver Resultado' : 'Próxima'}
                 <ArrowRight className="w-5 h-5" />

@@ -118,7 +118,7 @@ export const HubPage: React.FC<HubPageProps> = ({ navigate }) => {
                 Ganha bem e não consegue construir patrimônio?
               </h3>
               <p className="text-sm md:text-base text-gray-300 leading-relaxed font-light max-w-xl">
-                O dinheiro entra na conta mas você não sabe para onde está indo. Entenda como ter sobrando no início e no final do mês para realizar os seus objetivos.
+                O dinheiro entra na conta pessoal mas você não sabe para onde está indo. Entenda como ter sobrando no início e no final do mês para realizar os seus objetivos.
               </p>
               {/* Botão com Fundo Destacado Premium */}
               <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-xs md:text-sm font-bold bg-gold-500/10 hover:bg-gold-500/20 text-gold-400 group-hover:text-gold-300 border border-gold-500/20 group-hover:border-gold-500/40 transition-all shadow-lg shadow-black/30 backdrop-blur-sm mt-2 w-fit">

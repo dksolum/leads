@@ -26,6 +26,7 @@ export const QuizBusiness: React.FC<Props> = ({ onComplete }) => {
   const [error, setError] = useState('');
   const [isTransitioning, setIsTransitioning] = useState(false);
   const isTransitioningRef = useRef(false);
+  const lastActionTimeRef = useRef(0);
 
   // Informações de contato do lead (coletados na última etapa)
   const [leadContact, setLeadContact] = useState({
@@ -390,7 +391,10 @@ export const QuizBusiness: React.FC<Props> = ({ onComplete }) => {
   };
 
   const handleNext = () => {
-    if (isTransitioningRef.current) return;
+    const now = Date.now();
+    if (now - lastActionTimeRef.current < 450) return;
+    lastActionTimeRef.current = now;
+
     isTransitioningRef.current = true;
     setIsTransitioning(true);
 
@@ -402,6 +406,7 @@ export const QuizBusiness: React.FC<Props> = ({ onComplete }) => {
         setError('Por favor, selecione pelo menos uma opção para continuar.');
         isTransitioningRef.current = false;
         setIsTransitioning(false);
+        lastActionTimeRef.current = 0;
         return;
       }
     } else {
@@ -409,6 +414,7 @@ export const QuizBusiness: React.FC<Props> = ({ onComplete }) => {
         setError('Por favor, preencha este campo para continuar.');
         isTransitioningRef.current = false;
         setIsTransitioning(false);
+        lastActionTimeRef.current = 0;
         return;
       }
     }
@@ -419,6 +425,7 @@ export const QuizBusiness: React.FC<Props> = ({ onComplete }) => {
         setError('Por favor, descreva o que você já tentou fazer para continuar.');
         isTransitioningRef.current = false;
         setIsTransitioning(false);
+        lastActionTimeRef.current = 0;
         return;
       }
     }
@@ -428,6 +435,7 @@ export const QuizBusiness: React.FC<Props> = ({ onComplete }) => {
         setError('Por favor, preencha o valor do lucro estimado para continuar.');
         isTransitioningRef.current = false;
         setIsTransitioning(false);
+        lastActionTimeRef.current = 0;
         return;
       }
     }
@@ -437,6 +445,7 @@ export const QuizBusiness: React.FC<Props> = ({ onComplete }) => {
         setError('Por favor, selecione quem realiza as cobranças para continuar.');
         isTransitioningRef.current = false;
         setIsTransitioning(false);
+        lastActionTimeRef.current = 0;
         return;
       }
     }
@@ -447,24 +456,28 @@ export const QuizBusiness: React.FC<Props> = ({ onComplete }) => {
           setError('Por favor, responda se possui loja própria.');
           isTransitioningRef.current = false;
           setIsTransitioning(false);
+          lastActionTimeRef.current = 0;
           return;
         }
         if (answers.industryHasOwnStore === 'Sim' && !answers.invoiceSystemNFCe) {
           setError('Por favor, responda se possui sistema de NFC-e.');
           isTransitioningRef.current = false;
           setIsTransitioning(false);
+          lastActionTimeRef.current = 0;
           return;
         }
         if (!answers.industryAlsoProvidesServices) {
           setError('Por favor, responda se também presta serviços.');
           isTransitioningRef.current = false;
           setIsTransitioning(false);
+          lastActionTimeRef.current = 0;
           return;
         }
         if (answers.industryAlsoProvidesServices === 'Sim' && !answers.invoiceNFSSe) {
           setError('Por favor, responda se emite NFS-e para os serviços realizados.');
           isTransitioningRef.current = false;
           setIsTransitioning(false);
+          lastActionTimeRef.current = 0;
           return;
         }
       } else if (answers.businessBranch === 'Prestação de serviços') {
@@ -472,12 +485,14 @@ export const QuizBusiness: React.FC<Props> = ({ onComplete }) => {
           setError('Por favor, responda se também comercializa produtos.');
           isTransitioningRef.current = false;
           setIsTransitioning(false);
+          lastActionTimeRef.current = 0;
           return;
         }
         if (answers.servicesAlsoSellsProducts === 'Sim' && !answers.invoiceSystemNFCe) {
           setError('Por favor, responda se possui sistema de NFC-e.');
           isTransitioningRef.current = false;
           setIsTransitioning(false);
+          lastActionTimeRef.current = 0;
           return;
         }
       } else {
@@ -485,18 +500,21 @@ export const QuizBusiness: React.FC<Props> = ({ onComplete }) => {
           setError('Por favor, responda se possui sistema de NFC-e.');
           isTransitioningRef.current = false;
           setIsTransitioning(false);
+          lastActionTimeRef.current = 0;
           return;
         }
         if (!answers.commerceAlsoProvidesServices) {
           setError('Por favor, responda se também presta serviços.');
           isTransitioningRef.current = false;
           setIsTransitioning(false);
+          lastActionTimeRef.current = 0;
           return;
         }
         if (answers.commerceAlsoProvidesServices === 'Sim' && !answers.invoiceNFSSe) {
           setError('Por favor, responda se emite NFS-e para os serviços realizados.');
           isTransitioningRef.current = false;
           setIsTransitioning(false);
+          lastActionTimeRef.current = 0;
           return;
         }
       }
@@ -507,12 +525,14 @@ export const QuizBusiness: React.FC<Props> = ({ onComplete }) => {
         setError('Por favor, responda se o cartão tem sido um problema.');
         isTransitioningRef.current = false;
         setIsTransitioning(false);
+        lastActionTimeRef.current = 0;
         return;
       }
       if (val === 'Não' && !answers.usePersonalCardForBusiness) {
         setError('Por favor, responda se utiliza seu cartão de crédito pessoal.');
         isTransitioningRef.current = false;
         setIsTransitioning(false);
+        lastActionTimeRef.current = 0;
         return;
       }
     }
@@ -522,6 +542,7 @@ export const QuizBusiness: React.FC<Props> = ({ onComplete }) => {
         setError('Por favor, responda a pergunta sobre dependência de decisão.');
         isTransitioningRef.current = false;
         setIsTransitioning(false);
+        lastActionTimeRef.current = 0;
         return;
       }
     }
@@ -531,6 +552,7 @@ export const QuizBusiness: React.FC<Props> = ({ onComplete }) => {
       setIsDisqualified(true);
       isTransitioningRef.current = false;
       setIsTransitioning(false);
+      lastActionTimeRef.current = 0;
       return;
     }
 
@@ -546,69 +568,32 @@ export const QuizBusiness: React.FC<Props> = ({ onComplete }) => {
   };
 
   const handleBack = () => {
-    if (isTransitioningRef.current) return;
+    const now = Date.now();
+    if (now - lastActionTimeRef.current < 450) return;
+    lastActionTimeRef.current = now;
+
+    isTransitioningRef.current = true;
+    setIsTransitioning(true);
     setError('');
     if (step === questions.length) {
-      isTransitioningRef.current = true;
-      setIsTransitioning(true);
       setStep(questions.length - 1);
     } else {
       const prevIdx = getPrevStepIndex(step);
       if (prevIdx >= 0) {
-        isTransitioningRef.current = true;
-        setIsTransitioning(true);
         setStep(prevIdx);
       }
     }
   };
 
   const handleOptionSelect = (value: string) => {
-    setAnswers(prev => {
-      const updated = { ...prev, [currentQ.field]: value };
-
-      // Limpeza de campos condicionais caso o usuário mude de opção
-      if (currentQ.field === 'businessBranch') {
-        updated.invoiceSystemNFCe = '';
-        updated.invoiceNFSSe = '';
-        updated.invoiceNFSe = '';
-        updated.industryHasOwnStore = '';
-        updated.industryAlsoProvidesServices = '';
-        updated.commerceAlsoProvidesServices = '';
-        updated.servicesAlsoSellsProducts = '';
-      }
-      if (currentQ.field === 'businessTriedSolution' && value === 'Não') {
-        updated.businessTriedSolutionDescription = '';
-      }
-      if (currentQ.field === 'knowsMonthlyProfit' && value !== 'Sim') {
-        updated.monthlyProfitValue = '';
-      }
-      if (currentQ.field === 'hasDeferredSales' && value === 'Não') {
-        updated.deferredSalesCollector = '';
-      }
-      if (currentQ.field === 'emitsInvoices' && !value) {
-        updated.invoiceSystemNFCe = '';
-        updated.invoiceNFSSe = '';
-        updated.invoiceNFSe = '';
-        updated.industryHasOwnStore = '';
-        updated.industryAlsoProvidesServices = '';
-        updated.commerceAlsoProvidesServices = '';
-        updated.servicesAlsoSellsProducts = '';
-      }
-      if (currentQ.field === 'hasBusinessCard') {
-        if (value === 'Sim') updated.usePersonalCardForBusiness = '';
-        else updated.businessCardIsProblem = '';
-      }
-      if (currentQ.field === 'dependsOnOthersBusiness' && value === 'Não') {
-        updated.dependsOnOthersBusinessReason = '';
-      }
-
-      return updated;
-    });
-    if (error) setError('');
+    const now = Date.now();
+    if (now - lastActionTimeRef.current < 450) return;
+    lastActionTimeRef.current = now;
 
     // Regra de desqualificação imediata para "Outros" no Porte (Pergunta 2)
     if (currentQ.field === 'businessSize' && value === 'Outros') {
       setIsDisqualified(true);
+      lastActionTimeRef.current = 0;
       return;
     }
 
@@ -622,14 +607,58 @@ export const QuizBusiness: React.FC<Props> = ({ onComplete }) => {
       (currentQ.field === 'dependsOnOthersBusiness' && value === 'Sim');
 
     if (blocksAutoAdvance) {
+      setAnswers(prev => {
+        const updated = { ...prev, [currentQ.field]: value };
+        if (currentQ.field === 'businessTriedSolution' && value === 'Não') {
+          updated.businessTriedSolutionDescription = '';
+        }
+        if (currentQ.field === 'knowsMonthlyProfit' && value !== 'Sim') {
+          updated.monthlyProfitValue = '';
+        }
+        if (currentQ.field === 'hasDeferredSales' && value === 'Não') {
+          updated.deferredSalesCollector = '';
+        }
+        if (currentQ.field === 'emitsInvoices' && !value) {
+          updated.invoiceSystemNFCe = '';
+          updated.invoiceNFSSe = '';
+          updated.invoiceNFSe = '';
+          updated.industryHasOwnStore = '';
+          updated.industryAlsoProvidesServices = '';
+          updated.commerceAlsoProvidesServices = '';
+          updated.servicesAlsoSellsProducts = '';
+        }
+        if (currentQ.field === 'hasBusinessCard') {
+          if (value === 'Sim') updated.usePersonalCardForBusiness = '';
+          else updated.businessCardIsProblem = '';
+        }
+        if (currentQ.field === 'dependsOnOthersBusiness' && value === 'Não') {
+          updated.dependsOnOthersBusinessReason = '';
+        }
+        return updated;
+      });
+      if (error) setError('');
+      lastActionTimeRef.current = 0;
       return;
     }
 
-    // Como no QuizBusiness cada pergunta é exibida em seu próprio slide sequencial,
-    // toda pergunta do tipo 'radio' avança de forma automática ao clicar em uma opção
-    if (isTransitioningRef.current) return;
     isTransitioningRef.current = true;
     setIsTransitioning(true);
+
+    setAnswers(prev => {
+      const updated = { ...prev, [currentQ.field]: value };
+      if (currentQ.field === 'businessBranch') {
+        updated.invoiceSystemNFCe = '';
+        updated.invoiceNFSSe = '';
+        updated.invoiceNFSe = '';
+        updated.industryHasOwnStore = '';
+        updated.industryAlsoProvidesServices = '';
+        updated.commerceAlsoProvidesServices = '';
+        updated.servicesAlsoSellsProducts = '';
+      }
+      return updated;
+    });
+    if (error) setError('');
+
     setTimeout(() => {
       const nextIdx = getNextStepIndex(step);
       if (nextIdx < questions.length) {
@@ -908,7 +937,7 @@ export const QuizBusiness: React.FC<Props> = ({ onComplete }) => {
           animate={{ x: 0, opacity: 1 }}
           exit={{ x: -20, opacity: 0 }}
           transition={{ duration: 0.3 }}
-          className={`w-full ${isTransitioning ? 'pointer-events-none opacity-80' : ''}`}
+          className="w-full"
         >
           <h2 className={`text-2xl md:text-3xl font-serif text-white leading-snug ${currentQ.note ? 'mb-2' : 'mb-8'}`}>
             {currentQ.question}
@@ -962,27 +991,21 @@ export const QuizBusiness: React.FC<Props> = ({ onComplete }) => {
               <div className="space-y-4">
                 <div className="space-y-4">
                   {currentQ.options?.map((opt) => (
-                    <label
+                    <button
                       key={opt}
-                      className={`flex items-center p-4 rounded-lg border cursor-pointer transition-all group ${answers[currentQ.field] === opt
+                      type="button"
+                      onClick={() => handleOptionSelect(opt)}
+                      className={`w-full text-left p-4 rounded-lg border font-semibold transition-all flex items-center group ${answers[currentQ.field] === opt
                         ? 'bg-gold-500/10 border-gold-500 text-white shadow-[0_0_15px_rgba(245,158,11,0.1)]'
-                        : 'bg-dark-800 border-dark-600 text-gray-400 hover:border-gold-500/50'
+                        : 'bg-dark-800 border-dark-600 text-gray-400 hover:border-gold-500/50 hover:text-white'
                         }`}
                     >
-                      <input
-                        type="radio"
-                        name={currentQ.field}
-                        value={opt}
-                        checked={answers[currentQ.field] === opt}
-                        onChange={() => handleOptionSelect(opt)}
-                        className="hidden"
-                      />
                       <div className={`w-5 h-5 rounded-full border mr-4 flex items-center justify-center ${answers[currentQ.field] === opt ? 'border-gold-500' : 'border-gray-500'
                         }`}>
                         {answers[currentQ.field] === opt && <div className="w-3 h-3 bg-gold-500 rounded-full" />}
                       </div>
                       <span className="text-lg">{opt}</span>
-                    </label>
+                    </button>
                   ))}
                 </div>
 
@@ -1459,8 +1482,7 @@ export const QuizBusiness: React.FC<Props> = ({ onComplete }) => {
             {step > 0 ? (
               <button
                 onClick={handleBack}
-                disabled={isTransitioning}
-                className={`text-gray-500 hover:text-white transition-colors text-sm underline underline-offset-4 ${isTransitioning ? 'opacity-50 pointer-events-none' : ''}`}
+                className="text-gray-500 hover:text-white transition-colors text-sm underline underline-offset-4"
               >
                 Voltar
               </button>
@@ -1479,8 +1501,7 @@ export const QuizBusiness: React.FC<Props> = ({ onComplete }) => {
             ) && (
                 <button
                   onClick={handleNext}
-                  disabled={isTransitioning}
-                  className={`flex items-center gap-2 px-8 py-3 bg-white text-dark-950 font-bold rounded-lg hover:bg-gray-100 transition-colors ${isTransitioning ? 'opacity-50 pointer-events-none' : ''}`}
+                  className="flex items-center gap-2 px-8 py-3 bg-white text-dark-950 font-bold rounded-lg hover:bg-gray-100 transition-colors"
                 >
                   <span>Próxima</span>
                   <ArrowRight className="w-5 h-5" />
