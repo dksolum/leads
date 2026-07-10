@@ -2421,100 +2421,250 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                                                     Respostas Completas do Quiz
                                                 </h4>
 
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                    <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
-                                                        <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">1. Principal Problema</p>
-                                                        <p className="text-sm text-white leading-relaxed font-light">{selectedLead.answers.mainProblem}</p>
-                                                    </div>
+                                                {selectedLead.answers.formType === 'business' ? (
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                        <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
+                                                            <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">1. Ramo da Empresa</p>
+                                                            <p className="text-sm text-white font-medium">{selectedLead.answers.businessBranch || 'Não respondido'}</p>
+                                                        </div>
 
-                                                    <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
-                                                        <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">2. Já tentou resolver?</p>
-                                                        <p className="text-sm text-white font-medium">{selectedLead.answers.triedSolution}</p>
-                                                        {selectedLead.answers.triedSolutionDescription && (
-                                                            <p className="text-xs text-gray-400 mt-2.5 p-2.5 bg-dark-950 rounded border border-dark-850 italic font-light leading-relaxed">
-                                                                "{selectedLead.answers.triedSolutionDescription}"
+                                                        <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
+                                                            <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">2. Porte da Empresa</p>
+                                                            <p className="text-sm text-white font-medium">{selectedLead.answers.businessSize || 'Não respondido'}</p>
+                                                        </div>
+
+                                                        <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
+                                                            <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">3. Fase da Empresa</p>
+                                                            <p className="text-sm text-white font-medium">{selectedLead.answers.businessPhase || 'Não respondido'}</p>
+                                                        </div>
+
+                                                        <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
+                                                            <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">4. Maior Dificuldade Financeira</p>
+                                                            <p className="text-sm text-white leading-relaxed font-light">{selectedLead.answers.businessDifficulty || 'Não respondido'}</p>
+                                                        </div>
+
+                                                        <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
+                                                            <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">5. Já tentou resolver?</p>
+                                                            <p className="text-sm text-white font-medium">{selectedLead.answers.businessTriedSolution || 'Não respondido'}</p>
+                                                            {selectedLead.answers.businessTriedSolution === 'Sim' && selectedLead.answers.businessTriedSolutionDescription && (
+                                                                <p className="text-xs text-gray-400 mt-2.5 p-2.5 bg-dark-950 rounded border border-dark-850 italic font-light leading-relaxed">
+                                                                    "{selectedLead.answers.businessTriedSolutionDescription}"
+                                                                </p>
+                                                            )}
+                                                        </div>
+
+                                                        <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
+                                                            <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">6. Mistura dinheiro PF e PJ?</p>
+                                                            <p className="text-sm text-white font-medium">{selectedLead.answers.mixesMoney || 'Não respondido'}</p>
+                                                        </div>
+
+                                                        <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
+                                                            <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">7. Faturamento Médio Mensal</p>
+                                                            <p className="text-sm text-gold-400 font-bold">{selectedLead.answers.averageMonthlyRevenue || 'Não respondido'}</p>
+                                                        </div>
+
+                                                        <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
+                                                            <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">8. Sabe o lucro do último mês?</p>
+                                                            <p className="text-sm text-white font-medium">{selectedLead.answers.knowsMonthlyProfit || 'Não respondido'}</p>
+                                                            {selectedLead.answers.knowsMonthlyProfit === 'Sim' && selectedLead.answers.monthlyProfitValue && (
+                                                                <p className="text-xs text-gold-400 mt-1.5 font-medium">Valor do Lucro: {selectedLead.answers.monthlyProfitValue}</p>
+                                                            )}
+                                                        </div>
+
+                                                        <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
+                                                            <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">9. Fluxo de caixa atualizado?</p>
+                                                            <p className="text-sm text-white font-medium">{selectedLead.answers.cashFlowUpdated || 'Não respondido'}</p>
+                                                        </div>
+
+                                                        <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
+                                                            <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">10. Controla contas e cumpre prazos?</p>
+                                                            <p className="text-sm text-white font-medium">{selectedLead.answers.controlsBills || 'Não respondido'}</p>
+                                                        </div>
+
+                                                        <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
+                                                            <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">11. Vendas a prazo e cobrança?</p>
+                                                            <p className="text-sm text-white font-medium">{selectedLead.answers.hasDeferredSales || 'Não respondido'}</p>
+                                                            {(selectedLead.answers.hasDeferredSales === 'Sim' || selectedLead.answers.hasDeferredSales === 'Às vezes') && selectedLead.answers.deferredSalesCollector && (
+                                                                <p className="text-xs text-gray-400 mt-1.5 font-medium">
+                                                                    Quem faz as cobranças? <span className="text-white font-bold">{selectedLead.answers.deferredSalesCollector}</span>
+                                                                </p>
+                                                            )}
+                                                        </div>
+
+                                                        <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
+                                                            <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">12. Realiza conciliação bancária?</p>
+                                                            <p className="text-sm text-white font-medium">{selectedLead.answers.regularReconciliation || 'Não respondido'}</p>
+                                                        </div>
+
+                                                        <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
+                                                            <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">13. Emite notas fiscais?</p>
+                                                            <p className="text-sm text-white font-medium">{selectedLead.answers.emitsInvoices || 'Não respondido'}</p>
+                                                            {selectedLead.answers.emitsInvoices && (
+                                                                <div className="text-xs text-gray-400 mt-1.5 font-medium">
+                                                                    {selectedLead.answers.businessBranch === 'Prestação de serviços' ? (
+                                                                        <p>Emite NFS-e em todo trabalho? <span className="text-white font-bold">{selectedLead.answers.invoiceNFSSe || 'Não respondido'}</span></p>
+                                                                    ) : selectedLead.answers.businessBranch === 'Indústria' ? (
+                                                                        <p>Emite NF-e em toda venda? <span className="text-white font-bold">{selectedLead.answers.invoiceNFSe || 'Não respondido'}</span></p>
+                                                                    ) : (
+                                                                        <p>Possui sistema de NFC-e? <span className="text-white font-bold">{selectedLead.answers.invoiceSystemNFCe || 'Não respondido'}</span></p>
+                                                                    )}
+                                                                </div>
+                                                            )}
+                                                        </div>
+
+                                                        <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
+                                                            <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">14. Analisa resultados?</p>
+                                                            <p className="text-sm text-white font-medium">{selectedLead.answers.analyzesResults || 'Não respondido'}</p>
+                                                        </div>
+
+                                                        <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
+                                                            <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">15. Segurança na tomada de decisão?</p>
+                                                            <p className="text-sm text-white font-medium">{selectedLead.answers.feelsSafeDecision || 'Não respondido'}</p>
+                                                        </div>
+
+                                                        <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
+                                                            <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">16. Perspectiva financeira (6 meses)</p>
+                                                            <p className="text-sm text-white font-medium">{selectedLead.answers.outlookSixMonths || 'Não respondido'}</p>
+                                                        </div>
+
+                                                        <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
+                                                            <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">17. Responsável pelo financeiro</p>
+                                                            <p className="text-sm text-white font-medium">{selectedLead.answers.hasFinancialManager || 'Não respondido'}</p>
+                                                        </div>
+
+                                                        <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
+                                                            <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">18. Acompanhamento contábil</p>
+                                                            <p className="text-sm text-white font-medium">{selectedLead.answers.hasAccounting || 'Não respondido'}</p>
+                                                        </div>
+
+                                                        <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors md:col-span-2">
+                                                            <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">19. O que gostaria de melhorar na gestão?</p>
+                                                            <p className="text-sm text-white font-medium leading-relaxed">
+                                                                {Array.isArray(selectedLead.answers.whatToImprove) ? selectedLead.answers.whatToImprove.join(', ') : 'Nenhum item selecionado'}
                                                             </p>
-                                                        )}
-                                                    </div>
+                                                        </div>
 
-                                                    <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
-                                                        <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">3. Renda Mensal</p>
-                                                        <p className="text-sm text-white font-medium">{selectedLead.answers.incomeRange}</p>
-                                                    </div>
+                                                        <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
+                                                            <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">20. Cartão de Crédito Empresarial</p>
+                                                            <p className="text-sm text-white font-medium">{selectedLead.answers.hasBusinessCard || 'Não respondido'}</p>
+                                                            {selectedLead.answers.hasBusinessCard === 'Sim' && (
+                                                                <p className="text-xs text-gray-400 mt-1.5 font-medium">
+                                                                    Hoje é um problema? <span className="text-white font-bold">{selectedLead.answers.businessCardIsProblem || 'Não respondido'}</span>
+                                                                </p>
+                                                            )}
+                                                            {selectedLead.answers.hasBusinessCard === 'Não' && selectedLead.answers.usePersonalCardForBusiness && (
+                                                                <p className="text-xs text-gray-405 mt-1.5 font-light leading-relaxed">
+                                                                    Usa cartão pessoal? <span className="text-white font-bold block mt-0.5">{selectedLead.answers.usePersonalCardForBusiness}</span>
+                                                                </p>
+                                                            )}
+                                                        </div>
 
-                                                    <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
-                                                        <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">4. Profissão</p>
-                                                        <p className="text-sm text-white font-medium">{selectedLead.answers.profession}</p>
-                                                    </div>
-
-                                                    <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
-                                                        <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">5. Estado Civil</p>
-                                                        <p className="text-sm text-white font-medium">{selectedLead.answers.spouse}</p>
-                                                    </div>
-
-                                                    <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
-                                                        <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">6. Filhos</p>
-                                                        <p className="text-sm text-white font-medium">{selectedLead.answers.children}</p>
-                                                    </div>
-
-                                                    <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
-                                                        <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">7. Dependentes</p>
-                                                        <p className="text-sm text-white font-medium">{selectedLead.answers.otherDependents}</p>
-                                                        {selectedLead.answers.otherDependentsCount !== undefined && (
-                                                            <p className="text-xs text-gray-400 mt-1.5 font-medium">Quantidade informada: {selectedLead.answers.otherDependentsCount}</p>
-                                                        )}
-                                                    </div>
-
-                                                    <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
-                                                        <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">8. Vida Financeira Atual</p>
-                                                        <p className="text-sm text-white font-medium">{selectedLead.answers.financialState}</p>
-                                                    </div>
-
-                                                    <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
-                                                        <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">9. Metas Claras</p>
-                                                        <p className="text-sm text-white font-medium">{selectedLead.answers.goals}</p>
-                                                    </div>
-
-                                                    <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
-                                                        <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">10. Possui Cartão de Crédito?</p>
-                                                        <p className="text-sm text-white font-medium">{selectedLead.answers.hasCreditCard || 'Não respondido'}</p>
-                                                        {selectedLead.answers.hasCreditCard === 'Sim' && (
-                                                            <p className="text-xs text-gray-400 mt-1.5 font-medium">
-                                                                Hoje é um problema financeiro? <span className="text-white font-bold">{selectedLead.answers.creditCardIsProblem || 'Não informado'}</span>
-                                                            </p>
-                                                        )}
-                                                    </div>
-
-                                                    <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
-                                                        <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">11. Perspectiva (6 meses)</p>
-                                                        <p className="text-sm text-white font-medium">{selectedLead.answers.futureOutlook}</p>
-                                                    </div>
-
-                                                    <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
-                                                        <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">12. Depende de outra pessoa para tomar decisão?</p>
-                                                        <p className="text-sm text-white font-medium">{selectedLead.answers.dependsOnOthers || 'Não respondido'}</p>
-                                                        {selectedLead.answers.dependsOnOthers === 'Sim' && (
-                                                            <p className="text-xs text-gray-400 mt-1.5 font-medium">
-                                                                Investe mesmo se falar não? <span className="text-white font-bold">{selectedLead.answers.dependsOnOthersReason || 'Não informado'}</span>
-                                                            </p>
-                                                        )}
-                                                    </div>
-
-                                                    <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors md:col-span-2">
-                                                        <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">13. Nível de Comprometimento (0 a 10)</p>
-                                                        <div className="flex items-center gap-4 mt-2">
-                                                            <div className="flex-grow bg-dark-950 rounded-full h-3 overflow-hidden border border-dark-850">
-                                                                <div
-                                                                    className="bg-gradient-to-r from-gold-600 to-gold-400 h-full rounded-full transition-all duration-700"
-                                                                    style={{ width: `${(parseInt(selectedLead.answers.commitmentScale || '0', 10) / 10) * 100}%` }}
-                                                                ></div>
-                                                            </div>
-                                                            <span className="text-sm font-bold text-gold-500 shrink-0 bg-gold-500/10 px-2.5 py-1 rounded border border-gold-500/20">
-                                                                {selectedLead.answers.commitmentScale || '0'} / 10
-                                                            </span>
+                                                        <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
+                                                            <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">20. Depende de outra pessoa para decidir?</p>
+                                                            <p className="text-sm text-white font-medium">{selectedLead.answers.dependsOnOthersBusiness || 'Não respondido'}</p>
+                                                            {selectedLead.answers.dependsOnOthersBusiness === 'Sim' && (
+                                                                <p className="text-xs text-gray-405 mt-1.5 font-light leading-relaxed">
+                                                                    Desiste se a pessoa falar não? <span className="text-white font-bold">{selectedLead.answers.dependsOnOthersBusinessReason || 'Não respondido'}</span>
+                                                                </p>
+                                                            )}
                                                         </div>
                                                     </div>
-                                                </div>
+                                                ) : (
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                        <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
+                                                            <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">1. Principal Problema</p>
+                                                            <p className="text-sm text-white leading-relaxed font-light">{selectedLead.answers.mainProblem}</p>
+                                                        </div>
+
+                                                        <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
+                                                            <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">2. Já tentou resolver?</p>
+                                                            <p className="text-sm text-white font-medium">{selectedLead.answers.triedSolution}</p>
+                                                            {selectedLead.answers.triedSolutionDescription && (
+                                                                <p className="text-xs text-gray-400 mt-2.5 p-2.5 bg-dark-950 rounded border border-dark-850 italic font-light leading-relaxed">
+                                                                    "{selectedLead.answers.triedSolutionDescription}"
+                                                                </p>
+                                                            )}
+                                                        </div>
+
+                                                        <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
+                                                            <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">3. Renda Mensal</p>
+                                                            <p className="text-sm text-white font-medium">{selectedLead.answers.incomeRange}</p>
+                                                        </div>
+
+                                                        <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
+                                                            <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">4. Profissão</p>
+                                                            <p className="text-sm text-white font-medium">{selectedLead.answers.profession}</p>
+                                                        </div>
+
+                                                        <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
+                                                            <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">5. Estado Civil</p>
+                                                            <p className="text-sm text-white font-medium">{selectedLead.answers.spouse}</p>
+                                                        </div>
+
+                                                        <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
+                                                            <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">6. Filhos</p>
+                                                            <p className="text-sm text-white font-medium">{selectedLead.answers.children}</p>
+                                                        </div>
+
+                                                        <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
+                                                            <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">7. Dependentes</p>
+                                                            <p className="text-sm text-white font-medium">{selectedLead.answers.otherDependents}</p>
+                                                            {selectedLead.answers.otherDependentsCount !== undefined && (
+                                                                <p className="text-xs text-gray-400 mt-1.5 font-medium">Quantidade informada: {selectedLead.answers.otherDependentsCount}</p>
+                                                            )}
+                                                        </div>
+
+                                                        <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
+                                                            <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">8. Vida Financeira Atual</p>
+                                                            <p className="text-sm text-white font-medium">{selectedLead.answers.financialState}</p>
+                                                        </div>
+
+                                                        <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
+                                                            <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">9. Metas Claras</p>
+                                                            <p className="text-sm text-white font-medium">{selectedLead.answers.goals}</p>
+                                                        </div>
+
+                                                        <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
+                                                            <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">10. Possui Cartão de Crédito?</p>
+                                                            <p className="text-sm text-white font-medium">{selectedLead.answers.hasCreditCard || 'Não respondido'}</p>
+                                                            {selectedLead.answers.hasCreditCard === 'Sim' && (
+                                                                <p className="text-xs text-gray-400 mt-1.5 font-medium">
+                                                                    Hoje é um problema financeiro? <span className="text-white font-bold">{selectedLead.answers.creditCardIsProblem || 'Não informado'}</span>
+                                                                </p>
+                                                            )}
+                                                        </div>
+
+                                                        <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
+                                                            <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">11. Perspectiva (6 meses)</p>
+                                                            <p className="text-sm text-white font-medium">{selectedLead.answers.futureOutlook}</p>
+                                                        </div>
+
+                                                        <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors">
+                                                            <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">12. Depende de outra pessoa para tomar decisão?</p>
+                                                            <p className="text-sm text-white font-medium">{selectedLead.answers.dependsOnOthers || 'Não respondido'}</p>
+                                                            {selectedLead.answers.dependsOnOthers === 'Sim' && (
+                                                                <p className="text-xs text-gray-400 mt-1.5 font-medium">
+                                                                    Investe mesmo se falar não? <span className="text-white font-bold">{selectedLead.answers.dependsOnOthersReason || 'Não informado'}</span>
+                                                                </p>
+                                                            )}
+                                                        </div>
+
+                                                        <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors md:col-span-2">
+                                                            <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">13. Nível de Comprometimento (0 a 10)</p>
+                                                            <div className="flex items-center gap-4 mt-2">
+                                                                <div className="flex-grow bg-dark-950 rounded-full h-3 overflow-hidden border border-dark-850">
+                                                                    <div
+                                                                        className="bg-gradient-to-r from-gold-600 to-gold-400 h-full rounded-full transition-all duration-700"
+                                                                        style={{ width: `${(parseInt(selectedLead.answers.commitmentScale || '0', 10) / 10) * 100}%` }}
+                                                                    ></div>
+                                                                </div>
+                                                                <span className="text-sm font-bold text-gold-500 shrink-0 bg-gold-500/10 px-2.5 py-1 rounded border border-gold-500/20">
+                                                                    {selectedLead.answers.commitmentScale || '0'} / 10
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
 
                                             {/* Botões de Ação: Detalhes Técnicos e Respostas da Apresentação */}

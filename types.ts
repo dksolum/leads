@@ -50,6 +50,9 @@ export interface UserAnswers {
   dependsOnOthersReason?: string;
   commitmentScale?: string;
   whatsapp?: string; // For the fallback
+  leadName?: string;
+  leadEmail?: string;
+  leadPhone?: string;
   meeting?: MeetingAnswers;
   formType?: 'personal' | 'business' | 'complete';
   selectedPricingId?: string;
@@ -64,6 +67,42 @@ export interface UserAnswers {
     entradaVista?: string;
     entradaParcelado?: string;
   };
+
+  // Campos específicos de captação de leads empresariais (Business)
+  businessBranch?: 'Comércio de mercadorias' | 'Prestação de serviços' | 'Indústria' | '';
+  businessSize?: 'MEI' | 'ME do Simples Nacional' | 'Outros' | '';
+  businessPhase?: 'Sobrevivência' | 'Crescimento' | 'Maturidade' | 'Crise' | '';
+  businessDifficulty?: string;
+  businessTriedSolution?: 'Sim' | 'Não' | '';
+  businessTriedSolutionDescription?: string;
+  mixesMoney?: 'Sim' | 'Não' | 'Às vezes' | '';
+  knowsMonthlyProfit?: 'Sim' | 'Não' | 'Às vezes' | '';
+  monthlyProfitValue?: string;
+  cashFlowUpdated?: 'Sim' | 'Não' | 'Às vezes' | '';
+  controlsBills?: 'Sim' | 'Não' | 'Às vezes' | '';
+  hasDeferredSales?: 'Sim' | 'Não' | 'Às vezes' | '';
+  deferredSalesCollector?: 'Possuo alguém' | 'Eu mesmo faço' | '';
+  regularReconciliation?: 'Sim' | 'Não' | 'Às vezes' | '';
+  emitsInvoices?: 'Sim' | 'Não' | 'Às vezes' | '';
+  invoiceSystemNFCe?: 'Sim' | 'Não' | '';
+  invoiceNFSSe?: 'Sim' | 'Não' | '';
+  invoiceNFSe?: 'Sim' | 'Não' | '';
+  industryHasOwnStore?: 'Sim' | 'Não' | '';
+  industryAlsoProvidesServices?: 'Sim' | 'Não' | '';
+  commerceAlsoProvidesServices?: 'Sim' | 'Não' | '';
+  servicesAlsoSellsProducts?: 'Sim' | 'Não' | '';
+  analyzesResults?: 'Sim' | 'Não' | 'Às vezes' | '';
+  feelsSafeDecision?: 'Sim' | 'Não' | 'Às vezes' | '';
+  outlookSixMonths?: 'Pior do que hoje' | 'Igual ao que está' | 'Um pouco melhor' | 'Muito melhor' | 'Não faço ideia' | '';
+  hasFinancialManager?: 'Sim (Eu mesmo)' | 'Sim (Outra pessoa)' | 'Não' | '';
+  hasAccounting?: 'Sim' | 'Não' | 'Apenas quando necessário' | '';
+  whatToImprove?: string[];
+  hasBusinessCard?: 'Sim' | 'Não' | '';
+  businessCardIsProblem?: 'Sim' | 'Não' | '';
+  usePersonalCardForBusiness?: 'Sim (e tem sido um problema)' | 'Sim (mas não é um problema)' | 'Não possuo cartão de crédito pessoal' | 'Não utilizo cartão de crédito pessoal para despesas da empresa' | '';
+  dependsOnOthersBusiness?: 'Sim' | 'Não' | '';
+  dependsOnOthersBusinessReason?: 'Sim' | 'Não' | '';
+  averageMonthlyRevenue?: string;
 }
 
 export interface MeetingAnswers {

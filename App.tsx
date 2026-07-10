@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { LandingPage } from './components/LandingPage';
 import { Quiz } from './components/Quiz';
 import { Result } from './components/Result';
+import { LandingPageBusiness } from './components/LandingPageBusiness';
+import { QuizBusiness } from './components/QuizBusiness';
+import { ResultBusiness } from './components/ResultBusiness';
 import { UserAnswers } from './types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AdminLogin } from './components/AdminLogin';
@@ -86,6 +89,80 @@ const PersonalFinanceFlow: React.FC<{ onBack: () => void; onAdminClick: () => vo
   );
 };
 
+// Componente que encapsula o fluxo de Finanças Empresariais (Business)
+const BusinessFinanceFlow: React.FC<{ onBack: () => void; onAdminClick: () => void }> = ({ onBack, onAdminClick }) => {
+  const [view, setView] = useState<'landing' | 'quiz' | 'loading' | 'result'>('landing');
+  const [answers, setAnswers] = useState<UserAnswers | null>(null);
+
+  const startQuiz = () => {
+    setView('quiz');
+  };
+
+  const handleQuizComplete = (data: UserAnswers) => {
+    setAnswers(data);
+    setView('loading');
+
+    // Simulate processing time for "Analysis" effect
+    setTimeout(() => {
+      setView('result');
+    }, 2500);
+  };
+
+  return (
+    <AnimatePresence mode="wait">
+      {view === 'landing' && (
+        <motion.div
+          key="landing"
+          exit={{ opacity: 0, y: -20 }}
+          transition={{ duration: 0.5 }}
+        >
+          <LandingPageBusiness
+            onStart={startQuiz}
+            onAdminClick={onAdminClick}
+            onBack={onBack}
+          />
+        </motion.div>
+      )}
+
+      {view === 'quiz' && (
+        <motion.div
+          key="quiz"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <QuizBusiness onComplete={handleQuizComplete} />
+        </motion.div>
+      )}
+
+      {view === 'loading' && (
+        <motion.div
+          key="loading"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="min-h-screen flex flex-col items-center justify-center text-center p-6"
+        >
+          <div className="w-16 h-16 border-4 border-dark-800 border-t-gold-500 rounded-full animate-spin mb-6"></div>
+          <h2 className="text-2xl font-serif text-white mb-2">Analisando o perfil empresarial...</h2>
+          <p className="text-gray-500">Mapeando ramo, porte, fluxo de caixa, conciliação e impostos.</p>
+        </motion.div>
+      )}
+
+      {view === 'result' && answers && (
+        <motion.div
+          key="result"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+        >
+          <ResultBusiness answers={answers} onBackToHome={onBack} />
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+};
+
 function App() {
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
   const [session, setSession] = useState<any>(null);
@@ -135,10 +212,9 @@ function App() {
       )}
       
       {currentPath === '/financas-empresariais' && (
-        <ComingSoonPage 
-          title="Finanças Empresariais" 
+        <BusinessFinanceFlow 
           onBack={() => navigate('/')} 
-          onAdminClick={() => navigate('/administrativo')}
+          onAdminClick={() => navigate('/administrativo')} 
         />
       )}
       

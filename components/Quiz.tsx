@@ -2,7 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UserAnswers, QuestionStep, DependentType } from '../types';
 import { ProgressBar } from './ProgressBar';
-import { ArrowRight, Check, AlertCircle } from 'lucide-react';
+import { ArrowRight, Check, AlertCircle, Loader2, TrendingUp } from 'lucide-react';
+import { supabase } from '../lib/supabase';
+import { calculateProfile } from '../utils/logic';
 
 interface Props {
   onComplete: (answers: UserAnswers) => void;
@@ -121,7 +123,7 @@ const questions: QuestionStep[] = [
     conditional: {
       triggerValue: 'Sim',
       field: 'dependsOnOthersReason',
-      question: "Provavelmente a pessoa de quem você depende é uma pessoa importante para as decisões de mudança na sua vida. Porém, se essa pessoa falar NÃO para algo, você desiste de investir em você?",
+      question: "Provavelmente a pessoa de quem você depende é uma pessoa importante para as decisões de mudança na sua vida. Porém, se essa pessoa falar NÃO para algo, VOCÊ DESISTE de investir em você?",
       inputType: 'radio'
     }
   },
@@ -163,14 +165,100 @@ export const Quiz: React.FC<Props> = ({ onComplete }) => {
   }, [answers]);
 
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const isTransitioningRef = useRef(false);
+  const [leadContact, setLeadContact] = useState({
+    name: '',
+    email: '',
+    phone: ''
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const formatPhoneNumber = (value: string) => {
+    if (!value) return value;
+    const phoneNumber = value.replace(/\D/g, '');
+    const phoneNumberLength = phoneNumber.length;
+    if (phoneNumberLength <= 2) {
+      return phoneNumberLength > 0 ? `(${phoneNumber}` : '';
+    }
+    if (phoneNumberLength <= 6) {
+      return `(${phoneNumber.slice(0, 2)}) ${phoneNumber.slice(2)}`;
+    }
+    if (phoneNumberLength <= 10) {
+      return `(${phoneNumber.slice(0, 2)}) ${phoneNumber.slice(2, 6)}-${phoneNumber.slice(6)}`;
+    }
+    return `(${phoneNumber.slice(0, 2)}) ${phoneNumber.slice(2, 7)}-${phoneNumber.slice(7, 11)}`;
+  };
+
+  const validateEmail = (email: string) => {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email.toLowerCase());
+  };
+
+  const handleLeadSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isSubmitting) return;
+    setError('');
+
+    if (!leadContact.name || !leadContact.email || !leadContact.phone) {
+      setError('Por favor, preencha todos os campos obrigatórios.');
+      return;
+    }
+
+    if (!validateEmail(leadContact.email)) {
+      setError('Por favor, informe um e-mail válido.');
+      return;
+    }
+
+    if (leadContact.phone.replace(/\D/g, '').length < 10) {
+      setError('Por favor, informe um telefone/WhatsApp válido com DDD.');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const finalAnswers = getFinalAnswers({
+        ...answers,
+        leadName: leadContact.name,
+        leadEmail: leadContact.email,
+        leadPhone: leadContact.phone
+      });
+
+      const profile = calculateProfile(finalAnswers);
+
+      // Salva o lead no banco com status de captação inicial
+      const { error: dbError } = await supabase.from('leads').insert({
+        name: leadContact.name,
+        email: leadContact.email,
+        phone: leadContact.phone,
+        profile,
+        answers: {
+          ...finalAnswers,
+          formType: 'personal'
+        },
+        action_type: 'Quiz Complete'
+      });
+
+      if (dbError) throw dbError;
+
+      // Continua para carregar a página de resultado
+      onComplete(finalAnswers);
+    } catch (err) {
+      console.error('Error saving lead:', err);
+      setError('Ocorreu um erro ao salvar seus dados. Por favor, tente novamente.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   useEffect(() => {
     setIsTransitioning(false);
+    isTransitioningRef.current = false;
   }, [step]);
 
   const [error, setError] = useState('');
 
-  const currentQ = questions[step];
+  const currentQ = step < questions.length ? questions[step] : questions[questions.length - 1];
 
   const getFinalAnswers = (rawAnswers: UserAnswers): UserAnswers => {
     const finalAnswers = { ...rawAnswers };
@@ -181,14 +269,20 @@ export const Quiz: React.FC<Props> = ({ onComplete }) => {
   };
 
   const handleBack = () => {
+    if (isTransitioningRef.current) return;
     if (step > 0) {
+      isTransitioningRef.current = true;
+      setIsTransitioning(true);
       setStep(prev => prev - 1);
       setError('');
     }
   };
 
   const handleNext = () => {
-    if (isTransitioning) return;
+    if (isTransitioningRef.current) return;
+    isTransitioningRef.current = true;
+    setIsTransitioning(true);
+
     // Validation
     const val = answers[currentQ.field];
 
@@ -198,6 +292,8 @@ export const Quiz: React.FC<Props> = ({ onComplete }) => {
       (Array.isArray(val) && val.length === 0)
     ) {
       setError('Por favor, preencha este campo para continuar.');
+      isTransitioningRef.current = false;
+      setIsTransitioning(false);
       return;
     }
 
@@ -206,22 +302,25 @@ export const Quiz: React.FC<Props> = ({ onComplete }) => {
       const condVal = answers[currentQ.conditional.field];
       if (!condVal) {
         setError('Por favor, preencha o campo adicional para continuar.');
+        isTransitioningRef.current = false;
+        setIsTransitioning(false);
         return;
       }
 
       // Se for desqualificado por faixa de renda abaixo de 5 mil reais
       if (currentQ.conditional.field === 'subIncomeRange' && condVal === 'Abaixo de 5 mil reais') {
         setIsDisqualified(true);
+        isTransitioningRef.current = false;
+        setIsTransitioning(false);
         return;
       }
     }
 
     setError('');
     if (step < questions.length - 1) {
-      setIsTransitioning(true);
       setStep(prev => prev + 1);
     } else {
-      onComplete(getFinalAnswers(answersRef.current));
+      setStep(questions.length);
     }
   };
 
@@ -237,13 +336,14 @@ export const Quiz: React.FC<Props> = ({ onComplete }) => {
     const triggersConditional = currentQ.conditional && value === currentQ.conditional.triggerValue;
 
     if (!triggersConditional) {
-      if (isTransitioning) return;
+      if (isTransitioningRef.current) return;
+      isTransitioningRef.current = true;
       setIsTransitioning(true);
       setTimeout(() => {
         if (step < questions.length - 1) {
           setStep(prev => prev + 1);
         } else {
-          onComplete(getFinalAnswers({ ...answersRef.current, [currentQ.field]: value }));
+          setStep(questions.length);
         }
       }, 350);
     }
@@ -265,7 +365,7 @@ export const Quiz: React.FC<Props> = ({ onComplete }) => {
   // Keyboard support for Enter
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Enter' && currentQ.type !== 'textarea') {
+      if (step < questions.length && e.key === 'Enter' && currentQ.type !== 'textarea') {
         handleNext();
       }
     };
@@ -274,10 +374,12 @@ export const Quiz: React.FC<Props> = ({ onComplete }) => {
   }); // Removed dependency array to capture latest state, careful with performance but ok here
 
   const showNextButton =
-    step === questions.length - 1 ||
-    currentQ.type === 'text' ||
-    currentQ.type === 'textarea' ||
-    (currentQ.type === 'radio' && currentQ.conditional && answers[currentQ.field] === currentQ.conditional.triggerValue);
+    step < questions.length && (
+      step === questions.length - 1 ||
+      currentQ.type === 'text' ||
+      currentQ.type === 'textarea' ||
+      (currentQ.type === 'radio' && currentQ.conditional && answers[currentQ.field] === currentQ.conditional.triggerValue)
+    );
 
   if (isDisqualified) {
     return (
@@ -289,7 +391,7 @@ export const Quiz: React.FC<Props> = ({ onComplete }) => {
         <div className="space-y-3">
           <h2 className="text-2xl md:text-3xl font-serif text-white font-bold">Obrigado pelo seu interesse!</h2>
           <p className="text-gray-400 text-sm leading-relaxed font-light">
-            No momento, a nossa consultoria financeira foi estruturada especificamente para acelerar perfis que já se encontram na faixa de renda de <strong>R$ 5.000,00 ou mais</strong>.
+            No momento, a nossa consultoria financeira foi estruturada especificamente para acelerar perfis que já se encontram na faixa de renda de <strong className="text-gold-400 font-bold">R$ 5.000,00 ou mais</strong>.
           </p>
           <p className="text-gray-400 text-sm leading-relaxed font-light">
             Para faixas inferiores a esta, o valor do investimento não traria o retorno proporcional que acreditamos ser justo para você. Recomendamos focar primeiro no aumento de sua renda ativa para que possamos trabalhar juntos no futuro.
@@ -321,6 +423,93 @@ export const Quiz: React.FC<Props> = ({ onComplete }) => {
     );
   }
 
+  if (step === questions.length) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 max-w-lg mx-auto">
+        <div className="w-full text-center space-y-4 mb-8">
+          <div className="w-16 h-16 bg-gold-500/10 text-gold-500 rounded-2xl flex items-center justify-center mx-auto border border-gold-500/20 shadow-[0_0_20px_rgba(245,158,11,0.1)]">
+            <TrendingUp className="w-8 h-8" />
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-2xl md:text-3xl font-serif text-white font-bold tracking-tight">Estamos prontos para gerar seu Diagnóstico Exclusivo!</h2>
+            <p className="text-gray-450 text-sm font-light max-w-md mx-auto leading-relaxed">
+              Para desbloquear sua análise de saúde financeira e liberar os canais de agendamento estratégico personalizado, por favor preencha os dados abaixo.
+            </p>
+          </div>
+        </div>
+
+        <form onSubmit={handleLeadSubmit} className="w-full bg-dark-900 border border-dark-800 p-6 md:p-8 rounded-3xl space-y-5 shadow-xl">
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block">Seu Nome *</label>
+            <input
+              type="text"
+              required
+              className="w-full bg-dark-950 border border-dark-850 focus:border-gold-500 rounded-xl text-white p-3 text-base outline-none transition-colors"
+              placeholder="Ex: João da Silva"
+              value={leadContact.name}
+              onChange={(e) => setLeadContact(prev => ({ ...prev, name: e.target.value }))}
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block">Seu E-mail *</label>
+            <input
+              type="email"
+              required
+              className="w-full bg-dark-950 border border-dark-850 focus:border-gold-500 rounded-xl text-white p-3 text-base outline-none transition-colors"
+              placeholder="Ex: joao@email.com"
+              value={leadContact.email}
+              onChange={(e) => setLeadContact(prev => ({ ...prev, email: e.target.value }))}
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block">WhatsApp *</label>
+            <input
+              type="tel"
+              required
+              className="w-full bg-dark-950 border border-dark-850 focus:border-gold-500 rounded-xl text-white p-3 text-base outline-none transition-colors"
+              placeholder="Ex: (11) 99999-9999"
+              value={leadContact.phone}
+              onChange={(e) => setLeadContact(prev => ({ ...prev, phone: formatPhoneNumber(e.target.value) }))}
+            />
+          </div>
+
+          {error && (
+            <p className="text-red-400 text-sm mt-2">{error}</p>
+          )}
+
+          <div className="pt-2 flex gap-4">
+            <button
+              type="button"
+              onClick={() => {
+                setStep(questions.length - 1);
+                setError('');
+              }}
+              className="flex-1 py-3 bg-dark-800 hover:bg-dark-750 text-gray-300 font-bold rounded-xl transition-all cursor-pointer border border-dark-700"
+            >
+              Voltar
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="flex-[2] py-3 bg-gold-500 hover:bg-gold-400 text-dark-950 font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-gold-500/20 cursor-pointer disabled:opacity-50"
+            >
+              {isSubmitting ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <>
+                  <span>Ver Diagnóstico</span>
+                  <ArrowRight className="w-5 h-5" />
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 max-w-2xl mx-auto">
       <div className="w-full mb-8">
@@ -334,7 +523,7 @@ export const Quiz: React.FC<Props> = ({ onComplete }) => {
           animate={{ x: 0, opacity: 1 }}
           exit={{ x: -20, opacity: 0 }}
           transition={{ duration: 0.3 }}
-          className="w-full"
+          className={`w-full ${isTransitioning ? 'pointer-events-none opacity-80' : ''}`}
         >
           <h2 className="text-2xl md:text-3xl font-serif text-white mb-8 leading-snug">
             {currentQ.question}
@@ -495,7 +684,8 @@ export const Quiz: React.FC<Props> = ({ onComplete }) => {
             {step > 0 ? (
               <button
                 onClick={handleBack}
-                className="text-gray-500 hover:text-white transition-colors text-sm underline underline-offset-4"
+                disabled={isTransitioning}
+                className={`text-gray-500 hover:text-white transition-colors text-sm underline underline-offset-4 ${isTransitioning ? 'opacity-50 pointer-events-none' : ''}`}
               >
                 Voltar
               </button>
@@ -504,7 +694,8 @@ export const Quiz: React.FC<Props> = ({ onComplete }) => {
             {showNextButton && (
               <button
                 onClick={handleNext}
-                className="flex items-center gap-2 px-8 py-3 bg-white text-dark-950 font-bold rounded-lg hover:bg-gray-100 transition-colors"
+                disabled={isTransitioning}
+                className={`flex items-center gap-2 px-8 py-3 bg-white text-dark-950 font-bold rounded-lg hover:bg-gray-100 transition-colors ${isTransitioning ? 'opacity-50 pointer-events-none' : ''}`}
               >
                 {step === questions.length - 1 ? 'Ver Resultado' : 'Próxima'}
                 <ArrowRight className="w-5 h-5" />
