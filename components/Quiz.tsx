@@ -222,7 +222,8 @@ export const Quiz: React.FC<Props> = ({ onComplete }) => {
         ...answers,
         leadName: leadContact.name,
         leadEmail: leadContact.email,
-        leadPhone: leadContact.phone
+        leadPhone: leadContact.phone,
+        whatsapp: leadContact.phone,
       });
 
       const profile = calculateProfile(finalAnswers);
@@ -232,6 +233,7 @@ export const Quiz: React.FC<Props> = ({ onComplete }) => {
         name: leadContact.name,
         email: leadContact.email,
         phone: leadContact.phone,
+        whatsapp: leadContact.phone,
         profile,
         answers: {
           ...finalAnswers,
@@ -492,6 +494,7 @@ export const Quiz: React.FC<Props> = ({ onComplete }) => {
               value={leadContact.phone}
               onChange={(e) => setLeadContact(prev => ({ ...prev, phone: formatPhoneNumber(e.target.value) }))}
             />
+            <p className="text-[10px] text-gray-500 italic mt-1">Este número será utilizado para o envio do seu diagnóstico e contato para agendamentos.</p>
           </div>
 
           {error && (

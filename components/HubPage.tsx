@@ -58,15 +58,6 @@ export const HubPage: React.FC<HubPageProps> = ({ navigate }) => {
             >
               "Ajudo você a se organizar financeiramente em 30 dias, para que transforme a sua renda em patrimônio e viva com tranquilidade."
             </motion.p>
-
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.4 }}
-              className="text-sm md:text-base text-gray-500 leading-relaxed max-w-xl text-left"
-            >
-              Soluções para você:
-            </motion.p>
           </div>
 
           {/* Coluna da Foto (Sem Moldura / Dissolve-se no Fundo nas 4 direções com Máscara Radial) */}
@@ -94,6 +85,14 @@ export const HubPage: React.FC<HubPageProps> = ({ navigate }) => {
         {/* Seção dos Cards Premium (Lista Vertical com Imagens de Fundo) */}
         <div className="flex flex-col gap-6 md:gap-8 w-full relative">
 
+          {/* Título de Seção "Soluções para você" */}
+          <div className="flex items-center gap-3 mb-1">
+            <h2 className="text-xs md:text-sm font-sans font-black tracking-widest text-gold-500/80 uppercase">
+              Soluções para você:
+            </h2>
+            <span className="h-[1px] bg-gradient-to-r from-gold-500/30 to-transparent flex-grow"></span>
+          </div>
+
           {/* Card 1: Finanças Pessoais */}
           <motion.div
             whileHover={{ y: -4, borderColor: 'rgba(245, 158, 11, 0.4)' }}
@@ -114,6 +113,9 @@ export const HubPage: React.FC<HubPageProps> = ({ navigate }) => {
 
             {/* Conteúdo sobreposto (Texto) */}
             <div className="flex-1 space-y-4 text-center md:text-left relative z-10 w-full flex flex-col items-center md:items-start">
+              <span className="inline-block text-[9px] font-black tracking-widest text-gold-400 bg-gold-500/10 border border-gold-500/20 px-2.5 py-0.5 rounded-full uppercase font-mono">
+                Pessoal
+              </span>
               <h3 className="text-2xl md:text-3xl font-serif font-bold text-white group-hover:text-gold-400 transition-colors">
                 Ganha bem e não consegue construir patrimônio?
               </h3>
@@ -147,15 +149,18 @@ export const HubPage: React.FC<HubPageProps> = ({ navigate }) => {
 
             {/* Conteúdo sobreposto (Texto) */}
             <div className="flex-1 space-y-4 text-center md:text-left relative z-10 w-full flex flex-col items-center md:items-start">
+              <span className="inline-block text-[9px] font-black tracking-widest text-gold-400 bg-gold-500/10 border border-gold-500/20 px-2.5 py-0.5 rounded-full uppercase font-mono">
+                Empresarial
+              </span>
               <h3 className="text-2xl md:text-3xl font-serif font-bold text-white group-hover:text-gold-400 transition-colors">
-                Mais controle e mais lucro para sua empresa
+                Sua empresa está preparada para crescer?
               </h3>
               <p className="text-sm md:text-base text-gray-300 leading-relaxed font-light max-w-xl">
-                Em breve...
+                Descubra oportunidades para organizar o financeiro, aumentar a lucratividade e tomar decisões mais seguras a partir de um diagnóstico personalizado.
               </p>
               {/* Botão com Fundo Destacado Premium */}
               <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-xs md:text-sm font-bold bg-gold-500/10 hover:bg-gold-500/20 text-gold-400 group-hover:text-gold-300 border border-gold-500/20 group-hover:border-gold-500/40 transition-all shadow-lg shadow-black/30 backdrop-blur-sm mt-2 w-fit">
-                <span>Em breve!</span>
+                <span>Fazer Diagnóstico Gratuito</span>
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1.5 transition-transform" />
               </div>
             </div>
@@ -180,11 +185,14 @@ export const HubPage: React.FC<HubPageProps> = ({ navigate }) => {
 
             {/* Conteúdo sobreposto (Texto) */}
             <div className="flex-1 space-y-4 text-center md:text-left relative z-10 w-full flex flex-col items-center md:items-start">
+              <span className="inline-block text-[9px] font-black tracking-widest text-gold-400 bg-gold-500/10 border border-gold-500/20 px-2.5 py-0.5 rounded-full uppercase font-mono">
+                Pessoal e Empresarial
+              </span>
               <h3 className="text-2xl md:text-3xl font-serif font-bold text-white group-hover:text-gold-400 transition-colors">
-                Separe sua empresa da sua vida pessoal
+                Sua empresa cresce, mas seu patrimônio acompanha?
               </h3>
               <p className="text-sm md:text-base text-gray-300 leading-relaxed font-light max-w-xl">
-                Em breve...
+                Organize as finanças da empresa e da vida pessoal para construir patrimônio, proteger o caixa do negócio e crescer com mais segurança.
               </p>
               {/* Botão com Fundo Destacado Premium */}
               <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-xs md:text-sm font-bold bg-gold-500/10 hover:bg-gold-500/20 text-gold-400 group-hover:text-gold-300 border border-gold-500/20 group-hover:border-gold-500/40 transition-all shadow-lg shadow-black/30 backdrop-blur-sm mt-2 w-fit">
@@ -196,7 +204,7 @@ export const HubPage: React.FC<HubPageProps> = ({ navigate }) => {
 
           {/* Card 4: Conheça a Solum Financeiro */}
           <motion.div
-            whileHover={{ y: -4, borderColor: 'rgba(245, 158, 11, 0.3)' }}
+            whileHover={{ y: -4, borderColor: 'rgba(56, 189, 248, 0.5)' }}
             onClick={() => navigate('/solum-financeiro')}
             className="cursor-pointer group flex flex-col md:flex-row items-center justify-between p-8 md:p-12 bg-dark-900/30 hover:bg-dark-900/60 border border-dark-800 rounded-2xl transition-all duration-300 relative overflow-hidden min-h-[200px] md:min-h-[220px] shadow-[0_20px_50px_rgba(0,0,0,0.6)]"
           >
@@ -213,14 +221,17 @@ export const HubPage: React.FC<HubPageProps> = ({ navigate }) => {
 
             {/* Conteúdo sobreposto (Texto) */}
             <div className="flex-1 space-y-4 text-center md:text-left relative z-10 w-full flex flex-col items-center md:items-start">
-              <h3 className="text-2xl md:text-3xl font-serif font-bold text-white group-hover:text-gold-400 transition-colors">
+              <span className="inline-block text-[9px] font-black tracking-widest text-sky-400 bg-sky-500/10 border border-sky-500/20 px-2.5 py-0.5 rounded-full uppercase font-mono">
+                Ferramenta
+              </span>
+              <h3 className="text-2xl md:text-3xl font-serif font-bold text-white group-hover:text-sky-400 transition-colors">
                 Conheça a Solum Financeiro
               </h3>
               <p className="text-sm md:text-base text-gray-300 leading-relaxed font-light max-w-xl">
                 A ferramenta exclusiva para organizar as finanças da sua empresa e da sua vida pessoal.
               </p>
               {/* Botão com Fundo Destacado Premium */}
-              <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-xs md:text-sm font-bold bg-gold-500/10 hover:bg-gold-500/20 text-gold-400 group-hover:text-gold-300 border border-gold-500/20 group-hover:border-gold-500/40 transition-all shadow-lg shadow-black/30 backdrop-blur-sm mt-2 w-fit">
+              <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-xs md:text-sm font-bold bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 group-hover:text-sky-300 border border-sky-500/20 group-hover:border-sky-500/40 transition-all shadow-lg shadow-black/30 backdrop-blur-sm mt-2 w-fit">
                 <span>Conhecer Plataforma</span>
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1.5 transition-transform" />
               </div>

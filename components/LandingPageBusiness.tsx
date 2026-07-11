@@ -67,7 +67,7 @@ export const LandingPageBusiness: React.FC<Props> = ({ onStart, onAdminClick, on
           transition={{ duration: 0.8, delay: 0.4 }}
           className="text-lg md:text-xl text-gray-400 max-w-2xl mx-auto leading-relaxed"
         >
-          Responda poucas perguntas rápidas, identifique os maiores gargalos de caixa da sua empresa e receba um diagnóstico exclusivo com orientações de Diego Kloppel.
+          Responda poucas perguntas rápidas, identifique os maiores gargalos de caixa da sua empresa e receba um diagnóstico exclusivo.
         </motion.p>
 
         <motion.button

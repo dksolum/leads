@@ -2568,6 +2568,21 @@ export const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                                                                 </p>
                                                             )}
                                                         </div>
+
+                                                        <div className="p-4 bg-dark-800/30 rounded-lg border border-dark-800/80 hover:border-dark-700 transition-colors md:col-span-2">
+                                                            <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-wider">21. Nível de Comprometimento (0 a 10)</p>
+                                                            <div className="flex items-center gap-4 mt-2">
+                                                                <div className="flex-1 bg-dark-900 h-2.5 rounded-full overflow-hidden border border-dark-850">
+                                                                    <div 
+                                                                        className="bg-gradient-to-r from-amber-600 to-gold-500 h-full rounded-full transition-all duration-500" 
+                                                                        style={{ width: `${(parseInt(selectedLead.answers.commitmentScale || '0', 10) / 10) * 100}%` }} 
+                                                                    />
+                                                                </div>
+                                                                <span className="text-sm font-bold text-gold-500 shrink-0 font-mono">
+                                                                    {selectedLead.answers.commitmentScale || '0'} / 10
+                                                                </span>
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 ) : (
                                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

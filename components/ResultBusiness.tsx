@@ -342,8 +342,8 @@ export const ResultBusiness: React.FC<Props> = ({ answers, onBackToHome }) => {
                 >
                   <PhoneCall className="w-9 h-9 text-blue-500 mb-4 group-hover:scale-110 transition-transform" />
                   <div className="space-y-1.5 mb-4">
-                    <h4 className="text-base font-bold text-white">Nós te ligamos</h4>
-                    <p className="text-xs text-gray-400 font-light leading-relaxed">Solicite que nossa assessoria entre em contato com você por ligação.</p>
+                    <h4 className="text-base font-bold text-white">Nós te chamamos</h4>
+                    <p className="text-xs text-gray-400 font-light leading-relaxed">Solicite que nossa assessoria entre em contato com você por telefone.</p>
                   </div>
                   {sentContactRequest ? (
                     <span className="text-xs font-bold text-emerald-400 flex items-center gap-1">

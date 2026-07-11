@@ -88,6 +88,7 @@ export const QuizBusiness: React.FC<Props> = ({ onComplete }) => {
     usePersonalCardForBusiness: '',
     dependsOnOthersBusiness: '',
     dependsOnOthersBusinessReason: '',
+    commitmentScale: '',
   });
 
   const answersRef = useRef(answers);
@@ -325,6 +326,12 @@ export const QuizBusiness: React.FC<Props> = ({ onComplete }) => {
       type: 'radio',
       options: ['Sim', 'Não'],
       field: 'dependsOnOthersBusinessReason'
+    },
+    {
+      id: 29,
+      question: "O quanto você está comprometido com a evolução financeira da empresa de 0 a 10?",
+      type: 'scale',
+      field: 'commitmentScale'
     }
   ];
 
@@ -756,7 +763,7 @@ export const QuizBusiness: React.FC<Props> = ({ onComplete }) => {
     try {
       const finalAnswers: UserAnswers = {
         ...answers,
-        whatsapp: leadContact.whatsapp || leadContact.phone,
+        whatsapp: leadContact.phone,
         formType: 'business',
       };
 
@@ -766,6 +773,7 @@ export const QuizBusiness: React.FC<Props> = ({ onComplete }) => {
         name: leadContact.name,
         email: leadContact.email,
         phone: leadContact.phone,
+        whatsapp: leadContact.phone,
         profile,
         answers: finalAnswers,
         action_type: 'Strategy Session' as const,
@@ -867,28 +875,17 @@ export const QuizBusiness: React.FC<Props> = ({ onComplete }) => {
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block">Telefone *</label>
-              <input
-                type="tel"
-                required
-                className="w-full bg-dark-950 border border-dark-850 focus:border-gold-500 rounded-xl text-white p-3 text-base outline-none transition-colors"
-                placeholder="Ex: (65) 99999-9999"
-                value={leadContact.phone}
-                onChange={(e) => setLeadContact(prev => ({ ...prev, phone: formatPhoneNumber(e.target.value) }))}
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block">WhatsApp (Opcional)</label>
-              <input
-                type="tel"
-                className="w-full bg-dark-950 border border-dark-850 focus:border-gold-500 rounded-xl text-white p-3 text-base outline-none transition-colors"
-                placeholder="Ex: (65) 99999-9999"
-                value={leadContact.whatsapp}
-                onChange={(e) => setLeadContact(prev => ({ ...prev, whatsapp: formatPhoneNumber(e.target.value) }))}
-              />
-            </div>
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block">WhatsApp *</label>
+            <input
+              type="tel"
+              required
+              className="w-full bg-dark-950 border border-dark-850 focus:border-gold-500 rounded-xl text-white p-3 text-base outline-none transition-colors"
+              placeholder="Ex: (65) 99999-9999"
+              value={leadContact.phone}
+              onChange={(e) => setLeadContact(prev => ({ ...prev, phone: formatPhoneNumber(e.target.value) }))}
+            />
+            <p className="text-[10px] text-gray-500 italic mt-1">Este número será utilizado para o envio do seu diagnóstico e contato para agendamentos.</p>
           </div>
 
           {error && (
@@ -1464,6 +1461,30 @@ export const QuizBusiness: React.FC<Props> = ({ onComplete }) => {
                   );
                 })}
                 <p className="text-xs text-gray-500 italic">Você pode selecionar mais de uma opção.</p>
+              </div>
+            )}
+
+            {currentQ.type === 'scale' && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-11 gap-1 md:gap-2">
+                  {Array.from({ length: 11 }, (_, i) => i).map((num) => (
+                    <button
+                      key={num}
+                      type="button"
+                      onClick={() => handleOptionSelect(String(num))}
+                      className={`h-12 w-full rounded-lg border text-center font-bold text-sm md:text-base flex items-center justify-center transition-all ${answers[currentQ.field] === String(num)
+                        ? 'bg-gold-500 text-dark-950 border-gold-500 shadow-[0_0_15px_rgba(245,158,11,0.3)]'
+                        : 'bg-dark-800 border-dark-600 text-gray-400 hover:border-gold-500/50 hover:text-white'
+                        }`}
+                    >
+                      {num}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex justify-between text-xs text-gray-500 font-sans tracking-wide uppercase px-1">
+                  <span>0 - Sem comprometimento</span>
+                  <span>10 - Totalmente comprometido</span>
+                </div>
               </div>
             )}
           </div>

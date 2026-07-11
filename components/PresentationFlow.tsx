@@ -1017,70 +1017,205 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                 <div className="bg-dark-900 border border-dark-800 rounded-3xl p-6 md:p-8 space-y-6 shadow-xl">
                   <h3 className="text-sm font-bold uppercase text-gray-500 tracking-wider border-b border-dark-800 pb-2 flex items-center gap-2">
                     <ShieldCheck className="w-4 h-4 text-gold-500" />
-                    {leadFormType === 'business' ? `Ficha da Empresa de ${lead.name}` : `Ficha do Perfil de ${lead.name}`}
+                    {leadFormType === 'business' ? `Ficha da Empresa: ${lead.name}` : `Ficha do Perfil de ${lead.name}`}
                   </h3>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="p-4 bg-dark-950 border border-dark-800/60 rounded-xl space-y-1">
-                      <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Desafio Prioritário</p>
-                      <p className="text-sm text-white font-medium italic">"{lead.answers.mainProblem}"</p>
-                    </div>
+                  {leadFormType === 'business' ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="p-4 bg-dark-950 border border-dark-800/60 rounded-xl space-y-1">
+                        <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Desafio Prioritário da Empresa</p>
+                        <p className="text-sm text-white font-medium italic">"{lead.answers.businessDifficulty || 'Não informado'}"</p>
+                      </div>
 
-                    <div className="p-4 bg-dark-950 border border-dark-800/60 rounded-xl space-y-1">
-                      <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Já tentou resolver esse problema?</p>
-                      <p className="text-sm text-white font-medium">
-                        {lead.answers.triedSolution || 'Não informado'}
-                        {lead.answers.triedSolutionDescription && (
-                          <span className="block text-xs text-gray-450 mt-1.5 italic font-light leading-relaxed">
-                            "{lead.answers.triedSolutionDescription}"
-                          </span>
-                        )}
-                      </p>
-                    </div>
+                      <div className="p-4 bg-dark-950 border border-dark-800/60 rounded-xl space-y-1">
+                        <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Já tentou resolver esse problema?</p>
+                        <p className="text-sm text-white font-medium">
+                          {lead.answers.businessTriedSolution || 'Não informado'}
+                          {lead.answers.businessTriedSolutionDescription && (
+                            <span className="block text-xs text-gray-450 mt-1.5 italic font-light leading-relaxed">
+                              "{lead.answers.businessTriedSolutionDescription}"
+                            </span>
+                          )}
+                        </p>
+                      </div>
 
-                    <div className="p-4 bg-dark-950 border border-dark-800/60 rounded-xl space-y-1">
-                      <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Situação Financeira Atual</p>
-                      <p className="text-sm text-gold-500 font-semibold">{lead.answers.financialState}</p>
-                    </div>
+                      <div className="p-4 bg-dark-950 border border-dark-800/60 rounded-xl space-y-1">
+                        <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Perfil da Empresa (Porte, Ramo e Fase)</p>
+                        <p className="text-sm text-white font-medium leading-relaxed">
+                          Porte: <span className="text-gold-500 font-bold">{lead.answers.businessSize || 'Não informado'}</span>
+                          {lead.answers.businessBranch && (
+                            <> • Ramo: <span className="text-gold-500 font-bold">{lead.answers.businessBranch}</span></>
+                          )}
+                          {lead.answers.businessPhase && (
+                            <> • Fase: <span className="text-gold-500 font-bold">{lead.answers.businessPhase}</span></>
+                          )}
+                        </p>
+                      </div>
 
-                    <div className="p-4 bg-dark-950 border border-dark-800/60 rounded-xl space-y-1">
-                      <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">
-                        {leadFormType === 'business' ? 'Faturamento Mensal' : 'Renda Mensal Declarada'}
-                      </p>
-                      <p className="text-sm text-white font-medium">{lead.answers.incomeRange}</p>
-                    </div>
+                      <div className="p-4 bg-dark-950 border border-dark-800/60 rounded-xl space-y-1">
+                        <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Faturamento Médio Mensal</p>
+                        <p className="text-sm text-white font-mono font-bold">{lead.answers.averageMonthlyRevenue || 'Não informado'}</p>
+                      </div>
 
-                    <div className="p-4 bg-dark-950 border border-dark-800/60 rounded-xl space-y-1">
-                      <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">
-                        {leadFormType === 'business' ? 'Atuação / Segmento' : 'Profissão e Família'}
-                      </p>
-                      <p className="text-sm text-white font-medium">
-                        {lead.answers.profession}
-                        {leadFormType !== 'business' && (
-                          <>
-                            {lead.answers.spouse && ` • ${lead.answers.spouse}`}
-                            {lead.answers.children && ` • ${lead.answers.children}`}
-                            {lead.answers.otherDependents === 'Possuo outros dependentes' && (
-                              ` • ${lead.answers.otherDependentsCount || 0} ${lead.answers.otherDependentsCount === 1 ? 'outro dependente' : 'outros dependentes'}`
-                            )}
-                          </>
-                        )}
-                      </p>
-                    </div>
+                      <div className="p-4 bg-dark-950 border border-dark-800/60 rounded-xl space-y-1">
+                        <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Mistura de Dinheiro (PF/PJ)</p>
+                        <p className="text-sm text-white font-medium">{lead.answers.mixesMoney || 'Não informado'}</p>
+                      </div>
 
-                    <div className="p-4 bg-dark-950 border border-dark-800/60 rounded-xl space-y-1">
-                      <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Meta / Objetivo Financeiro</p>
-                      <p className="text-sm text-white font-medium">{lead.answers.goals}</p>
-                    </div>
+                      <div className="p-4 bg-dark-950 border border-dark-800/60 rounded-xl space-y-1">
+                        <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Controle e Rotinas de Caixa</p>
+                        <p className="text-sm text-white font-medium leading-relaxed">
+                          Fluxo Atualizado: <span className="text-gold-500 font-bold">{lead.answers.cashFlowUpdated || 'Não'}</span>
+                          {lead.answers.regularReconciliation && (
+                            <> • Conciliação: <span className="text-gold-500 font-bold">{lead.answers.regularReconciliation}</span></>
+                          )}
+                        </p>
+                      </div>
 
-                    <div className="p-4 bg-dark-950 border border-dark-800/60 rounded-xl space-y-1 md:col-span-2">
-                      <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Decisão e Comprometimento</p>
-                      <p className="text-sm text-white font-medium">
-                        Comprometimento: <span className="text-gold-500 font-bold">{lead.answers.commitmentScale || '0'}/10</span>
-                        {lead.answers.dependsOnOthers === 'Sim' && (leadFormType === 'business' ? ' • Depende de outros sócios' : ' • Depende de cônjuge')}
-                      </p>
+                      <div className="p-4 bg-dark-950 border border-dark-800/60 rounded-xl space-y-1">
+                        <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Lucratividade Mensal</p>
+                        <p className="text-sm text-white font-medium">
+                          Sabe o lucro? <span className="text-gold-500 font-bold">{lead.answers.knowsMonthlyProfit || 'Não'}</span>
+                          {lead.answers.knowsMonthlyProfit === 'Sim' && lead.answers.monthlyProfitValue && (
+                            <span className="block text-xs text-gray-450 mt-1 font-mono">
+                              Lucro Estimado: {lead.answers.monthlyProfitValue}
+                            </span>
+                          )}
+                        </p>
+                      </div>
+
+                      <div className="p-4 bg-dark-950 border border-dark-800/60 rounded-xl space-y-1">
+                        <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Faturamento e Cobranças</p>
+                        <p className="text-sm text-white font-medium leading-relaxed">
+                          Controle de Contas: <span className="text-gold-500 font-bold">{lead.answers.controlsBills || 'Não'}</span>
+                          {lead.answers.hasDeferredSales && (
+                            <> • Vendas a prazo: <span className="text-gold-500 font-bold">{lead.answers.hasDeferredSales}</span></>
+                          )}
+                          {lead.answers.hasDeferredSales === 'Sim' && lead.answers.deferredSalesCollector && (
+                            <span className="block text-[10px] text-gray-450 mt-1">
+                              Cobrador: {lead.answers.deferredSalesCollector}
+                            </span>
+                          )}
+                        </p>
+                      </div>
+
+                      <div className="p-4 bg-dark-950 border border-dark-800/60 rounded-xl space-y-1">
+                        <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Emissão de Notas Fiscais</p>
+                        <p className="text-sm text-white font-medium leading-relaxed">
+                          Emite Notas: <span className="text-gold-500 font-bold">{lead.answers.emitsInvoices || 'Não'}</span>
+                          {lead.answers.emitsInvoices === 'Sim' && (
+                            <span className="block text-[10px] text-gray-450 mt-1">
+                              {lead.answers.businessBranch === 'Prestação de serviços' && `Emite NFS-e: ${lead.answers.invoiceNFSSe || 'Não'}`}
+                              {lead.answers.businessBranch === 'Indústria' && `Emite NF-e: ${lead.answers.invoiceNFSe || 'Não'}`}
+                              {lead.answers.businessBranch === 'Comércio de mercadorias' && `Sistema NFC-e: ${lead.answers.invoiceSystemNFCe || 'Não'}`}
+                            </span>
+                          )}
+                        </p>
+                      </div>
+
+                      <div className="p-4 bg-dark-950 border border-dark-800/60 rounded-xl space-y-1">
+                        <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Estrutura Operacional e Contábil</p>
+                        <p className="text-sm text-white font-medium leading-relaxed">
+                          Responsável Financeiro: <span className="text-gold-500 font-bold">{lead.answers.hasFinancialManager || 'Não'}</span>
+                          {lead.answers.hasAccounting && (
+                            <> • Tem Contador: <span className="text-gold-500 font-bold">{lead.answers.hasAccounting}</span></>
+                          )}
+                        </p>
+                      </div>
+
+                      <div className="p-4 bg-dark-950 border border-dark-800/60 rounded-xl space-y-1 md:col-span-2">
+                        <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Comprometimento e Decisão</p>
+                        <p className="text-sm text-white font-medium leading-relaxed">
+                          Comprometimento com a evolução: <span className="text-gold-500 font-bold font-mono">{lead.answers.commitmentScale || '0'}/10</span>
+                          {lead.answers.dependsOnOthersBusiness === 'Sim' && (
+                            <>
+                              <span className="text-red-400 font-bold"> • Depende de outra pessoa para decidir</span>
+                              {lead.answers.dependsOnOthersBusinessReason && (
+                                <span className="block text-xs mt-1 italic text-gray-400">
+                                  {lead.answers.dependsOnOthersBusinessReason === 'Não' ? (
+                                    <>Desiste se a pessoa falar não? <span className="text-green-500 font-bold">Não</span></>
+                                  ) : lead.answers.dependsOnOthersBusinessReason === 'Sim' ? (
+                                    <>Desiste se a pessoa falar não? <span className="text-red-400 font-bold">Sim</span></>
+                                  ) : (
+                                    `"${lead.answers.dependsOnOthersBusinessReason}"`
+                                  )}
+                                </span>
+                              )}
+                            </>
+                          )}
+                        </p>
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="p-4 bg-dark-950 border border-dark-800/60 rounded-xl space-y-1">
+                        <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Desafio Prioritário</p>
+                        <p className="text-sm text-white font-medium italic">"{lead.answers.mainProblem}"</p>
+                      </div>
+
+                      <div className="p-4 bg-dark-950 border border-dark-800/60 rounded-xl space-y-1">
+                        <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Já tentou resolver esse problema?</p>
+                        <p className="text-sm text-white font-medium">
+                          {lead.answers.triedSolution || 'Não informado'}
+                          {lead.answers.triedSolutionDescription && (
+                            <span className="block text-xs text-gray-450 mt-1.5 italic font-light leading-relaxed">
+                              "{lead.answers.triedSolutionDescription}"
+                            </span>
+                          )}
+                        </p>
+                      </div>
+
+                      <div className="p-4 bg-dark-950 border border-dark-800/60 rounded-xl space-y-1">
+                        <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Situação Financeira Atual</p>
+                        <p className="text-sm text-gold-500 font-semibold">{lead.answers.financialState}</p>
+                      </div>
+
+                      <div className="p-4 bg-dark-950 border border-dark-800/60 rounded-xl space-y-1">
+                        <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Renda Mensal Declarada</p>
+                        <p className="text-sm text-white font-medium">{lead.answers.incomeRange}</p>
+                      </div>
+
+                      <div className="p-4 bg-dark-950 border border-dark-800/60 rounded-xl space-y-1">
+                        <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Profissão e Família</p>
+                        <p className="text-sm text-white font-medium">
+                          {lead.answers.profession}
+                          {lead.answers.spouse && ` • ${lead.answers.spouse}`}
+                          {lead.answers.children && ` • ${lead.answers.children}`}
+                          {lead.answers.otherDependents === 'Possuo outros dependentes' && (
+                            ` • ${lead.answers.otherDependentsCount || 0} ${lead.answers.otherDependentsCount === 1 ? 'outro dependente' : 'outros dependentes'}`
+                          )}
+                        </p>
+                      </div>
+
+                      <div className="p-4 bg-dark-950 border border-dark-800/60 rounded-xl space-y-1">
+                        <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Meta / Objetivo Financeiro</p>
+                        <p className="text-sm text-white font-medium">{lead.answers.goals}</p>
+                      </div>
+
+                      <div className="p-4 bg-dark-950 border border-dark-800/60 rounded-xl space-y-1 md:col-span-2">
+                        <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Decisão e Comprometimento</p>
+                        <p className="text-sm text-white font-medium leading-relaxed">
+                          Comprometimento: <span className="text-gold-500 font-bold font-mono">{lead.answers.commitmentScale || '0'}/10</span>
+                          {lead.answers.dependsOnOthers === 'Sim' && (
+                            <>
+                              <span className="text-red-400 font-bold"> • Depende de outra pessoa para decidir</span>
+                              {lead.answers.dependsOnOthersReason && (
+                                <span className="block text-xs mt-1 italic text-gray-400">
+                                  {lead.answers.dependsOnOthersReason === 'Não' ? (
+                                    <>Desiste se a pessoa falar não? <span className="text-green-500 font-bold">Não</span></>
+                                  ) : lead.answers.dependsOnOthersReason === 'Sim' ? (
+                                    <>Desiste se a pessoa falar não? <span className="text-red-400 font-bold">Sim</span></>
+                                  ) : (
+                                    `"${lead.answers.dependsOnOthersReason}"`
+                                  )}
+                                </span>
+                              )}
+                            </>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex justify-end pt-4">

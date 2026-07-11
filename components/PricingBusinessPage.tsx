@@ -21,6 +21,7 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
   const [pagamentoCartao, setPagamentoCartao] = useState(true); // Começa ativo pois contabilidadeAnual começa true
   const [orcamentoFinalizado, setOrcamentoFinalizado] = useState(false);
   const [mostrarBloqueioFinanceiro, setMostrarBloqueioFinanceiro] = useState(false);
+  const [condicaoEspecial, setCondicaoEspecial] = useState(false);
 
   const formatPremiumCurrency = (value: number) => {
     if (value % 1 === 0) {
@@ -48,7 +49,7 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
   // 1. Valores Normais / Avulsos (Sem parceria)
   const valNormalFinanceiro = 400;
   const valNormalAtendimento = 200;
-  const valNormalContabilidade = 298.80; // Valor da Contabilidade Mensal Avulsa / Referência Normal
+  const valNormalContabilidade = 350; // Valor da Contabilidade Mensal Avulsa / Referência Normal
   const valNormalCobranca = 150;
 
   // 2. Valores Promocionais (Plano com Parceria / Com desconto)
@@ -138,7 +139,13 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
 
   const economia = Math.max(0, totalReferenciaAvulso - precoFechamento);
   const economiaAnualMensalidade = economia * 12;
-  const valorBonusGratis = (contabilidadeAnual && pagamentoCartao) ? 1337 : 0;
+  const precoCertificado = condicaoEspecial ? 75 : 387;
+  const precoInscricao = condicaoEspecial ? 350 : 450;
+  const precoMigracao = condicaoEspecial ? 450 : 500;
+
+  const totalTaxasTransicaoEspeciais = precoCertificado + precoInscricao + precoMigracao;
+
+  const valorBonusGratis = (contabilidadeAnual && pagamentoCartao) ? totalTaxasTransicaoEspeciais : 0;
   const economiaTotalPrimeiroAno = economiaAnualMensalidade + valorBonusGratis;
 
   const valorCartao = Math.min(precoFechamento, 249);
@@ -150,9 +157,9 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
   // Taxa de transição única (MEI para ME) + Certificado Digital
   let custoTransicaoUnico = 0;
   if (contabilidadeSemBonus) {
-    custoTransicaoUnico = 1337;
+    custoTransicaoUnico = totalTaxasTransicaoEspeciais;
   } else if (!contabilidadeAnual && !contabilidadeMensal) {
-    custoTransicaoUnico = (certificadoDigital ? 387 : 0) + (inscricaoEstadual ? 450 : 0) + (migracaoMei ? 500 : 0);
+    custoTransicaoUnico = (certificadoDigital ? precoCertificado : 0) + (inscricaoEstadual ? precoInscricao : 0) + (migracaoMei ? precoMigracao : 0);
   }
 
   const handleWhatsappClick = () => {
@@ -294,6 +301,8 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
       tag: { text: 'OBRIGATÓRIO', type: 'required' },
       inclusos: [
         'Certificado e-CNPJ A1 válido por 12 meses',
+        'Configuração do certificado no sistema da contabilidade',
+        'Armazenamento do certificado digital para uso no sistema de emissão de notas*',
         'Renovação descomplicada todos os anos'
       ]
     }
@@ -683,7 +692,7 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
                   <div className="space-y-1 text-left">
                     <h4 className="text-xs font-bold text-white uppercase tracking-wider">Migração MEI para ME e Contrato Social</h4>
                     <p className="text-[11px] text-gray-400 font-light leading-relaxed max-w-[220px]">
-                      Desenquadramento de MEI para ME, elaboração do contrato social e registro completo na Junta Comercial.
+                      Desenquadramento de MEI para ME, elaboração do contrato social, balanço de abertura e registro completo na Junta Comercial.
                     </p>
                   </div>
                   <div className="text-right shrink-0 px-4 py-2 bg-dark-950/80 rounded-xl border border-dark-800">
@@ -1123,61 +1132,103 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
                           </div>
                         ) : (
                           contabilidadeSemBonus ? (
-                            <div className="p-4 bg-red-500/10 border border-red-500/25 rounded-2xl space-y-2 text-left">
+                            <div className="p-4 bg-red-500/10 border border-red-500/25 rounded-2xl space-y-2 text-left relative">
                               <div className="flex items-center justify-between border-b border-red-500/20 pb-1.5">
-                                <span className="text-[9px] text-red-400 font-black uppercase tracking-widest block font-mono">Serviços de Transição</span>
+                                <span className="text-[9px] text-red-400 font-black uppercase tracking-widest block font-mono flex items-center gap-1.5">
+                                  Serviços de Transição
+                                  <button
+                                    type="button"
+                                    onClick={() => setCondicaoEspecial(!condicaoEspecial)}
+                                    className="p-0.5 hover:bg-red-500/20 text-red-400/50 hover:text-red-400 rounded-md transition-all cursor-pointer"
+                                    title="Condição Especial"
+                                  >
+                                    <Sparkles className={`w-3.5 h-3.5 ${condicaoEspecial ? 'text-gold-500 animate-pulse' : ''}`} />
+                                  </button>
+                                </span>
                                 <span className="text-[9px] text-red-400/80 font-bold">A PAGAR</span>
                               </div>
                               <ul className="space-y-1.5 text-[11px] text-gray-300">
                                 <li className="flex items-center justify-between">
                                   <span>Certificado Digital e-CNPJ A1</span>
-                                  <span className="font-mono text-red-400 font-bold">R$ 387,00</span>
+                                  <span className="font-mono text-red-400 font-bold">
+                                    {condicaoEspecial ? 'R$ 75,00 + Taxa' : 'R$ 387,00'}
+                                  </span>
                                 </li>
                                 <li className="flex items-center justify-between">
                                   <span>Inscrição Estadual</span>
-                                  <span className="font-mono text-red-400 font-bold">R$ 450,00</span>
+                                  <span className="font-mono text-red-400 font-bold">
+                                    {condicaoEspecial ? 'R$ 350,00' : 'R$ 450,00'}
+                                  </span>
                                 </li>
                                 <li className="flex items-center justify-between">
                                   <span>Migração MEI p/ ME & Contrato Social</span>
-                                  <span className="font-mono text-red-400 font-bold">R$ 500,00</span>
+                                  <span className="font-mono text-red-400 font-bold">
+                                    {condicaoEspecial ? 'R$ 450,00' : 'R$ 500,00'}
+                                  </span>
                                 </li>
                                 <li className="flex items-center justify-between border-t border-red-500/20 pt-2 mt-1.5 font-bold text-white">
                                   <span>Total de Serviços</span>
-                                  <span className="font-mono text-red-400">R$ {custoTransicaoUnico.toFixed(2)}</span>
+                                  <span className="font-mono text-red-400">{formatPremiumCurrency(custoTransicaoUnico)}</span>
                                 </li>
                               </ul>
+                              {condicaoEspecial && (
+                                <p className="text-[9px] text-gray-500 italic mt-1 leading-tight border-t border-red-500/10 pt-1.5">
+                                  * Certificado Digital de R$ 75,00 + Taxa cobrada diretamente pela Certificadora.
+                                </p>
+                              )}
                             </div>
                           ) : (
                             (!temContabilidade && custoTransicaoUnico > 0) && (
-                              <div className="p-4 bg-red-500/10 border border-red-500/25 rounded-2xl space-y-2 text-left">
+                              <div className="p-4 bg-red-500/10 border border-red-500/25 rounded-2xl space-y-2 text-left relative">
                                 <div className="flex items-center justify-between border-b border-red-500/20 pb-1.5">
-                                  <span className="text-[9px] text-red-400 font-black uppercase tracking-widest block font-mono">Serviços de Transição</span>
+                                  <span className="text-[9px] text-red-400 font-black uppercase tracking-widest block font-mono flex items-center gap-1.5">
+                                    Serviços de Transição
+                                    <button
+                                      type="button"
+                                      onClick={() => setCondicaoEspecial(!condicaoEspecial)}
+                                      className="p-0.5 hover:bg-red-500/20 text-red-400/50 hover:text-red-400 rounded-md transition-all cursor-pointer"
+                                      title="Condição Especial"
+                                    >
+                                      <Sparkles className={`w-3.5 h-3.5 ${condicaoEspecial ? 'text-gold-500 animate-pulse' : ''}`} />
+                                    </button>
+                                  </span>
                                   <span className="text-[9px] text-red-400/80 font-bold">A PAGAR</span>
                                 </div>
                                 <ul className="space-y-1.5 text-[11px] text-gray-300">
                                   {certificadoDigital && (
                                     <li className="flex items-center justify-between">
                                       <span>Certificado Digital e-CNPJ A1</span>
-                                      <span className="font-mono text-red-400 font-bold">R$ 387,00</span>
+                                      <span className="font-mono text-red-400 font-bold">
+                                        {condicaoEspecial ? 'R$ 75,00 + Taxa' : 'R$ 387,00'}
+                                      </span>
                                     </li>
                                   )}
                                   {inscricaoEstadual && (
                                     <li className="flex items-center justify-between">
                                       <span>Inscrição Estadual</span>
-                                      <span className="font-mono text-red-400 font-bold">R$ 450,00</span>
+                                      <span className="font-mono text-red-400 font-bold">
+                                        {condicaoEspecial ? 'R$ 350,00' : 'R$ 450,00'}
+                                      </span>
                                     </li>
                                   )}
                                   {migracaoMei && (
                                     <li className="flex items-center justify-between">
                                       <span>Migração MEI p/ ME & Contrato Social</span>
-                                      <span className="font-mono text-red-400 font-bold">R$ 500,00</span>
+                                      <span className="font-mono text-red-400 font-bold">
+                                        {condicaoEspecial ? 'R$ 450,00' : 'R$ 500,00'}
+                                      </span>
                                     </li>
                                   )}
                                   <li className="flex items-center justify-between border-t border-red-500/20 pt-2 mt-1.5 font-bold text-white">
                                     <span>Total de Serviços</span>
-                                    <span className="font-mono text-red-400">R$ {custoTransicaoUnico.toFixed(2)}</span>
+                                    <span className="font-mono text-red-400">{formatPremiumCurrency(custoTransicaoUnico)}</span>
                                   </li>
                                 </ul>
+                                {condicaoEspecial && certificadoDigital && (
+                                  <p className="text-[9px] text-gray-500 italic mt-1 leading-tight border-t border-red-500/10 pt-1.5">
+                                    * Certificado Digital de R$ 75,00 + Taxa cobrada diretamente pela Certificadora.
+                                  </p>
+                                )}
                               </div>
                             )
                           )
@@ -1189,15 +1240,15 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
                         <div className="space-y-1">
                           <span className="text-[10px] text-gray-550 uppercase tracking-widest font-black font-mono">Mensalidade do Plano Customizado</span>
                           {economia > 0 && (
-                            <div className="text-gray-500 text-xs line-through decoration-red-500/70 font-light">R$ {totalReferenciaAvulso.toFixed(2)}</div>
+                            <div className="text-gray-500 text-xs line-through decoration-red-500/70 font-light">{formatPremiumCurrency(totalReferenciaAvulso)}</div>
                           )}
                           <div className="text-3xl md:text-4xl font-serif font-black text-gold-500 my-1">
-                            R$ {precoFechamento.toFixed(2)}
+                            {formatPremiumCurrency(precoFechamento)}
                           </div>
                           <span className="text-[11px] text-gray-400 font-medium block">/mês no contrato unificado</span>
-                          {!contabilidadeAnual && custoTransicaoUnico > 0 && (
+                          {!condicaoEspecial && !(contabilidadeAnual && pagamentoCartao) && custoTransicaoUnico > 0 && (
                             <span className="text-[9px] text-amber-500/80 font-medium block mt-1 leading-normal italic">
-                              * Taxas de transição de R$ {custoTransicaoUnico.toFixed(2)} cobradas separadamente.
+                              * Serviços de transição de {formatPremiumCurrency(custoTransicaoUnico)} cobradas separadamente.
                             </span>
                           )}
                         </div>
@@ -1206,11 +1257,11 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
                           <div className="p-3 bg-gold-500/5 border border-gold-500/20 rounded-2xl space-y-1 text-left">
                             <span className="text-[8px] text-gold-500 font-bold uppercase tracking-widest block font-mono">Divisão de Pagamento no Cartão</span>
                             <div className="text-xs text-white font-semibold">
-                              💳 12x de <span className="text-gold-500 font-mono font-bold">R$ {valorCartao.toFixed(2)}</span> no Cartão do Parceiro
+                              💳 12x de <span className="text-gold-500 font-mono font-bold">{formatPremiumCurrency(valorCartao)}</span> no Cartão do Parceiro
                             </div>
                             {valorRestante > 0 && (
                               <div className="text-[10px] text-gray-400 font-light">
-                                + Restante mensal de: <span className="font-bold text-white font-mono">R$ {valorRestante.toFixed(2)}/mês</span> (Boleto/Pix)
+                                + Restante mensal de: <span className="font-bold text-white font-mono">{formatPremiumCurrency(valorRestante)}/mês</span> (Boleto/Pix)
                               </div>
                             )}
                           </div>
@@ -1220,11 +1271,11 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
                               <div className="p-3 bg-dark-900 border border-dark-800 rounded-2xl space-y-1.5 text-left">
                                 <span className="text-[8px] text-slate-400 font-bold uppercase tracking-widest block font-mono">Divisão de Pagamento Sem Cartão</span>
                                 <div className="text-xs text-white font-medium">
-                                  📄 Pago ao Parceiro de Contabilidade: <span className="text-gold-450 font-mono font-bold">R$ 298,80/mês</span>
+                                  📄 Pago ao Parceiro de Contabilidade: <span className="text-gold-450 font-mono font-bold">{formatPremiumCurrency(298.80)}/mês</span>
                                 </div>
                                 {precoFechamento > 298.80 && (
                                   <div className="text-[10px] text-gray-400 font-light">
-                                    + Restante mensal de: <span className="font-bold text-white font-mono">R$ {(precoFechamento - 298.80).toFixed(2)}/mês</span> (Boleto/Pix)
+                                    + Restante mensal de: <span className="font-bold text-white font-mono">{formatPremiumCurrency(precoFechamento - 298.80)}/mês</span> (Boleto/Pix)
                                   </div>
                                 )}
                               </div>
