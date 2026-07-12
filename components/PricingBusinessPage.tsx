@@ -59,7 +59,7 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
   const valDescontoCobranca = 100;
 
   // 3. Valor da Contabilidade Anual Sem Cartão (Boleto/Pix)
-  const valAnualSemCartaoContabilidade = 298.80; // Editável aqui para Contabilidade Anual Sem Cartão
+  const valAnualSemCartaoContabilidade = 350; // Editável aqui para Contabilidade Anual Sem Cartão
 
   const getValorNota = (faixa: typeof emissaoFaixa) => {
     switch (faixa) {
@@ -84,19 +84,25 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
   const isCombo = financeiro && atendimento; // Combo: Assistência Financeira + Atendimento Personalizado
   const temContabilidade = contabilidadeAnual || contabilidadeMensal;
 
+  const contabilidadeSemCartaoOuMensal = (contabilidadeAnual && !pagamentoCartao) || contabilidadeMensal;
+
   // B. Preço Contabilidade
   let precoContabilidade = 0;
   if (contabilidadeAnual) {
-    precoContabilidade = pagamentoCartao ? valDescontoContabilidade : valAnualSemCartaoContabilidade;
+    precoContabilidade = pagamentoCartao ? valDescontoContabilidade : 300;
   } else if (contabilidadeMensal) {
-    precoContabilidade = valNormalContabilidade;
+    precoContabilidade = 300;
   }
 
   // C. Preço Assistência Financeira
   let precoFinanceiro = 0;
   if (financeiro) {
     if (temContabilidade) {
-      precoFinanceiro = atendimento ? valDescontoFinanceiro : 350; // R$ 250 se combo com atendimento, R$ 350 se individual com contabilidade
+      if (contabilidadeSemCartaoOuMensal) {
+        precoFinanceiro = atendimento ? 250 : 350;
+      } else {
+        precoFinanceiro = atendimento ? valDescontoFinanceiro : 350; // R$ 250 se combo com atendimento, R$ 350 se individual com contabilidade
+      }
     } else if (isCombo) {
       precoFinanceiro = valComboFinanceiro; // R$ 350 se combo ativo no modo avulso
     } else {
@@ -108,7 +114,11 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
   let precoAtendimento = 0;
   if (atendimento) {
     if (financeiro) {
-      precoAtendimento = valDescontoAtendimento; // R$ 150 se contratado junto com Assistência Financeira (combo)
+      if (temContabilidade && contabilidadeSemCartaoOuMensal) {
+        precoAtendimento = 150; // Para a soma dar 400 (250 + 150 = 400)
+      } else {
+        precoAtendimento = valDescontoAtendimento; // R$ 180 se contratado junto com Assistência Financeira (combo)
+      }
     } else {
       precoAtendimento = valNormalAtendimento; // R$ 200 se contratado sozinho (sem Assistência Financeira)
     }
@@ -139,28 +149,36 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
 
   const economia = Math.max(0, totalReferenciaAvulso - precoFechamento);
   const economiaAnualMensalidade = economia * 12;
+  const contabilidadeSemBonus = (contabilidadeAnual && !pagamentoCartao) || contabilidadeMensal;
+  const transicaoIncompleta = contabilidadeSemBonus && (!certificadoDigital || !inscricaoEstadual || !migracaoMei);
+
+  // Custo Original
+  let custoOriginalTotal = 0;
+  if (contabilidadeSemBonus) {
+    custoOriginalTotal = 1337;
+  } else if (!contabilidadeAnual && !contabilidadeMensal) {
+    custoOriginalTotal = (certificadoDigital ? 387 : 0) + (inscricaoEstadual ? 450 : 0) + (migracaoMei ? 500 : 0);
+  }
+
+  // Custo Especial
+  let custoEspecialTotal = 0;
+  if (contabilidadeSemBonus) {
+    custoEspecialTotal = 875;
+  } else if (!contabilidadeAnual && !contabilidadeMensal) {
+    custoEspecialTotal = (certificadoDigital ? 75 : 0) + (inscricaoEstadual ? 350 : 0) + (migracaoMei ? 450 : 0);
+  }
+
   const precoCertificado = condicaoEspecial ? 75 : 387;
   const precoInscricao = condicaoEspecial ? 350 : 450;
   const precoMigracao = condicaoEspecial ? 450 : 500;
 
-  const totalTaxasTransicaoEspeciais = precoCertificado + precoInscricao + precoMigracao;
+  const custoTransicaoUnico = condicaoEspecial ? custoEspecialTotal : custoOriginalTotal;
 
-  const valorBonusGratis = (contabilidadeAnual && pagamentoCartao) ? totalTaxasTransicaoEspeciais : 0;
+  const valorBonusGratis = (contabilidadeAnual && pagamentoCartao) ? (condicaoEspecial ? 875 : 1337) : 0;
   const economiaTotalPrimeiroAno = economiaAnualMensalidade + valorBonusGratis;
 
   const valorCartao = Math.min(precoFechamento, 249);
   const valorRestante = Math.max(0, precoFechamento - valorCartao);
-
-  const contabilidadeSemBonus = (contabilidadeAnual && !pagamentoCartao) || contabilidadeMensal;
-  const transicaoIncompleta = contabilidadeSemBonus && (!certificadoDigital || !inscricaoEstadual || !migracaoMei);
-
-  // Taxa de transição única (MEI para ME) + Certificado Digital
-  let custoTransicaoUnico = 0;
-  if (contabilidadeSemBonus) {
-    custoTransicaoUnico = totalTaxasTransicaoEspeciais;
-  } else if (!contabilidadeAnual && !contabilidadeMensal) {
-    custoTransicaoUnico = (certificadoDigital ? precoCertificado : 0) + (inscricaoEstadual ? precoInscricao : 0) + (migracaoMei ? precoMigracao : 0);
-  }
 
   const handleWhatsappClick = () => {
     window.open('https://wa.me/5565984633457?text=Ol%C3%A1%20Diego%2C%20gostaria%20de%20conversar%20sobre%20a%20precifica%C3%A7%C3%A3o%20de%20servi%C3%A7os%20financeiros%20e%20contabilidade%20para%20minha%20empresa.', '_blank');
@@ -212,7 +230,7 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
       referenceValue: 'R$ 400',
       period: 'mês',
       isMonthly: true,
-      icon: <Landmark className="w-6 h-6 text-gold-500" />,
+      icon: <Landmark className="w-6 h-6" />,
       tag: { text: 'OBRIGATÓRIO', type: 'required' },
       inclusos: [
         'Controle financeiro (até 1 conta bancária)',
@@ -231,7 +249,7 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
       referenceValue: 'R$ 200',
       period: 'mês',
       isMonthly: true,
-      icon: <MessageSquare className="w-6 h-6 text-gold-500" />,
+      icon: <MessageSquare className="w-6 h-6" />,
       tag: { text: 'IMPORTANTE', type: 'important' },
       inclusos: [
         'Suporte direto no WhatsApp',
@@ -248,25 +266,25 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
       referenceValue: 'R$ 47*',
       period: 'mês',
       isMonthly: true,
-      icon: <FileText className="w-6 h-6 text-gold-500" />,
+      icon: <FileText className="w-6 h-6" />,
       tag: { text: 'OBRIGATÓRIA', type: 'required' },
       inclusos: [
-        '*Verificação das Notas Fiscais emitidas com o extrato de vendas',
         '*Emissão de até 05 Notas Fiscais de Serviços (NFS-e)/Produtos (NF-e)',
         '*Envio mensal das NFes (via e-mail/WhatsApp) para o cliente (caso não tenha contabilidade incluída)',
         '*Envio mensal automático para a contabilidade (caso tenha contabilidade incluída)'
       ]
     },
     {
-      title: 'Contabilidade',
-      description: 'Gestão fiscal para o cumprimento das obrigações mensais e anuais de empresas com faturamento de até R$ 60.000,00.',
+      title: 'Contabilidade (Simples Nacional)',
+      description: 'Gestão fiscal para o cumprimento das obrigações mensais e anuais de empresas com faturamento de até R$ 360.000,00/ano.',
       additional: 'Aberturas, alterações, inscrições, consultorias complexas, pró-labore*, folha de pagamento* e outros serviços são cobrados à parte. (Não estão inclusos taxas e impostos)',
       referenceValue: 'R$ 450',
       period: 'mês',
       isMonthly: true,
-      icon: <Building2 className="w-6 h-6 text-gold-500" />,
+      icon: <Building2 className="w-6 h-6" />,
       tag: { text: 'OBRIGATÓRIO', type: 'required' },
       inclusos: [
+        '*Verificação das Notas Fiscais emitidas com o extrato de vendas',
         'Apuração de guias de impostos',
         'Pró-labore de até 01 sócio',
         'Folha de pagamento de até 02 funcionários',
@@ -281,7 +299,7 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
       referenceValue: 'R$ 150',
       period: 'mês',
       isMonthly: true,
-      icon: <RefreshCw className="w-6 h-6 text-gold-500" />,
+      icon: <RefreshCw className="w-6 h-6" />,
       tag: { text: 'OPCIONAL', type: 'optional' },
       inclusos: [
         'Monitoramento contínuo de contas em atraso',
@@ -297,12 +315,12 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
       referenceValue: 'R$ 387',
       period: 'ano',
       isMonthly: false,
-      icon: <ShieldCheck className="w-6 h-6 text-gold-500" />,
+      icon: <ShieldCheck className="w-6 h-6" />,
       tag: { text: 'OBRIGATÓRIO', type: 'required' },
       inclusos: [
         'Certificado e-CNPJ A1 válido por 12 meses',
         'Configuração do certificado no sistema da contabilidade',
-        'Armazenamento do certificado digital para uso no sistema de emissão de notas*',
+        'Armazenamento do certificado digital para outros possíveis usos (Ex: sistema de emissão de notas*)',
         'Renovação descomplicada todos os anos'
       ]
     }
@@ -333,7 +351,7 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
       <div className="relative z-10">
 
         {/* SEÇÃO 1: CAPA */}
-        <section className="min-h-[80vh] flex flex-col justify-center items-center px-6 py-20 text-center relative">
+        <section className="min-h-screen flex flex-col justify-center items-center px-6 py-20 text-center relative">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
@@ -350,13 +368,23 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
             <p className="text-lg md:text-xl text-gray-400 font-light leading-relaxed max-w-3xl mx-auto">
               O MEI (Microempreendedor Individual) é uma excelente porta de entrada, mas possui um limite de crescimento. A transição para ME (Microempresa) torna-se obrigatória quando o faturamento da empresa ultrapassa o teto anual estabelecido por lei.
             </p>
-            <p className="text-sm md:text-base text-gray-500 font-light leading-relaxed max-w-2xl mx-auto pt-2 border-t border-dark-900">
-              ⚠️ <strong>Atenção ao limite legal:</strong> Até o ano de 2026, o limite de faturamento oficial do MEI permanece em <strong>R$ 81.000,00</strong> anual. Quaisquer outros valores ou notícias sobre limites maiores em 2026 referem-se a projetos de lei em andamento e <strong>não possuem validade legal atualmente</strong>.
-            </p>
+
+            {/* Card Amarelo de Atenção ao Limite Legal */}
+            <div className="bg-amber-500/5 border border-amber-500/20 rounded-2xl p-5 max-w-3xl mx-auto mt-6 text-left shadow-lg backdrop-blur-sm">
+              <div className="flex items-start gap-3.5">
+                <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <span className="text-[10px] text-amber-500 font-bold uppercase tracking-wider block font-mono">Aviso Importante • Atenção ao Limite Legal</span>
+                  <p className="text-xs md:text-sm text-gray-300 font-light leading-relaxed">
+                    Até o ano de 2026, o limite de faturamento oficial do MEI permanece em <strong className="text-white font-mono">R$ 81.000,00</strong> anual. Quaisquer outros valores ou notícias sobre limites maiores em 2026 referem-se a projetos de lei em andamento e <strong className="text-white">não possuem validade legal atualmente</strong>.
+                  </p>
+                </div>
+              </div>
+            </div>
           </motion.div>
 
-          <div className="absolute bottom-10 left-1/2 -translate-x-1/2 animate-bounce hidden md:block">
-            <span className="text-[9px] uppercase tracking-widest text-gray-600 font-bold">Role para baixo</span>
+          <div className="animate-bounce mt-16 hidden md:block select-none pointer-events-none">
+            <span className="text-[9px] uppercase tracking-widest text-gray-650 font-bold block">Role para baixo</span>
             <div className="w-1.5 h-6 bg-gray-650 mx-auto rounded-full mt-2" />
           </div>
         </section>
@@ -584,16 +612,22 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.5, delay: idx * 0.1 }}
-                  className="bg-dark-900/60 backdrop-blur-md border border-dark-800/80 hover:border-gold-500/20 rounded-3xl p-6 md:p-8 flex flex-col justify-between transition-all duration-300 shadow-xl group relative overflow-hidden"
+                  className={`bg-dark-900/60 backdrop-blur-md border rounded-3xl p-6 md:p-8 flex flex-col justify-between transition-all duration-300 shadow-xl group relative overflow-hidden ${svc.isMonthly
+                    ? 'border-dark-800/80 hover:border-gold-500/20'
+                    : 'border-sky-500/30 hover:border-sky-400/50 shadow-[0_20px_50px_rgba(56,189,248,0.03)]'
+                    }`}
                 >
                   <div className="space-y-6">
                     <div className="flex justify-between items-start">
-                      <div className="w-12 h-12 bg-gold-500/10 rounded-2xl flex items-center justify-center border border-gold-500/20 group-hover:scale-110 transition-transform">
+                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border group-hover:scale-110 transition-transform ${svc.isMonthly
+                        ? 'bg-gold-500/10 border-gold-500/20 text-gold-500'
+                        : 'bg-sky-500/10 border-sky-500/20 text-sky-400'
+                        }`}>
                         {svc.icon}
                       </div>
                       <div className="text-right">
-                        <span className="text-xs text-gray-550 font-light block">Referência</span>
-                        <span className="text-2xl font-serif font-bold text-gold-450">{svc.referenceValue}</span>
+                        <span className="text-xs text-gray-550 font-light block">Valor de mercado</span>
+                        <span className={`text-2xl font-serif font-bold ${svc.isMonthly ? 'text-gold-450' : 'text-sky-400'}`}>{svc.referenceValue}</span>
                         <span className="text-[10px] text-gray-550 block">/{svc.period}</span>
                       </div>
                     </div>
@@ -1147,33 +1181,99 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
                                 </span>
                                 <span className="text-[9px] text-red-400/80 font-bold">A PAGAR</span>
                               </div>
-                              <ul className="space-y-1.5 text-[11px] text-gray-300">
-                                <li className="flex items-center justify-between">
-                                  <span>Certificado Digital e-CNPJ A1</span>
-                                  <span className="font-mono text-red-400 font-bold">
-                                    {condicaoEspecial ? 'R$ 75,00 + Taxa' : 'R$ 387,00'}
-                                  </span>
+                              <ul className="space-y-2 text-[11px] text-gray-300">
+                                <li className="flex items-start justify-between py-1 border-b border-red-500/5">
+                                  <span className="text-gray-300 font-medium max-w-[160px] leading-tight">Certificado Digital e-CNPJ A1</span>
+                                  <div className="flex flex-col items-end justify-center">
+                                    {condicaoEspecial ? (
+                                      <>
+                                        <span className="line-through text-red-400/50 text-[10px] font-mono leading-none mb-0.5">
+                                          {formatPremiumCurrency(387)}
+                                        </span>
+                                        <span className="text-white font-bold text-xs font-mono leading-none">
+                                          {formatPremiumCurrency(75)} + Taxa
+                                        </span>
+                                      </>
+                                    ) : (
+                                      <span className="font-mono text-red-400 font-bold text-xs leading-none">{formatPremiumCurrency(387)}</span>
+                                    )}
+                                  </div>
                                 </li>
-                                <li className="flex items-center justify-between">
-                                  <span>Inscrição Estadual</span>
-                                  <span className="font-mono text-red-400 font-bold">
-                                    {condicaoEspecial ? 'R$ 350,00' : 'R$ 450,00'}
-                                  </span>
+                                <li className="flex items-start justify-between py-1 border-b border-red-500/5">
+                                  <span className="text-gray-300 font-medium max-w-[160px] leading-tight">Inscrição Estadual</span>
+                                  <div className="flex flex-col items-end justify-center">
+                                    {condicaoEspecial ? (
+                                      <>
+                                        <span className="line-through text-red-400/50 text-[10px] font-mono leading-none mb-0.5">
+                                          {formatPremiumCurrency(450)}
+                                        </span>
+                                        <span className="text-white font-bold text-xs font-mono leading-none">
+                                          {formatPremiumCurrency(350)}
+                                        </span>
+                                      </>
+                                    ) : (
+                                      <span className="font-mono text-red-400 font-bold text-xs leading-none">{formatPremiumCurrency(450)}</span>
+                                    )}
+                                  </div>
                                 </li>
-                                <li className="flex items-center justify-between">
-                                  <span>Migração MEI p/ ME & Contrato Social</span>
-                                  <span className="font-mono text-red-400 font-bold">
-                                    {condicaoEspecial ? 'R$ 450,00' : 'R$ 500,00'}
-                                  </span>
+                                <li className="flex items-start justify-between py-1 border-b border-red-500/5">
+                                  <span className="text-gray-300 font-medium max-w-[160px] leading-tight">Migração MEI p/ ME & Contrato Social</span>
+                                  <div className="flex flex-col items-end justify-center">
+                                    {condicaoEspecial ? (
+                                      <>
+                                        <span className="line-through text-red-400/50 text-[10px] font-mono leading-none mb-0.5">
+                                          {formatPremiumCurrency(500)}
+                                        </span>
+                                        <span className="text-white font-bold text-xs font-mono leading-none">
+                                          {formatPremiumCurrency(450)}
+                                        </span>
+                                      </>
+                                    ) : (
+                                      <span className="font-mono text-red-400 font-bold text-xs leading-none">{formatPremiumCurrency(500)}</span>
+                                    )}
+                                  </div>
                                 </li>
-                                <li className="flex items-center justify-between border-t border-red-500/20 pt-2 mt-1.5 font-bold text-white">
+                                <li className="flex items-center justify-between border-t border-red-500/20 pt-2.5 mt-2 font-bold text-white">
                                   <span>Total de Serviços</span>
-                                  <span className="font-mono text-red-400">{formatPremiumCurrency(custoTransicaoUnico)}</span>
+                                  <div className="flex flex-col items-end justify-center">
+                                    {condicaoEspecial ? (
+                                      <>
+                                        <span className="line-through text-red-400/50 text-[10px] font-mono leading-none mb-0.5">
+                                          {formatPremiumCurrency(custoOriginalTotal)}
+                                        </span>
+                                        <span className="text-emerald-400 font-extrabold text-sm font-mono leading-none">
+                                          {formatPremiumCurrency(custoEspecialTotal)} + Taxa
+                                        </span>
+                                      </>
+                                    ) : (
+                                      <span className="font-mono text-red-400 font-bold text-sm leading-none">
+                                        {formatPremiumCurrency(custoTransicaoUnico)}
+                                      </span>
+                                    )}
+                                  </div>
                                 </li>
                               </ul>
+
+                              <div className="mt-2.5 pt-2 border-t border-red-500/10 text-left">
+                                <span className="text-[8px] text-red-400 font-bold uppercase tracking-wider block font-mono mb-0.5">
+                                  Forma de Pagamento
+                                </span>
+                                <p className="text-[10px] text-gray-300 font-medium leading-relaxed">
+                                  {condicaoEspecial ? (
+                                    <>
+                                      💵 <strong>Até 3x no Dinheiro/Pix</strong> + valor da taxa da certificadora na 1ª parcela.
+                                    </>
+                                  ) : (
+                                    <>
+                                      💳 <strong>Até 10x s/ juros no cartão</strong> ou até 4x no Dinheiro/Pix.
+                                    </>
+                                  )}
+                                </p>
+                              </div>
+
                               {condicaoEspecial && (
                                 <p className="text-[9px] text-gray-500 italic mt-1 leading-tight border-t border-red-500/10 pt-1.5">
-                                  * Certificado Digital de R$ 75,00 + Taxa cobrada diretamente pela Certificadora.
+                                  * A Taxa é o valor cobrado diretamente pela Certificadora.
                                 </p>
                               )}
                             </div>
@@ -1194,39 +1294,105 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
                                   </span>
                                   <span className="text-[9px] text-red-400/80 font-bold">A PAGAR</span>
                                 </div>
-                                <ul className="space-y-1.5 text-[11px] text-gray-300">
+                                <ul className="space-y-2 text-[11px] text-gray-300">
                                   {certificadoDigital && (
-                                    <li className="flex items-center justify-between">
-                                      <span>Certificado Digital e-CNPJ A1</span>
-                                      <span className="font-mono text-red-400 font-bold">
-                                        {condicaoEspecial ? 'R$ 75,00 + Taxa' : 'R$ 387,00'}
-                                      </span>
+                                    <li className="flex items-start justify-between py-1 border-b border-red-500/5">
+                                      <span className="text-gray-300 font-medium max-w-[160px] leading-tight">Certificado Digital e-CNPJ A1</span>
+                                      <div className="flex flex-col items-end justify-center">
+                                        {condicaoEspecial ? (
+                                          <>
+                                            <span className="line-through text-red-400/50 text-[10px] font-mono leading-none mb-0.5">
+                                              {formatPremiumCurrency(387)}
+                                            </span>
+                                            <span className="text-white font-bold text-xs font-mono leading-none">
+                                              {formatPremiumCurrency(75)} + Taxa
+                                            </span>
+                                          </>
+                                        ) : (
+                                          <span className="font-mono text-red-400 font-bold text-xs leading-none">{formatPremiumCurrency(387)}</span>
+                                        )}
+                                      </div>
                                     </li>
                                   )}
                                   {inscricaoEstadual && (
-                                    <li className="flex items-center justify-between">
-                                      <span>Inscrição Estadual</span>
-                                      <span className="font-mono text-red-400 font-bold">
-                                        {condicaoEspecial ? 'R$ 350,00' : 'R$ 450,00'}
-                                      </span>
+                                    <li className="flex items-start justify-between py-1 border-b border-red-500/5">
+                                      <span className="text-gray-300 font-medium max-w-[160px] leading-tight">Inscrição Estadual</span>
+                                      <div className="flex flex-col items-end justify-center">
+                                        {condicaoEspecial ? (
+                                          <>
+                                            <span className="line-through text-red-400/50 text-[10px] font-mono leading-none mb-0.5">
+                                              {formatPremiumCurrency(450)}
+                                            </span>
+                                            <span className="text-white font-bold text-xs font-mono leading-none">
+                                              {formatPremiumCurrency(350)}
+                                            </span>
+                                          </>
+                                        ) : (
+                                          <span className="font-mono text-red-400 font-bold text-xs leading-none">{formatPremiumCurrency(450)}</span>
+                                        )}
+                                      </div>
                                     </li>
                                   )}
                                   {migracaoMei && (
-                                    <li className="flex items-center justify-between">
-                                      <span>Migração MEI p/ ME & Contrato Social</span>
-                                      <span className="font-mono text-red-400 font-bold">
-                                        {condicaoEspecial ? 'R$ 450,00' : 'R$ 500,00'}
-                                      </span>
+                                    <li className="flex items-start justify-between py-1 border-b border-red-500/5">
+                                      <span className="text-gray-300 font-medium max-w-[160px] leading-tight">Migração MEI p/ ME & Contrato Social</span>
+                                      <div className="flex flex-col items-end justify-center">
+                                        {condicaoEspecial ? (
+                                          <>
+                                            <span className="line-through text-red-400/50 text-[10px] font-mono leading-none mb-0.5">
+                                              {formatPremiumCurrency(500)}
+                                            </span>
+                                            <span className="text-white font-bold text-xs font-mono leading-none">
+                                              {formatPremiumCurrency(450)}
+                                            </span>
+                                          </>
+                                        ) : (
+                                          <span className="font-mono text-red-400 font-bold text-xs leading-none">{formatPremiumCurrency(500)}</span>
+                                        )}
+                                      </div>
                                     </li>
                                   )}
-                                  <li className="flex items-center justify-between border-t border-red-500/20 pt-2 mt-1.5 font-bold text-white">
+                                  <li className="flex items-center justify-between border-t border-red-500/20 pt-2.5 mt-2 font-bold text-white">
                                     <span>Total de Serviços</span>
-                                    <span className="font-mono text-red-400">{formatPremiumCurrency(custoTransicaoUnico)}</span>
+                                    <div className="flex flex-col items-end justify-center">
+                                      {condicaoEspecial ? (
+                                        <>
+                                          <span className="line-through text-red-400/50 text-[10px] font-mono leading-none mb-0.5">
+                                            {formatPremiumCurrency(custoOriginalTotal)}
+                                          </span>
+                                          <span className="text-emerald-400 font-extrabold text-sm font-mono leading-none">
+                                            {formatPremiumCurrency(custoEspecialTotal)} {certificadoDigital ? '+ Taxa' : ''}
+                                          </span>
+                                        </>
+                                      ) : (
+                                        <span className="font-mono text-red-400 font-bold text-sm leading-none">
+                                          {formatPremiumCurrency(custoTransicaoUnico)}
+                                        </span>
+                                      )}
+                                    </div>
                                   </li>
                                 </ul>
+
+                                <div className="mt-2.5 pt-2 border-t border-red-500/10 text-left">
+                                  <span className="text-[8px] text-red-400 font-bold uppercase tracking-wider block font-mono mb-0.5">
+                                    Forma de Pagamento
+                                  </span>
+                                  <p className="text-[10px] text-gray-300 font-medium leading-relaxed">
+                                    {condicaoEspecial ? (
+                                      <>
+                                        💵 <strong>Até 3x no Dinheiro/Pix</strong> {certificadoDigital ? '+ valor da taxa da certificadora na 1ª parcela.' : ''}
+                                      </>
+                                    ) : (
+                                      <>
+                                        💳 <strong>Até 10x s/ juros no cartão</strong> {certificadoDigital ? 'ou até 4x no Dinheiro/Pix.' : ''}
+                                      </>
+                                    )}
+                                  </p>
+                                </div>
+
                                 {condicaoEspecial && certificadoDigital && (
                                   <p className="text-[9px] text-gray-500 italic mt-1 leading-tight border-t border-red-500/10 pt-1.5">
-                                    * Certificado Digital de R$ 75,00 + Taxa cobrada diretamente pela Certificadora.
+                                    * A Taxa é o valor cobrado diretamente pela Certificadora.
                                   </p>
                                 )}
                               </div>
@@ -1268,16 +1434,29 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
                         ) : (
                           <div className="space-y-2">
                             {(contabilidadeAnual || contabilidadeMensal) ? (
-                              <div className="p-3 bg-dark-900 border border-dark-800 rounded-2xl space-y-1.5 text-left">
-                                <span className="text-[8px] text-slate-400 font-bold uppercase tracking-widest block font-mono">Divisão de Pagamento Sem Cartão</span>
-                                <div className="text-xs text-white font-medium">
-                                  📄 Pago ao Parceiro de Contabilidade: <span className="text-gold-450 font-mono font-bold">{formatPremiumCurrency(298.80)}/mês</span>
+                              <div className="p-3.5 bg-dark-900 border border-dark-800 rounded-2xl space-y-2.5 text-left">
+                                <div className="flex items-center justify-between border-b border-dark-850 pb-1.5">
+                                  <span className="text-[8px] text-slate-400 font-bold uppercase tracking-widest block font-mono">Estrutura de Pagamento Mensal</span>
+                                  <span className="text-[8px] text-gold-500 font-bold uppercase tracking-widest font-mono">Parceria Facultativa</span>
                                 </div>
-                                {precoFechamento > 298.80 && (
-                                  <div className="text-[10px] text-gray-400 font-light">
-                                    + Restante mensal de: <span className="font-bold text-white font-mono">{formatPremiumCurrency(precoFechamento - 298.80)}/mês</span> (Boleto/Pix)
+                                <div className="space-y-2">
+                                  <div className="text-xs text-white">
+                                    📄 Pagamento unificado de: <span className="text-gold-500 font-mono font-bold">{formatPremiumCurrency(precoFechamento)}/mês</span> (Dinheiro/Pix)
                                   </div>
-                                )}
+                                  <p className="text-[9px] text-gray-400 leading-normal font-light">
+                                    O uso da contabilidade parceira <strong className="text-white">pode ocorrer ou não</strong>. Caso ela aconteça, seguirá a seguinte regra:
+                                  </p>
+                                  <div className="pl-2 border-l border-gold-500/30 space-y-1">
+                                    <div className="text-[10px] text-gray-300">
+                                      • Valor que pode ser pago separadamente: <span className="text-gold-500 font-mono font-bold">{formatPremiumCurrency(300)}/mês</span>
+                                    </div>
+                                    {precoFechamento > 300 && (
+                                      <div className="text-[10px] text-gray-300">
+                                        • Restante correspondente à assistência: <span className="text-white font-mono font-bold">{formatPremiumCurrency(precoFechamento - 300)}/mês</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
                               </div>
                             ) : (
                               <div className="p-3 bg-red-500/5 border border-red-500/20 rounded-2xl space-y-1 text-left">
@@ -1343,7 +1522,7 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
                   )}
 
                   {/* Card Azul de Parceria Contábil */}
-                  {(contabilidadeAnual || contabilidadeMensal) && (
+                  {orcamentoFinalizado && (contabilidadeAnual || contabilidadeMensal) && (
                     <div className="mt-6 p-5 bg-blue-950/20 border border-blue-500/25 rounded-2xl space-y-3 text-left">
                       <div className="flex items-center gap-2.5">
                         <Building2 className="w-5 h-5 text-blue-400 shrink-0" />
