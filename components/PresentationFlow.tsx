@@ -7,7 +7,8 @@ import {
   TrendingDown, CheckCircle2, RefreshCw, HeartHandshake, Brain,
   Compass, Eye, Target, Sparkle, Coins, CreditCard, Info, ExternalLink,
   Copy, Link,
-  GiftIcon
+  GiftIcon,
+  Building2, FileText, ArrowDown
 } from 'lucide-react';
 import { Lead, MeetingAnswers, PricingPackage } from '../types';
 import { supabase } from '../lib/supabase';
@@ -43,6 +44,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
   type SlideId =
     | 'intro'
     | 'do_que_se_trata'
+    | 'fluxo_empresarial'
     | 'objetivo_conversa'
     | 'institucional'
     | 'confirmacao_dados'
@@ -85,12 +87,14 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
   const [revelarPrecoEspecial, setRevelarPrecoEspecial] = useState(false);
   const [revelarPrecoDownsell, setRevelarPrecoDownsell] = useState(false);
   const [confirmarEncerramentoModal, setConfirmarEncerramentoModal] = useState(false);
+  const [fluxoIdealRevelado, setFluxoIdealRevelado] = useState(false);
 
   useEffect(() => {
     setRevelarPrecoPadrao(false);
     setRevelarPrecoEspecial(false);
     setRevelarPrecoDownsell(false);
     setConfirmarEncerramentoModal(false);
+    setFluxoIdealRevelado(false);
   }, [currentSlide]);
 
   const handleCopyLink = async (text: string, label: string) => {
@@ -461,6 +465,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
     const slideOrder: SlideId[] = [
       'intro',
       'do_que_se_trata',
+      ...(leadFormType === 'business' ? ['fluxo_empresarial' as SlideId] : []),
       'objetivo_conversa',
       'institucional',
       'confirmacao_dados',
@@ -691,7 +696,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                     Atendimento Personalizado
                   </div>
                   <h1 className="font-serif font-extrabold text-5xl md:text-7xl lg:text-8xl text-white tracking-tight drop-shadow-lg leading-none">
-                    Consultoria <br />
+                    {lead.answers?.formType === 'business' ? 'Consultoria,' : 'Consultoria'} <br />
                     <span className="text-transparent bg-clip-text bg-gradient-to-r from-gold-600 via-amber-500 to-gold-400">
                       {lead.answers?.formType === 'business' ? 'Assistência e Contabilidade Empresarial' : lead.answers?.formType === 'complete' ? 'Gestão Completa' : 'Financeira'}
                     </span>
@@ -725,9 +730,11 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
               <div className="space-y-8 md:space-y-12">
                 <div className="text-center space-y-3">
                   <h3 className="text-xs font-bold uppercase tracking-widest text-gold-500 font-mono">Conceito</h3>
-                  <h1 className="font-serif font-bold text-3xl md:text-5xl lg:text-6xl text-white">Do que se trata a Consultoria?</h1>
+                  <h1 className="font-serif font-bold text-3xl md:text-5xl lg:text-6xl text-white">Do que se trata a {leadFormType === 'business' ? 'Assistência?' : 'Consultoria?'}</h1>
                   <p className="text-gray-400 text-sm md:text-base max-w-2xl mx-auto font-light leading-relaxed">
-                    Mais do que números, é mais controle sobre sua vida. Clareza para tomar melhores decisões e construir patrimônio com segurança.
+                    {leadFormType === 'business'
+                      ? 'É a organização financeira da empresa no dia a dia. Um trabalho contínuo que mantém as informações corretas, facilita a tomada de decisões e fornece uma base confiável para a contabilidade.'
+                      : 'Mais do que números, é mais controle sobre sua vida. Clareza para tomar melhores decisões e construir patrimônio com segurança.'}
                   </p>
                 </div>
 
@@ -738,9 +745,11 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                       <HeartHandshake className="w-6 h-6" />
                     </div>
                     <div className="space-y-2">
-                      <h3 className="text-lg md:text-xl font-bold text-white">{leadFormType === 'business' ? 'Gestão de Caixa & Fluxo' : 'Relação com o Dinheiro'}</h3>
-                      <p className="text-gray-450 text-sm font-light leading-relaxed">
-                        Entenda para onde seu dinheiro vai e faça escolhas alinhadas aos seus objetivos.
+                      <h3 className="text-lg md:text-xl font-bold text-white">{leadFormType === 'business' ? 'Organização Financeira' : 'Melhorar relação com o dinheiro'}</h3>
+                      <p className="text-gray-400 text-sm font-light leading-relaxed">
+                        {leadFormType === 'business'
+                          ? 'Classificação e organização das movimentações financeiras para que o empresário saiba exatamente de onde vem e para onde vai o dinheiro da empresa.'
+                          : 'Entenda para onde seu dinheiro vai e faça escolhas alinhadas aos seus objetivos.'}
                       </p>
                     </div>
                   </div>
@@ -751,9 +760,11 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                       <Brain className="w-6 h-6" />
                     </div>
                     <div className="space-y-2">
-                      <h3 className="text-lg md:text-xl font-bold text-white">{leadFormType === 'business' ? 'Conformidade Contábil' : 'Melhores Decisões'}</h3>
-                      <p className="text-gray-450 text-sm font-light leading-relaxed">
-                        Tenha clareza para decidir o melhor caminho que impacta no seu bolso e no seu patrimônio.
+                      <h3 className="text-lg md:text-xl font-bold text-white">{leadFormType === 'business' ? 'Controle do Fluxo de Caixa' : 'Tomar melhores decisões'}</h3>
+                      <p className="text-gray-400 text-sm font-light leading-relaxed">
+                        {leadFormType === 'business'
+                          ? 'Conciliação bancária, acompanhamento das entradas e saídas e identificação das movimentações que realmente representam faturamento, custos, despesas e transferências.'
+                          : 'Tenha clareza para decidir o melhor caminho que impacta no seu bolso e no seu patrimônio.'}
                       </p>
                     </div>
                   </div>
@@ -765,11 +776,11 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                     </div>
                     <div className="space-y-2">
                       <h3 className="text-lg md:text-xl font-bold text-white">
-                        {leadFormType === 'business' ? 'Planejamento de Lucro' : 'Qualidade de Vida'}
+                        {leadFormType === 'business' ? 'Base para a Contabilidade' : 'Ter mais qualidade de vida'}
                       </h3>
                       <p className="text-gray-400 text-sm font-light leading-relaxed">
                         {leadFormType === 'business'
-                          ? 'Clareza para definir retiradas de pró-labore, reinvestimento e metas comerciais.'
+                          ? 'Uma contabilidade eficiente depende de informações organizadas. A assistência financeira reduz erros, facilita o cumprimento das obrigações fiscais e evita retrabalho.'
                           : 'Mais tranquilidade no presente e mais segurança para o seu futuro e o da sua família.'}
                       </p>
                     </div>
@@ -779,7 +790,7 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                 {/* Seção: O que a Consultoria NÃO é apenas */}
                 <div className="border-t border-dark-800/60 pt-8 mt-8 space-y-6">
                   <h3 className="text-xs font-bold uppercase tracking-widest text-red-500 font-mono text-center">
-                    Ou seja, a {leadFormType === 'business' ? 'Assistência' : 'Consultoria'} NÃO é apenas sobre:
+                    {leadFormType === 'business' ? 'Sem organização financeira, surgem problemas que impactam diretamente a empresa.' : 'Ou seja, a Consultoria NÃO é apenas sobre:'}
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
                     {/* Card Não 1 */}
@@ -789,11 +800,11 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                       </div>
                       <div className="space-y-2">
                         <h3 className="text-lg font-bold text-white">
-                          {leadFormType === 'business' ? 'Emitir Guias de Impostos' : 'Investimentos'}
+                          {leadFormType === 'business' ? 'Misturar dinheiro pessoal com o da empresa' : 'Investimentos'}
                         </h3>
-                        <p className="text-gray-405 text-sm font-light leading-relaxed">
+                        <p className="text-gray-400 text-sm font-light leading-relaxed">
                           {leadFormType === 'business'
-                            ? 'Vamos muito além do cumprimento passivo de rotinas burocráticas tributárias.'
+                            ? 'Quando as movimentações não são separadas, fica difícil identificar o lucro real e tomar decisões com segurança.'
                             : 'Antes de investir, é preciso organizar, planejar e construir uma base sólida.'}
                         </p>
                       </div>
@@ -805,11 +816,11 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                       </div>
                       <div className="space-y-2">
                         <h3 className="text-lg font-bold text-white">
-                          {leadFormType === 'business' ? 'Digitar Documentos' : 'Pagar Dívidas'}
+                          {leadFormType === 'business' ? 'Considerar toda entrada bancária como faturamento' : 'Pagar Dívidas'}
                         </h3>
-                        <p className="text-gray-405 text-sm font-light leading-relaxed">
+                        <p className="text-gray-400 text-sm font-light leading-relaxed">
                           {leadFormType === 'business'
-                            ? 'A contabilidade de verdade analisa os dados para orientar decisões em tempo real.'
+                            ? 'Nem todo valor que entra na conta representa venda. Empréstimos, transferências, aportes e estornos precisam ser classificados corretamente.'
                             : 'Criamos estratégias para evitar que os mesmos problemas voltem a acontecer.'}
                         </p>
                       </div>
@@ -821,11 +832,11 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
                       </div>
                       <div className="space-y-2">
                         <h3 className="text-lg font-bold text-white">
-                          {leadFormType === 'business' ? 'Registrar o Passado' : 'Organização de Números'}
+                          {leadFormType === 'business' ? 'Enviar informações incompletas para a contabilidade' : 'Organização de Números'}
                         </h3>
                         <p className="text-gray-400 text-sm font-light leading-relaxed">
                           {leadFormType === 'business'
-                            ? 'Usamos o histórico da empresa com inteligência focada no crescimento futuro do caixa.'
+                            ? 'Dados desorganizados aumentam o risco de erros fiscais, retrabalho, recolhimento incorreto de impostos e possíveis multas.'
                             : 'Toda organização financeira precisa estar conectada aos seus objetivos de vida.'}
                         </p>
                       </div>
@@ -835,13 +846,385 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
 
                 <div className="flex justify-end pt-6">
                   <button
-                    onClick={() => navigateTo('objetivo_conversa')}
+                    onClick={() => navigateTo(leadFormType === 'business' ? 'fluxo_empresarial' : 'objetivo_conversa')}
                     className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-gold-600 to-amber-500 hover:from-gold-500 hover:to-amber-400 text-dark-950 font-black rounded-xl shadow-lg transition-all duration-300 uppercase tracking-widest text-xs flex items-center justify-center gap-2"
                   >
-                    Objetivo da Conversa
+                    {leadFormType === 'business' ? 'Ver Fluxo Financeiro' : 'Objetivo da Conversa'}
                     <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
+              </div>
+            )}
+
+            {/* TELA: FLUXO FINANCEIRO EMPRESARIAL (NOVO SLIDE COMPARATIVO) */}
+            {currentSlide === 'fluxo_empresarial' && (
+              <div className="space-y-8 md:space-y-12 max-w-6xl mx-auto">
+                <div className="text-center space-y-3">
+                  <h3 className="text-xs font-bold uppercase tracking-widest text-gold-500 font-mono">Processo Estruturado</h3>
+                  <h1 className="font-serif font-bold text-3xl md:text-5xl lg:text-6xl text-white">O fluxo financeiro das empresas</h1>
+                  <p className="text-gray-400 text-sm md:text-base max-w-3xl mx-auto font-light leading-relaxed">
+                    A forma como sua empresa organiza os processos financeiros determina sua longevidade.
+                  </p>
+                </div>
+
+                {/* Seção 1: Modelo Tradicional (Como funciona hoje) */}
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between border-b border-dark-800 pb-3">
+                    <div className="space-y-1">
+                      <span className="text-[9px] text-red-500/80 font-bold uppercase tracking-widest font-mono">Modelo Tradicional</span>
+                      <h2 className="text-lg md:text-xl font-serif font-bold text-white">Como funciona na maioria das empresas hoje</h2>
+                    </div>
+                    <span className="px-2 py-0.5 rounded border bg-red-500/10 border-red-500/30 text-red-400 text-[8px] font-mono tracking-wider font-bold">
+                      CENÁRIO PADRÃO
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pt-2">
+                    {/* Card Tradicional 1: Movimentações */}
+                    <div className="flex-1 bg-dark-900/35 border border-dark-800/80 p-6 rounded-3xl flex flex-col justify-between min-h-[190px] opacity-70 hover:border-dark-700 transition-all duration-300">
+                      <div className="space-y-3">
+                        <div className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-gray-550 border border-dark-800">
+                          <CreditCard className="w-5 h-5 text-gray-400" />
+                        </div>
+                        <div>
+                          <span className="text-[8px] text-gray-550 font-bold uppercase tracking-wider font-mono">Etapa 01</span>
+                          <h3 className="text-sm font-bold text-white leading-tight mt-0.5">Movimentações Bancárias</h3>
+                        </div>
+                        <p className="text-[11px] text-gray-400 font-light leading-relaxed">
+                          Extrato bruto sem classificação de despesas, custos ou faturamentos reais.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Seta 1 */}
+                    <div className="flex items-center justify-center shrink-0">
+                      <ArrowRight className="hidden lg:block w-5 h-5 text-gray-705" />
+                      <ArrowDown className="lg:hidden w-5 h-5 text-gray-750" />
+                    </div>
+
+                    {/* Card Tradicional 2: Contabilidade */}
+                    <div className="flex-1 bg-dark-900/35 border border-dark-800/80 p-6 rounded-3xl flex flex-col justify-between min-h-[190px] opacity-70 hover:border-dark-700 transition-all duration-300">
+                      <div className="space-y-3">
+                        <div className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-gray-550 border border-dark-800">
+                          <Building2 className="w-5 h-5 text-gray-450" />
+                        </div>
+                        <div>
+                          <span className="text-[8px] text-gray-550 font-bold uppercase tracking-wider font-mono">Etapa 02</span>
+                          <h3 className="text-sm font-bold text-white leading-tight mt-0.5">Contabilidade Reativa</h3>
+                        </div>
+                        <p className="text-[11px] text-gray-400 font-light leading-relaxed">
+                          Filtra apenas as entradas brutas do mês para apurar impostos, sem conciliação ou análise real de custos e despesas.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Seta 2 */}
+                    <div className="flex items-center justify-center shrink-0">
+                      <ArrowRight className="hidden lg:block w-5 h-5 text-gray-705" />
+                      <ArrowDown className="lg:hidden w-5 h-5 text-gray-750" />
+                    </div>
+
+                    {/* Card Tradicional 3: Empresário */}
+                    <div className="flex-1 bg-dark-900/35 border border-dark-800/80 p-6 rounded-3xl flex flex-col justify-between min-h-[190px] opacity-70 hover:border-dark-700 transition-all duration-300">
+                      <div className="space-y-3">
+                        <div className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-gray-550 border border-dark-800">
+                          <HelpCircle className="w-5 h-5 text-gray-450" />
+                        </div>
+                        <div>
+                          <span className="text-[8px] text-gray-550 font-bold uppercase tracking-wider font-mono">Etapa 03</span>
+                          <h3 className="text-sm font-bold text-white leading-tight mt-0.5">O Empresário</h3>
+                        </div>
+                        <p className="text-[11px] text-gray-400 font-light leading-relaxed">
+                          Só recebe boletos de impostos sem entender o que paga na maioria das vezes, não tem visão gerencial, não tem previsibilidade e toma decisões baseadas no saldo da conta.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Consequências Negativas do Fluxo Tradicional */}
+                  <div className="bg-red-500/5 border border-red-500/10 rounded-2xl p-5 shadow-md">
+                    <div className="flex items-start gap-3">
+                      <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+                      <div className="space-y-1.5 text-left">
+                        <span className="text-[9px] text-red-400 font-bold uppercase tracking-wider block font-mono">Consequências do Modelo Tradicional</span>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 text-[11px] text-gray-450 leading-relaxed font-light mt-1">
+                          <div className="flex items-start gap-1.5">
+                            <span className="text-red-500/80 font-bold">•</span>
+                            <span>Contas pessoais e da empresa misturadas diariamente.</span>
+                          </div>
+                          <div className="flex items-start gap-1.5">
+                            <span className="text-red-500/80 font-bold">•</span>
+                            <span>Ausência de visão de lucro real e margem de contribuição.</span>
+                          </div>
+                          <div className="flex items-start gap-1.5">
+                            <span className="text-red-500/80 font-bold">•</span>
+                            <span>Sensação constante de faturar bem mas não consegue usufruir do dinheiro.</span>
+                          </div>
+                          <div className="flex items-start gap-1.5">
+                            <span className="text-red-500/80 font-bold">•</span>
+                            <span>Na apuração de impostos, geralmente, a empresa paga mais do que deveria. (Risco de problemas fiscais)</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Botão de Revelação do Fluxo Ideal */}
+                {!fluxoIdealRevelado ? (
+                  <div className="flex justify-center py-4">
+                    <button
+                      onClick={() => setFluxoIdealRevelado(true)}
+                      className="w-full sm:w-auto px-10 py-4 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-black rounded-xl shadow-lg shadow-emerald-500/10 transition-all duration-300 uppercase tracking-widest text-xs flex items-center justify-center gap-2 cursor-pointer animate-pulse"
+                    >
+                      <Sparkles className="w-4 h-4 text-white" />
+                      Apresentar Solução Ideal Solum
+                    </button>
+                  </div>
+                ) : (
+                  /* Seção 2: Fluxo Ideal (Solum) - SEM o container envolvente grande */
+                  <motion.div
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5 }}
+                    className="space-y-6 pt-6 border-t border-dark-800"
+                  >
+                    <div className="flex items-center justify-between border-b border-dark-800 pb-3">
+                      <div className="space-y-1">
+                        <span className="text-[9px] text-gold-500 font-bold uppercase tracking-widest font-mono">Sequência Recomendada</span>
+                        <h2 className="text-lg md:text-xl font-serif font-bold text-white">Como funciona com a Solum Financeiro</h2>
+                      </div>
+                      <span className="px-2 py-0.5 rounded border bg-gold-500/10 border-gold-500/30 text-gold-500 text-[8px] font-mono tracking-wider font-bold">
+                        EFICIENTE & ORGANIZADO
+                      </span>
+                    </div>
+
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pt-2">
+                      {/* Card Ideal 1: Movimentações */}
+                      <div className="flex-1 bg-dark-900/40 backdrop-blur-sm border border-dark-800 p-6 rounded-3xl space-y-4 hover:border-gold-500/20 transition-all duration-300 shadow-xl flex flex-col justify-between min-h-[370px] group">
+                        <div className="space-y-4">
+                          <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center text-gray-400 border border-dark-750 group-hover:scale-105 transition-transform duration-300">
+                            <CreditCard className="w-6 h-6 text-gray-405" />
+                          </div>
+                          <div className="space-y-1">
+                            <span className="text-[8px] text-gray-550 font-bold uppercase tracking-wider font-mono">Etapa 01</span>
+                            <h3 className="text-sm font-bold text-white leading-tight">Movimentações Bancárias</h3>
+                          </div>
+                          <p className="text-[11px] text-gray-400 font-light leading-relaxed">
+                            O ponto de partida de qualquer empresa. Reflete a realidade bruta do caixa.
+                          </p>
+                          <ul className="space-y-2 pt-2 text-[10px] text-gray-300 font-light border-t border-dark-850">
+                            <li className="flex items-center gap-2">
+                              <Check className="w-3.5 h-3.5 text-gold-500/70" />
+                              <span>Extratos das contas correntes</span>
+                            </li>
+                            <li className="flex items-center gap-2">
+                              <Check className="w-3.5 h-3.5 text-gold-500/70" />
+                              <span>Entradas brutas e saídas gerais</span>
+                            </li>
+                            <li className="flex items-center gap-2">
+                              <Check className="w-3.5 h-3.5 text-gold-500/70" />
+                              <span>Tarifas e despesas bancárias</span>
+                            </li>
+                          </ul>
+                        </div>
+                      </div>
+
+                      {/* Seta 1 */}
+                      <div className="flex items-center justify-center shrink-0">
+                        <ArrowRight className="hidden lg:block w-5 h-5 text-gold-500/40 animate-pulse" />
+                        <ArrowDown className="lg:hidden w-5 h-5 text-gold-500/40 animate-pulse" />
+                      </div>
+
+                      {/* Card Ideal 2: Assistência Financeira (Destaque Principal - MAIOR) */}
+                      <div className="flex-1 bg-gradient-to-b from-dark-900/85 to-dark-950/98 backdrop-blur-md border-2 border-gold-500 p-7 rounded-3xl space-y-4 hover:border-gold-500 transition-all duration-300 shadow-[0_25px_60px_rgba(212,163,89,0.15)] flex flex-col justify-between min-h-[405px] relative overflow-hidden group ring-1 ring-gold-500/40 lg:scale-[1.04] lg:mx-1 relative z-20">
+                        <div className="absolute top-0 right-0 px-3 py-1 bg-gradient-to-r from-gold-600 to-amber-500 text-dark-950 font-black font-mono text-[7px] uppercase tracking-widest rounded-bl-xl shadow-md">
+                          FOCO DE ATUAÇÃO
+                        </div>
+                        <div className="space-y-4">
+                          <div className="w-12 h-12 bg-gold-500/10 rounded-2xl flex items-center justify-center text-gold-500 border border-gold-500/30 group-hover:scale-105 transition-transform duration-300">
+                            <Sparkles className="w-6 h-6 text-gold-500" />
+                          </div>
+                          <div className="space-y-1">
+                            <span className="text-[8px] text-gold-500 font-black uppercase tracking-wider font-mono">Etapa 02 • O Coração do Fluxo</span>
+                            <h3 className="text-sm font-bold text-white leading-tight">Assistência Financeira</h3>
+                          </div>
+                          <p className="text-[11px] text-gray-300 font-light leading-relaxed">
+                            Organiza o dia a dia da sua empresa para garantir clareza e relatórios confiáveis.
+                          </p>
+                          <ul className="space-y-2 pt-2 text-[10px] text-white font-medium border-t border-gold-500/20">
+                            <li className="flex items-center gap-2">
+                              <Check className="w-3.5 h-3.5 text-gold-500" />
+                              <span><strong className="text-gold-400 font-bold">Organiza:</strong> Estrutura o fluxo financeiro</span>
+                            </li>
+                            <li className="flex items-center gap-2">
+                              <Check className="w-3.5 h-3.5 text-gold-500" />
+                              <span><strong className="text-gold-400 font-bold">Classifica:</strong> Identifica cada movimentação</span>
+                            </li>
+                            <li className="flex items-center gap-2">
+                              <Check className="w-3.5 h-3.5 text-gold-500" />
+                              <span><strong className="text-gold-400 font-bold">Concilia:</strong> Bate saldos com os bancos</span>
+                            </li>
+                            <li className="flex items-center gap-2">
+                              <Check className="w-3.5 h-3.5 text-gold-500" />
+                              <span><strong className="text-gold-400 font-bold">Controla:</strong> Acompanha vencimentos</span>
+                            </li>
+                          </ul>
+                        </div>
+                      </div>
+
+                      {/* Seta 2 */}
+                      <div className="flex items-center justify-center shrink-0">
+                        <ArrowRight className="hidden lg:block w-5 h-5 text-gold-500/40 animate-pulse" />
+                        <ArrowDown className="lg:hidden w-5 h-5 text-gold-500/40 animate-pulse" />
+                      </div>
+
+                      {/* Card Ideal 3: Contabilidade (Destaque Intermediário) */}
+                      <div className="flex-1 bg-dark-900/40 backdrop-blur-sm border border-gold-500/20 p-6 rounded-3xl space-y-4 hover:border-gold-500/40 transition-all duration-300 shadow-xl flex flex-col justify-between min-h-[370px] group">
+                        <div className="space-y-4">
+                          <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center text-gray-400 border border-dark-750 group-hover:scale-105 transition-transform duration-300">
+                            <Building2 className="w-5 h-5 text-gold-500/70" />
+                          </div>
+                          <div className="space-y-1">
+                            <span className="text-[8px] text-slate-500 font-bold uppercase tracking-wider font-mono">Etapa 03</span>
+                            <h3 className="text-sm font-bold text-white leading-tight">Contabilidade</h3>
+                          </div>
+                          <p className="text-[11px] text-gray-400 font-light leading-relaxed">
+                            A parte fiscal e estatutária, que necessita de dados estruturados da etapa 2.
+                          </p>
+                          <ul className="space-y-2 pt-2 text-[10px] text-gray-300 font-light border-t border-dark-850">
+                            <li className="flex items-center gap-2">
+                              <Check className="w-3.5 h-3.5 text-gold-500/70" />
+                              <span>Calcula impostos devidos</span>
+                            </li>
+                            <li className="flex items-center gap-2">
+                              <Check className="w-3.5 h-3.5 text-gold-500/70" />
+                              <span>Cumpre as obrigações fiscais</span>
+                            </li>
+                            <li className="flex items-center gap-2">
+                              <Check className="w-3.5 h-3.5 text-gold-500/70" />
+                              <span>Gera declarações e Balancetes</span>
+                            </li>
+                          </ul>
+                        </div>
+                      </div>
+
+                      {/* Seta 3 */}
+                      <div className="flex items-center justify-center shrink-0">
+                        <ArrowRight className="hidden lg:block w-5 h-5 text-gold-500/40 animate-pulse" />
+                        <ArrowDown className="lg:hidden w-5 h-5 text-gold-500/40 animate-pulse" />
+                      </div>
+
+                      {/* Card Ideal 4: Consultoria Estratégica (Destaque Principal - MAIOR) */}
+                      <div className="flex-1 bg-gradient-to-b from-dark-900/85 to-dark-950/98 backdrop-blur-md border-2 border-gold-500 p-7 rounded-3xl space-y-4 hover:border-gold-500 transition-all duration-300 shadow-[0_25px_60px_rgba(212,163,89,0.15)] flex flex-col justify-between min-h-[405px] relative overflow-hidden group ring-1 ring-gold-500/40 lg:scale-[1.04] lg:mx-1 relative z-20">
+                        <div className="absolute top-0 right-0 px-3 py-1 bg-gradient-to-r from-gold-600 to-amber-500 text-dark-950 font-black font-mono text-[7px] uppercase tracking-widest rounded-bl-xl shadow-md">
+                          NOSSO DIFERENCIAL
+                        </div>
+                        <div className="space-y-4">
+                          <div className="w-12 h-12 bg-gold-500/10 rounded-2xl flex items-center justify-center text-gold-500 border border-gold-500/30 group-hover:scale-105 transition-transform duration-300">
+                            <TrendingUp className="w-6 h-6 text-gold-500" />
+                          </div>
+                          <div className="space-y-1">
+                            <span className="text-[8px] text-gold-500 font-black uppercase tracking-wider font-mono">Etapa 04</span>
+                            <h3 className="text-sm font-bold text-white leading-tight">Consultoria Estratégica</h3>
+                          </div>
+                          <p className="text-[11px] text-gray-350 font-light leading-relaxed">
+                            O ápice da maturidade financeira: tomar decisões inteligentes baseadas em números reais.
+                          </p>
+                          <ul className="space-y-2 pt-2 text-[10px] text-gray-300 font-light border-t border-dark-850">
+                            <li className="flex items-center gap-2">
+                              <Check className="w-3.5 h-3.5 text-gold-500/70" />
+                              <span>Entende a história dos números</span>
+                            </li>
+                            <li className="flex items-center gap-2">
+                              <Check className="w-3.5 h-3.5 text-gold-500/70" />
+                              <span>Decide pró-labore e margem</span>
+                            </li>
+                            <li className="flex items-center gap-2">
+                              <Check className="w-3.5 h-3.5 text-gold-500/70" />
+                              <span>Planeja investimentos e metas</span>
+                            </li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Bloco de Sistema Próprio / Plataforma Integrada (Minimalista & Solto) */}
+                    <div className="mt-14 py-2 text-center space-y-4 relative z-10 max-w-2xl mx-auto">
+                      <div className="relative inline-flex items-center justify-center">
+                        <div className="absolute w-24 h-24 bg-gold-500/10 rounded-full blur-2xl animate-pulse"></div>
+                        <div className="w-16 h-16 rounded-full border border-gold-500/60 bg-dark-950 flex items-center justify-center shadow-[0_0_25px_rgba(212,163,89,0.45)] relative z-10 overflow-hidden">
+                          <img
+                            src="logo.png"
+                            alt="Logo Solum Aplicativo"
+                            className="w-full h-full object-cover hover:scale-110 transition-all duration-300"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              if (target.src.indexOf('/images/') === -1) {
+                                target.src = '/images/logo.png';
+                              }
+                            }}
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2 max-w-xl mx-auto">
+                        <span className="text-[9px] text-gold-500 font-bold uppercase tracking-widest font-mono block">TECNOLOGIA EXCLUSIVA</span>
+                        <h4 className="text-[11px] font-bold text-white uppercase tracking-wider">
+                          Fazemos o trabalho pesado através da nossa plataforma própria
+                        </h4>
+
+                        <div className="flex flex-col items-center gap-2 pt-1 text-[10px] text-gray-400 font-light max-w-xl mx-auto">
+                          <div className="flex items-start md:items-center gap-2">
+                            <span className="w-1.5 h-1.5 rounded-full bg-gold-500 shrink-0 mt-1.5 md:mt-0"></span>
+                            <span>Sua assistência e consultoria são integradas a um <strong className="text-gold-400 font-semibold">sistema próprio de última geração</strong>.</span>
+                          </div>
+                          <div className="flex items-start md:items-center gap-2">
+                            <span className="w-1.5 h-1.5 rounded-full bg-gold-500 shrink-0 mt-1.5 md:mt-0"></span>
+                            <span>Cuidamos de toda a complexidade operacional para você focar no <strong className="text-gold-400 font-semibold">crescimento do negócio</strong>.</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Consequências Boas */}
+                    <div className="bg-emerald-550/5 border border-emerald-500/15 rounded-2xl p-5 shadow-md">
+                      <div className="flex items-start gap-3">
+                        <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
+                        <div className="space-y-1.5 text-left">
+                          <span className="text-[9px] text-emerald-400 font-bold uppercase tracking-wider block font-mono">Benefícios Reais da Solução Solum</span>
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 text-[11px] text-gray-300 leading-relaxed font-light mt-1">
+                            <div className="flex items-start gap-1.5">
+                              <span className="text-emerald-400 font-bold">•</span>
+                              <span>Separação total e saudável das contas PF e PJ.</span>
+                            </div>
+                            <div className="flex items-start gap-1.5">
+                              <span className="text-emerald-400 font-bold">•</span>
+                              <span>Visão clara do lucro real, ponto de equilíbrio e caixa.</span>
+                            </div>
+                            <div className="flex items-start gap-1.5">
+                              <span className="text-emerald-400 font-bold">•</span>
+                              <span>Retiradas e investimentos baseados em dados reais.</span>
+                            </div>
+                            <div className="flex items-start gap-1.5">
+                              <span className="text-emerald-400 font-bold">•</span>
+                              <span>Impostos calculados perfeitamente (sem impostos extras).</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end pt-4">
+                      <button
+                        onClick={() => navigateTo('objetivo_conversa')}
+                        className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-gold-600 to-amber-500 hover:from-gold-500 hover:to-amber-400 text-dark-950 font-black rounded-xl shadow-lg transition-all duration-300 uppercase tracking-widest text-xs flex items-center justify-center gap-2 cursor-pointer relative z-10"
+                      >
+                        Objetivo da Conversa
+                        <ArrowRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
               </div>
             )}
 
@@ -3914,12 +4297,19 @@ export const PresentationFlow: React.FC<PresentationProps> = ({ lead, pricingPac
           currentSlide !== 'proximos_passos_downsell' &&
           currentSlide !== 'decisao_matrix' &&
           currentSlide !== 'reforco_valor' &&
-          currentSlide !== 'argumentacao_especial' ? (
+          currentSlide !== 'argumentacao_especial' &&
+          !(currentSlide === 'fluxo_empresarial' && !fluxoIdealRevelado) ? (
           <button
             onClick={() => {
               if (currentSlide === 'intro') {
                 navigateTo('do_que_se_trata');
               } else if (currentSlide === 'do_que_se_trata') {
+                if (leadFormType === 'business') {
+                  navigateTo('fluxo_empresarial');
+                } else {
+                  navigateTo('objetivo_conversa');
+                }
+              } else if (currentSlide === 'fluxo_empresarial') {
                 navigateTo('objetivo_conversa');
               } else if (currentSlide === 'objetivo_conversa') {
                 navigateTo('institucional');

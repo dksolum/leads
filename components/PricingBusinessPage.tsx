@@ -22,6 +22,7 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
   const [orcamentoFinalizado, setOrcamentoFinalizado] = useState(false);
   const [mostrarBloqueioFinanceiro, setMostrarBloqueioFinanceiro] = useState(false);
   const [condicaoEspecial, setCondicaoEspecial] = useState(false);
+  const [descontoRevelado, setDescontoRevelado] = useState(false);
 
   const formatPremiumCurrency = (value: number) => {
     if (value % 1 === 0) {
@@ -1402,121 +1403,158 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
                       </div>
 
                       {/* Resultados da Proposta */}
-                      <div className="text-center py-6 px-6 bg-dark-950/90 rounded-3xl border border-dark-800 shadow-2xl flex flex-col justify-between space-y-4">
+                      <div className="text-center py-6 px-6 bg-dark-950/90 rounded-3xl border border-dark-800 shadow-2xl flex flex-col justify-between space-y-4 relative overflow-hidden">
                         <div className="space-y-1">
-                          <span className="text-[10px] text-gray-550 uppercase tracking-widest font-black font-mono">Mensalidade do Plano Customizado</span>
-                          {economia > 0 && (
-                            <div className="text-gray-500 text-xs line-through decoration-red-500/70 font-light">{formatPremiumCurrency(totalReferenciaAvulso)}</div>
-                          )}
-                          <div className="text-3xl md:text-4xl font-serif font-black text-gold-500 my-1">
-                            {formatPremiumCurrency(precoFechamento)}
-                          </div>
-                          <span className="text-[11px] text-gray-400 font-medium block">/mês no contrato unificado</span>
-                          {!condicaoEspecial && !(contabilidadeAnual && pagamentoCartao) && custoTransicaoUnico > 0 && (
-                            <span className="text-[9px] text-amber-500/80 font-medium block mt-1 leading-normal italic">
-                              * Serviços de transição de {formatPremiumCurrency(custoTransicaoUnico)} cobradas separadamente.
-                            </span>
+                          <span className="text-[10px] text-gray-550 uppercase tracking-widest font-black font-mono">
+                            {descontoRevelado ? 'Mensalidade do Plano Customizado' : 'Valor Estimado de Mercado'}
+                          </span>
+
+                          {!descontoRevelado ? (
+                            <div className="space-y-4 py-3">
+                              <div className="text-3xl md:text-4xl font-serif font-black text-gray-300 font-mono">
+                                {formatPremiumCurrency(totalReferenciaAvulso)}
+                              </div>
+                              <span className="text-[11px] text-gray-500 font-light block">soma dos valores normais individuais</span>
+
+                              <button
+                                onClick={() => setDescontoRevelado(true)}
+                                className="w-full py-3.5 px-4 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-black rounded-xl text-xs uppercase tracking-widest transition-all duration-300 hover:scale-[1.02] shadow-lg shadow-emerald-500/10 cursor-pointer animate-pulse inline-flex items-center justify-center gap-2"
+                              >
+                                <Sparkles className="w-4 h-4 text-white" />
+                                Apresentar Desconto
+                              </button>
+                            </div>
+                          ) : (
+                            <motion.div
+                              initial={{ opacity: 0, y: -10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              className="py-1"
+                            >
+                              <div className="text-gray-500 text-xs line-through decoration-red-500 decoration-2 font-mono font-medium block">
+                                {formatPremiumCurrency(totalReferenciaAvulso)}
+                              </div>
+                              <div className="text-3xl md:text-4xl font-serif font-black text-gold-500 my-1 font-mono">
+                                {formatPremiumCurrency(precoFechamento)}
+                              </div>
+                              <span className="text-[11px] text-gray-400 font-medium block">/mês no contrato unificado</span>
+                              {!condicaoEspecial && !(contabilidadeAnual && pagamentoCartao) && custoTransicaoUnico > 0 && (
+                                <span className="text-[9px] text-amber-500/80 font-medium block mt-1 leading-normal italic">
+                                  * Serviços de transição de {formatPremiumCurrency(custoTransicaoUnico)} cobradas separadamente.
+                                </span>
+                              )}
+                            </motion.div>
                           )}
                         </div>
 
-                        {contabilidadeAnual && pagamentoCartao ? (
-                          <div className="p-3 bg-gold-500/5 border border-gold-500/20 rounded-2xl space-y-1 text-left">
-                            <span className="text-[8px] text-gold-500 font-bold uppercase tracking-widest block font-mono">Divisão de Pagamento no Cartão</span>
-                            <div className="text-xs text-white font-semibold">
-                              💳 12x de <span className="text-gold-500 font-mono font-bold">{formatPremiumCurrency(valorCartao)}</span> no Cartão do Parceiro
-                            </div>
-                            {valorRestante > 0 && (
-                              <div className="text-[10px] text-gray-400 font-light">
-                                + Restante mensal de: <span className="font-bold text-white font-mono">{formatPremiumCurrency(valorRestante)}/mês</span> (Boleto/Pix)
-                              </div>
-                            )}
-                          </div>
-                        ) : (
-                          <div className="space-y-2">
-                            {(contabilidadeAnual || contabilidadeMensal) ? (
-                              <div className="p-3.5 bg-dark-900 border border-dark-800 rounded-2xl space-y-2.5 text-left">
-                                <div className="flex items-center justify-between border-b border-dark-850 pb-1.5">
-                                  <span className="text-[8px] text-slate-400 font-bold uppercase tracking-widest block font-mono">Estrutura de Pagamento Mensal</span>
-                                  <span className="text-[8px] text-gold-500 font-bold uppercase tracking-widest font-mono">Parceria Facultativa</span>
+                        {descontoRevelado && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            transition={{ duration: 0.4 }}
+                            className="space-y-4"
+                          >
+                            {contabilidadeAnual && pagamentoCartao ? (
+                              <div className="p-3 bg-gold-500/5 border border-gold-500/20 rounded-2xl space-y-1 text-left">
+                                <span className="text-[8px] text-gold-500 font-bold uppercase tracking-widest block font-mono">Divisão de Pagamento no Cartão</span>
+                                <div className="text-xs text-white font-semibold">
+                                  💳 12x de <span className="text-gold-500 font-mono font-bold">{formatPremiumCurrency(valorCartao)}</span> no Cartão do Parceiro
                                 </div>
-                                <div className="space-y-2">
-                                  <div className="text-xs text-white">
-                                    📄 Pagamento unificado de: <span className="text-gold-500 font-mono font-bold">{formatPremiumCurrency(precoFechamento)}/mês</span> (Dinheiro/Pix)
-                                  </div>
-                                  <p className="text-[9px] text-gray-400 leading-normal font-light">
-                                    O uso da contabilidade parceira <strong className="text-white">pode ocorrer ou não</strong>. Caso ela aconteça, seguirá a seguinte regra:
-                                  </p>
-                                  <div className="pl-2 border-l border-gold-500/30 space-y-1">
-                                    <div className="text-[10px] text-gray-300">
-                                      • Valor que pode ser pago separadamente: <span className="text-gold-500 font-mono font-bold">{formatPremiumCurrency(300)}/mês</span>
-                                    </div>
-                                    {precoFechamento > 300 && (
-                                      <div className="text-[10px] text-gray-300">
-                                        • Restante correspondente à assistência: <span className="text-white font-mono font-bold">{formatPremiumCurrency(precoFechamento - 300)}/mês</span>
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            ) : (
-                              <div className="p-3 bg-red-500/5 border border-red-500/20 rounded-2xl space-y-1 text-left">
-                                <span className="text-[8px] text-red-400 font-bold uppercase tracking-widest block font-mono">Contratação da Contabilidade é Obrigatória</span>
-                                <div className="text-[11px] text-gray-300 font-light">
-                                  Sem uma contabilidade a empresa não pode operar, pois ficaria irregular sem o envio de obrigações e sem o vínculo de responsabilidade de um contador na assinatura da documentação.
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        )}
-
-                        <div className="pt-3 border-t border-dark-850">
-                          {economia > 0 && (
-                            <div className="p-4 mb-4 bg-emerald-950/20 border border-emerald-500/25 rounded-2xl text-center space-y-3.5 shadow-md shadow-emerald-500/5">
-                              <div className="flex items-center justify-center gap-1.5 text-emerald-400 font-bold uppercase tracking-wider text-xs">
-                                <Sparkles className="w-4 h-4 text-emerald-400 animate-pulse" />
-                                <span>Economia Gerada</span>
-                              </div>
-
-                              <div className="flex flex-col gap-2 pt-2 border-t border-emerald-500/10 text-center">
-                                <div className="text-xs text-gray-405">
-                                  Economia Recorrente: <strong className="font-mono text-emerald-400 font-black text-sm ml-1">{formatPremiumCurrency(economia)}/mês</strong>
-                                </div>
-                                <div className="text-xs text-gray-405">
-                                  Economia Acumulada (12 meses): <strong className="font-mono text-emerald-400 font-black text-sm ml-1">{formatPremiumCurrency(economiaAnualMensalidade)}/ano</strong>
-                                </div>
-
-                                {valorBonusGratis > 0 && (
-                                  <div className="text-xs text-gray-405 pt-1 border-t border-emerald-500/10">
-                                    Bônus de Entrada: <strong className="font-mono text-emerald-400 font-black ml-1">{formatPremiumCurrency(valorBonusGratis)} <span className="text-[9px] text-green-400/80 font-black font-mono ml-0.5">(GRÁTIS)</span></strong>
+                                {valorRestante > 0 && (
+                                  <div className="text-[10px] text-gray-400 font-light">
+                                    + Restante mensal de: <span className="font-bold text-white font-mono">{formatPremiumCurrency(valorRestante)}/mês</span> (Boleto/Pix)
                                   </div>
                                 )}
+                              </div>
+                            ) : (
+                              <div className="space-y-2">
+                                {(contabilidadeAnual || contabilidadeMensal) ? (
+                                  <div className="p-3.5 bg-dark-900 border border-dark-800 rounded-2xl space-y-2.5 text-left">
+                                    <div className="flex items-center justify-between border-b border-dark-850 pb-1.5">
+                                      <span className="text-[8px] text-slate-400 font-bold uppercase tracking-widest block font-mono">Estrutura de Pagamento Mensal</span>
+                                      <span className="text-[8px] text-gold-500 font-bold uppercase tracking-widest font-mono">Parceria Facultativa</span>
+                                    </div>
+                                    <div className="space-y-2">
+                                      <div className="text-xs text-white">
+                                        📄 Pagamento unificado de: <span className="text-gold-500 font-mono font-bold">{formatPremiumCurrency(precoFechamento)}/mês</span> (Dinheiro/Pix)
+                                      </div>
+                                      <p className="text-[9px] text-gray-400 leading-normal font-light">
+                                        O uso da contabilidade parceira <strong className="text-white">pode ocorrer ou não</strong>. Caso ela aconteça, seguirá a seguinte regra:
+                                      </p>
+                                      <div className="pl-2 border-l border-gold-500/30 space-y-1">
+                                        <div className="text-[10px] text-gray-300">
+                                          • Valor que pode ser pago separadamente: <span className="text-gold-500 font-mono font-bold">{formatPremiumCurrency(300)}/mês</span>
+                                        </div>
+                                        {precoFechamento > 300 && (
+                                          <div className="text-[10px] text-gray-300">
+                                            • Restante correspondente à assistência: <span className="text-white font-mono font-bold">{formatPremiumCurrency(precoFechamento - 300)}/mês</span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="p-3 bg-red-500/5 border border-red-500/20 rounded-2xl space-y-1 text-left">
+                                    <span className="text-[8px] text-red-400 font-bold uppercase tracking-widest block font-mono">Contratação da Contabilidade é Obrigatória</span>
+                                    <div className="text-[11px] text-gray-300 font-light">
+                                      Sem uma contabilidade a empresa não pode operar, pois ficaria irregular sem o envio de obrigações e sem o vínculo de responsabilidade de um contador na assinatura da documentação.
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
 
-                                <div className="flex flex-col items-center justify-center pt-3 border-t border-emerald-500/25 mt-1 gap-1">
-                                  <span className="text-white font-bold uppercase tracking-wider text-[10px]">Economia Total no 1º Ano</span>
-                                  <span className="font-mono text-emerald-400 font-black text-lg shadow-[0_0_15px_rgba(16,185,129,0.15)] bg-emerald-500/10 px-4 py-1.5 rounded-lg border border-emerald-500/20 inline-block mt-0.5">
-                                    {formatPremiumCurrency(economiaTotalPrimeiroAno)}
-                                  </span>
+                            <div className="pt-3 border-t border-dark-850">
+                              {economia > 0 && (
+                                <div className="p-4 mb-4 bg-emerald-950/20 border border-emerald-500/25 rounded-2xl text-center space-y-3.5 shadow-md shadow-emerald-500/5">
+                                  <div className="flex items-center justify-center gap-1.5 text-emerald-400 font-bold uppercase tracking-wider text-xs">
+                                    <Sparkles className="w-4 h-4 text-emerald-400 animate-pulse" />
+                                    <span>Economia Gerada</span>
+                                  </div>
+
+                                  <div className="flex flex-col gap-2 pt-2 border-t border-emerald-500/10 text-center">
+                                    <div className="text-xs text-gray-405">
+                                      Economia Recorrente: <strong className="font-mono text-emerald-400 font-black text-sm ml-1">{formatPremiumCurrency(economia)}/mês</strong>
+                                    </div>
+                                    <div className="text-xs text-gray-405">
+                                      Economia Acumulada (12 meses): <strong className="font-mono text-emerald-400 font-black text-sm ml-1">{formatPremiumCurrency(economiaAnualMensalidade)}/ano</strong>
+                                    </div>
+
+                                    {valorBonusGratis > 0 && (
+                                      <div className="text-xs text-gray-405 pt-1 border-t border-emerald-500/10">
+                                        Bônus de Entrada: <strong className="font-mono text-emerald-400 font-black ml-1">{formatPremiumCurrency(valorBonusGratis)} <span className="text-[9px] text-green-400/80 font-black font-mono ml-0.5">(GRÁTIS)</span></strong>
+                                      </div>
+                                    )}
+
+                                    <div className="flex flex-col items-center justify-center pt-3 border-t border-emerald-500/25 mt-1 gap-1">
+                                      <span className="text-white font-bold uppercase tracking-wider text-[10px]">Economia Total no 1º Ano</span>
+                                      <span className="font-mono text-emerald-400 font-black text-lg shadow-[0_0_15px_rgba(16,185,129,0.15)] bg-emerald-500/10 px-4 py-1.5 rounded-lg border border-emerald-500/20 inline-block mt-0.5">
+                                        {formatPremiumCurrency(economiaTotalPrimeiroAno)}
+                                      </span>
+                                    </div>
+                                  </div>
                                 </div>
+                              )}
+
+                              <div className="space-y-2">
+                                <button
+                                  onClick={handleWhatsappPlanoCompletoClick}
+                                  className="w-full py-3 bg-gradient-to-r from-gold-600 to-amber-500 hover:from-gold-500 hover:to-amber-400 text-dark-950 font-black rounded-xl text-xs uppercase tracking-widest transition-all duration-300 hover:scale-[1.02] shadow-lg shadow-gold-500/10 cursor-pointer"
+                                >
+                                  Contratar Plano Customizado
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setOrcamentoFinalizado(false);
+                                    setDescontoRevelado(false);
+                                  }}
+                                  className="w-full py-2 bg-dark-900 hover:bg-dark-850 border border-dark-800 text-gray-450 hover:text-white rounded-xl text-[10px] uppercase tracking-widest font-bold transition-all cursor-pointer"
+                                >
+                                  Refazer Orçamento
+                                </button>
                               </div>
                             </div>
-                          )}
-                          <div className="space-y-2">
-                            <button
-                              onClick={handleWhatsappPlanoCompletoClick}
-                              className="w-full py-3 bg-gradient-to-r from-gold-600 to-amber-500 hover:from-gold-500 hover:to-amber-400 text-dark-950 font-black rounded-xl text-xs uppercase tracking-widest transition-all duration-300 hover:scale-[1.02] shadow-lg shadow-gold-500/10 cursor-pointer"
-                            >
-                              Contratar Plano Customizado
-                            </button>
-                            <button
-                              onClick={() => {
-                                setOrcamentoFinalizado(false);
-                              }}
-                              className="w-full py-2 bg-dark-900 hover:bg-dark-850 border border-dark-800 text-gray-450 hover:text-white rounded-xl text-[10px] uppercase tracking-widest font-bold transition-all cursor-pointer"
-                            >
-                              Refazer Orçamento
-                            </button>
-                          </div>
-                        </div>
+                          </motion.div>
+                        )}
                       </div>
                     </div>
                   )}
