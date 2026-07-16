@@ -158,7 +158,7 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
   if (contabilidadeSemBonus) {
     custoOriginalTotal = 1337;
   } else if (!contabilidadeAnual && !contabilidadeMensal) {
-    custoOriginalTotal = (certificadoDigital ? 387 : 0) + (inscricaoEstadual ? 450 : 0) + (migracaoMei ? 500 : 0);
+    custoOriginalTotal = (certificadoDigital ? 287 : 0) + (inscricaoEstadual ? 450 : 0) + (migracaoMei ? 600 : 0);
   }
 
   // Custo Especial
@@ -169,9 +169,9 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
     custoEspecialTotal = (certificadoDigital ? 75 : 0) + (inscricaoEstadual ? 350 : 0) + (migracaoMei ? 450 : 0);
   }
 
-  const precoCertificado = condicaoEspecial ? 75 : 387;
+  const precoCertificado = condicaoEspecial ? 75 : 287;
   const precoInscricao = condicaoEspecial ? 350 : 450;
-  const precoMigracao = condicaoEspecial ? 450 : 500;
+  const precoMigracao = condicaoEspecial ? 450 : 600;
 
   const custoTransicaoUnico = condicaoEspecial ? custoEspecialTotal : custoOriginalTotal;
 
@@ -192,9 +192,9 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
     if (contabilidadeAnual) list.push('Contabilidade Anual Premium');
     if (contabilidadeMensal) list.push('Contabilidade Mensal');
     if (cobranca) list.push('Cobrança de Credores');
-    if (contabilidadeSemBonus && certificadoDigital) list.push('Certificado Digital (R$ 387)');
+    if (contabilidadeSemBonus && certificadoDigital) list.push('Certificado Digital (R$ 287)');
     if (contabilidadeSemBonus && inscricaoEstadual) list.push('Inscrição Estadual (R$ 450)');
-    if (contabilidadeSemBonus && migracaoMei) list.push('Migração MEI p/ ME & Contrato (R$ 500)');
+    if (contabilidadeSemBonus && migracaoMei) list.push('Migração MEI p/ ME & Contrato (R$ 600)');
     if (emissaoFaixa !== 'none') {
       const rotulo = emissaoFaixa === 'ate5'
         ? 'Até 5 Notas (R$ 47)'
@@ -228,14 +228,14 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
       title: 'Assistência Financeira',
       description: 'Gestão básica de fluxo de caixa para correta organização, tomada de decisões e escrituração contábil.',
       additional: 'Taxa adicional por conta bancária extra incluída na operação.',
-      referenceValue: 'R$ 400',
+      referenceValue: 'R$ 400*',
       period: 'mês',
       isMonthly: true,
       icon: <Landmark className="w-6 h-6" />,
       tag: { text: 'OBRIGATÓRIO', type: 'required' },
       inclusos: [
-        'Controle financeiro (até 1 conta bancária)',
-        'Controle de vendas em máquina de cartão (até 1 máquina)',
+        'Controle financeiro (até 1 conta bancária com até 600 lançamentos no mês)',
+        'Controle de vendas em máquina de cartão (até 1 conta bancária com até 120 vendas em máquina no mês)',
         'Categorização organizada de despesas e receitas',
         'Controle de contas a pagar e a receber básico',
         'Conciliação bancária de lançamentos',
@@ -313,7 +313,7 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
       title: 'Certificação Digital',
       description: 'Emissão ou renovação anual de certificado e-CNPJ A1 para assinatura eletrônica de documentos, acesso aos sistemas da RFB e emissão de notas.',
       additional: 'Cobrança exclusivamente anual. Não contabiliza no custo mensal dos serviços avulsos.',
-      referenceValue: 'R$ 387',
+      referenceValue: 'R$ 287',
       period: 'ano',
       isMonthly: false,
       icon: <ShieldCheck className="w-6 h-6" />,
@@ -731,7 +731,7 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
                     </p>
                   </div>
                   <div className="text-right shrink-0 px-4 py-2 bg-dark-950/80 rounded-xl border border-dark-800">
-                    <span className="text-lg font-serif font-bold text-white">R$ 500,00</span>
+                    <span className="text-lg font-serif font-bold text-white">R$ 600,00</span>
                     <span className="text-[9px] text-gold-500/80 block uppercase font-bold tracking-wider mt-0.5">Honorários</span>
                   </div>
                 </div>
@@ -1189,14 +1189,14 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
                                     {condicaoEspecial ? (
                                       <>
                                         <span className="line-through text-red-400/50 text-[10px] font-mono leading-none mb-0.5">
-                                          {formatPremiumCurrency(387)}
+                                          {formatPremiumCurrency(287)}
                                         </span>
                                         <span className="text-white font-bold text-xs font-mono leading-none">
                                           {formatPremiumCurrency(75)} + Taxa
                                         </span>
                                       </>
                                     ) : (
-                                      <span className="font-mono text-red-400 font-bold text-xs leading-none">{formatPremiumCurrency(387)}</span>
+                                      <span className="font-mono text-red-400 font-bold text-xs leading-none">{formatPremiumCurrency(287)}</span>
                                     )}
                                   </div>
                                 </li>
@@ -1223,14 +1223,14 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
                                     {condicaoEspecial ? (
                                       <>
                                         <span className="line-through text-red-400/50 text-[10px] font-mono leading-none mb-0.5">
-                                          {formatPremiumCurrency(500)}
+                                          {formatPremiumCurrency(600)}
                                         </span>
                                         <span className="text-white font-bold text-xs font-mono leading-none">
                                           {formatPremiumCurrency(450)}
                                         </span>
                                       </>
                                     ) : (
-                                      <span className="font-mono text-red-400 font-bold text-xs leading-none">{formatPremiumCurrency(500)}</span>
+                                      <span className="font-mono text-red-400 font-bold text-xs leading-none">{formatPremiumCurrency(600)}</span>
                                     )}
                                   </div>
                                 </li>
@@ -1303,14 +1303,14 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
                                         {condicaoEspecial ? (
                                           <>
                                             <span className="line-through text-red-400/50 text-[10px] font-mono leading-none mb-0.5">
-                                              {formatPremiumCurrency(387)}
+                                              {formatPremiumCurrency(287)}
                                             </span>
                                             <span className="text-white font-bold text-xs font-mono leading-none">
                                               {formatPremiumCurrency(75)} + Taxa
                                             </span>
                                           </>
                                         ) : (
-                                          <span className="font-mono text-red-400 font-bold text-xs leading-none">{formatPremiumCurrency(387)}</span>
+                                          <span className="font-mono text-red-400 font-bold text-xs leading-none">{formatPremiumCurrency(287)}</span>
                                         )}
                                       </div>
                                     </li>
@@ -1341,7 +1341,7 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
                                         {condicaoEspecial ? (
                                           <>
                                             <span className="line-through text-red-400/50 text-[10px] font-mono leading-none mb-0.5">
-                                              {formatPremiumCurrency(500)}
+                                              {formatPremiumCurrency(600)}
                                             </span>
                                             <span className="text-white font-bold text-xs font-mono leading-none">
                                               {formatPremiumCurrency(450)}
