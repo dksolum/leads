@@ -16,6 +16,7 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
   const [inscricaoEstadual, setInscricaoEstadual] = useState(false);
   const [migracaoMei, setMigracaoMei] = useState(false);
   const [certificadoDigital, setCertificadoDigital] = useState(false);
+  const [frenteCaixa, setFrenteCaixa] = useState(false);
 
   const [emissaoFaixa, setEmissaoFaixa] = useState<'ate5' | 'ate10' | 'ate20' | 'ate30' | 'none' | 'mais30'>('none');
   const [pagamentoCartao, setPagamentoCartao] = useState(true); // Começa ativo pois contabilidadeAnual começa true
@@ -100,7 +101,7 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
   if (financeiro) {
     if (temContabilidade) {
       if (contabilidadeSemCartaoOuMensal) {
-        precoFinanceiro = atendimento ? 250 : 350;
+        precoFinanceiro = atendimento ? 247 : 350;
       } else {
         precoFinanceiro = atendimento ? valDescontoFinanceiro : 350; // R$ 250 se combo com atendimento, R$ 350 se individual com contabilidade
       }
@@ -116,7 +117,7 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
   if (atendimento) {
     if (financeiro) {
       if (temContabilidade && contabilidadeSemCartaoOuMensal) {
-        precoAtendimento = 150; // Para a soma dar 400 (250 + 150 = 400)
+        precoAtendimento = 100; // Para a soma dar 347 (247 + 100 = 347)
       } else {
         precoAtendimento = valDescontoAtendimento; // R$ 180 se contratado junto com Assistência Financeira (combo)
       }
@@ -153,29 +154,36 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
   const contabilidadeSemBonus = (contabilidadeAnual && !pagamentoCartao) || contabilidadeMensal;
   const transicaoIncompleta = contabilidadeSemBonus && (!certificadoDigital || !inscricaoEstadual || !migracaoMei);
 
+  // Custo Frente de Caixa
+  const precoFrenteCaixa = 297;
+
   // Custo Original
   let custoOriginalTotal = 0;
   if (contabilidadeSemBonus) {
-    custoOriginalTotal = 1337;
+    custoOriginalTotal = 1337 + (frenteCaixa ? precoFrenteCaixa : 0);
   } else if (!contabilidadeAnual && !contabilidadeMensal) {
-    custoOriginalTotal = (certificadoDigital ? 287 : 0) + (inscricaoEstadual ? 450 : 0) + (migracaoMei ? 600 : 0);
+    custoOriginalTotal = (certificadoDigital ? 287 : 0) + (inscricaoEstadual ? 450 : 0) + (migracaoMei ? 600 : 0) + (frenteCaixa ? precoFrenteCaixa : 0);
+  } else {
+    custoOriginalTotal = (frenteCaixa ? precoFrenteCaixa : 0);
   }
 
   // Custo Especial
   let custoEspecialTotal = 0;
   if (contabilidadeSemBonus) {
-    custoEspecialTotal = 875;
+    custoEspecialTotal = 987 + (frenteCaixa ? precoFrenteCaixa : 0);
   } else if (!contabilidadeAnual && !contabilidadeMensal) {
-    custoEspecialTotal = (certificadoDigital ? 75 : 0) + (inscricaoEstadual ? 350 : 0) + (migracaoMei ? 450 : 0);
+    custoEspecialTotal = (certificadoDigital ? 187 : 0) + (inscricaoEstadual ? 350 : 0) + (migracaoMei ? 450 : 0) + (frenteCaixa ? precoFrenteCaixa : 0);
+  } else {
+    custoEspecialTotal = (frenteCaixa ? precoFrenteCaixa : 0);
   }
 
-  const precoCertificado = condicaoEspecial ? 75 : 287;
+  const precoCertificado = condicaoEspecial ? 187 : 287;
   const precoInscricao = condicaoEspecial ? 350 : 450;
   const precoMigracao = condicaoEspecial ? 450 : 600;
 
   const custoTransicaoUnico = condicaoEspecial ? custoEspecialTotal : custoOriginalTotal;
 
-  const valorBonusGratis = (contabilidadeAnual && pagamentoCartao) ? (condicaoEspecial ? 875 : 1337) : 0;
+  const valorBonusGratis = (contabilidadeAnual && pagamentoCartao) ? (condicaoEspecial ? 987 : 1337) : 0;
   const economiaTotalPrimeiroAno = economiaAnualMensalidade + valorBonusGratis;
 
   const valorCartao = Math.min(precoFechamento, 249);
@@ -192,6 +200,7 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
     if (contabilidadeAnual) list.push('Contabilidade Anual Premium');
     if (contabilidadeMensal) list.push('Contabilidade Mensal');
     if (cobranca) list.push('Cobrança de Credores');
+    if (frenteCaixa) list.push('Implementação Frente de Caixa (R$ 297)');
     if (contabilidadeSemBonus && certificadoDigital) list.push('Certificado Digital (R$ 287)');
     if (contabilidadeSemBonus && inscricaoEstadual) list.push('Inscrição Estadual (R$ 450)');
     if (contabilidadeSemBonus && migracaoMei) list.push('Migração MEI p/ ME & Contrato (R$ 600)');
@@ -209,13 +218,13 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
     }
     const servicosTexto = list.length > 0 ? list.join(', ') : 'Nenhum serviço selecionado';
 
-    // Taxas extras/únicas de transição se contabilidade sem bônus ativa
-    const transicaoTexto = (contabilidadeSemBonus && custoTransicaoUnico > 0)
-      ? ` + R$ ${custoTransicaoUnico.toFixed(2)} Taxa Única de Transição`
+    // Taxas extras/únicas de transição e implementação
+    const transicaoTexto = (custoTransicaoUnico > 0)
+      ? ` + R$ ${custoTransicaoUnico.toFixed(2)} Taxa Única de Transição/Implementação`
       : '';
 
     const pagamentoTexto = (contabilidadeAnual && pagamentoCartao)
-      ? `no Cartão de Crédito do Parceiro com Super Bônus inclusos (12x R$ ${valorCartao.toFixed(2)}/mês + R$ ${valorRestante.toFixed(2)}/mês restante)`
+      ? `no Cartão de Crédito do Parceiro com Super Bônus inclusos (12x R$ ${valorCartao.toFixed(2)}/mês + R$ ${valorRestante.toFixed(2)}/mês restante${transicaoTexto})`
       : `sem cartão de crédito (Bônus não inclusos, taxas de transição/anual avulsas, valor unificado integral de R$ ${precoFechamento.toFixed(2)}/mês${transicaoTexto})`;
 
     const texto = `Olá Diego, montei a proposta de Plano Completo interativo no site:\n\nServiços Escolhidos: ${servicosTexto}\nValor do Plano: R$ ${precoFechamento.toFixed(2)}/mês${transicaoTexto} (Valor de mercado seria R$ ${totalReferenciaAvulso.toFixed(2)}/mês)\nForma de pagamento: ${pagamentoTexto}`;
@@ -691,6 +700,57 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
               ))}
             </div>
 
+            {/* Card Centralizado em Verde Escuro: Implementação de Frente de Caixa */}
+            <div className="mt-12 max-w-2xl mx-auto">
+              <div className="bg-emerald-950/40 backdrop-blur-md border border-emerald-500/30 hover:border-emerald-500/50 rounded-3xl p-6 md:p-8 flex flex-col justify-between transition-all duration-300 shadow-xl shadow-emerald-950/20 group relative overflow-hidden text-left">
+                <div className="space-y-5">
+                  <div className="flex justify-between items-start">
+                    <div className="w-12 h-12 bg-emerald-500/10 rounded-2xl flex items-center justify-center border border-emerald-500/20 group-hover:scale-110 transition-transform text-emerald-400">
+                      <Building2 className="w-6 h-6 text-emerald-400" />
+                    </div>
+                    <div className="text-right">
+                      <span className="text-xs text-gray-400 font-light block">Implementação</span>
+                      <span className="text-2xl font-serif font-bold text-emerald-400">R$ 297,00</span>
+                      <span className="text-[10px] text-gray-400 block">+ plano mensal da plataforma</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="text-xl font-bold text-white leading-tight font-serif">Implementação de Frente de Caixa</h3>
+                      <span className="text-[8px] font-bold px-2 py-0.5 rounded-full border bg-emerald-500/15 border-emerald-500/30 text-emerald-400 uppercase tracking-wider">
+                        OBRIGATÓRIO PARA COMÉRCIO
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-300 font-light leading-relaxed">
+                      Sistema completo para emissão de NFC-e e NF-e, obrigatório para empresas do setor de comércio.
+                    </p>
+                    <div className="space-y-2 pt-2">
+                      <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider block">O que está incluso nesse serviço:</span>
+                      <ul className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-gray-300">
+                        <li className="flex items-start gap-2">
+                          <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                          <span>Configuração da empresa</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                          <span>Configuração do certificado digital</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                          <span>Configuração de produtos de venda</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                          <span>Ensinar como utilizar o frente de caixa</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* Bloco Premium de Transição MEI para ME */}
             <div className="mt-14 max-w-3xl mx-auto space-y-6">
               <div className="flex flex-col items-center justify-center text-center gap-2 pb-3 border-b border-dark-800/60">
@@ -943,6 +1003,21 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
                               {orcamentoFinalizado && renderSwitch(cobranca, () => { })}
                             </div>
 
+                            {/* 8. Implementação Frente de Caixa */}
+                            <div className={`flex items-center justify-between p-3.5 rounded-xl border transition-all ${frenteCaixa ? 'bg-emerald-500/10 border-emerald-500/30 text-white' : 'bg-dark-900/40 border-dark-800 text-gray-500'} ${orcamentoFinalizado ? 'pointer-events-none opacity-80' : ''}`}>
+                              <div className="flex flex-col text-left">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs font-semibold text-white">Implementação Frente de Caixa</span>
+                                  <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full border bg-emerald-500/15 border-emerald-500/30 text-emerald-400">
+                                    COMÉRCIO
+                                  </span>
+                                </div>
+                                <span className="text-[10px] text-gray-450 font-light mt-0.5">NFC-e e NF-e • Taxa Única R$ 297,00</span>
+                              </div>
+                              {!orcamentoFinalizado && renderSwitch(frenteCaixa, () => setFrenteCaixa(!frenteCaixa))}
+                              {orcamentoFinalizado && renderSwitch(frenteCaixa, () => { })}
+                            </div>
+
                           </div>
                         );
                       })()}
@@ -1145,32 +1220,47 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
 
                         {/* Se contabilidade anual estiver selecionada */}
                         {contabilidadeAnual && pagamentoCartao ? (
-                          <div className="p-4 bg-green-500/10 border border-green-500/25 rounded-2xl space-y-2 text-left">
-                            <div className="flex items-center justify-between border-b border-green-500/20 pb-1.5">
-                              <span className="text-[9px] text-green-400 font-black uppercase tracking-widest block font-mono">Bônus Inclusos</span>
-                              <span className="text-[9px] text-green-400/80 font-bold">GRÁTIS</span>
+                          <div className="space-y-3">
+                            <div className="p-4 bg-green-500/10 border border-green-500/25 rounded-2xl space-y-2 text-left">
+                              <div className="flex items-center justify-between border-b border-green-500/20 pb-1.5">
+                                <span className="text-[9px] text-green-400 font-black uppercase tracking-widest block font-mono">Bônus Inclusos</span>
+                                <span className="text-[9px] text-green-400/80 font-bold">GRÁTIS</span>
+                              </div>
+                              <ul className="space-y-1.5 text-[11px] text-gray-300">
+                                <li className="flex items-center gap-1.5">
+                                  <Check className="w-3.5 h-3.5 text-green-400 shrink-0" />
+                                  <span>Certificado Digital e-CNPJ A1 (12 meses)</span>
+                                </li>
+                                <li className="flex items-center gap-1.5">
+                                  <Check className="w-3.5 h-3.5 text-green-400 shrink-0" />
+                                  <span>Inscrição Estadual</span>
+                                </li>
+                                <li className="flex items-center gap-1.5">
+                                  <Check className="w-3.5 h-3.5 text-green-400 shrink-0" />
+                                  <span>Migração MEI p/ ME & Contrato Social</span>
+                                </li>
+                              </ul>
                             </div>
-                            <ul className="space-y-1.5 text-[11px] text-gray-300">
-                              <li className="flex items-center gap-1.5">
-                                <Check className="w-3.5 h-3.5 text-green-400 shrink-0" />
-                                <span>Certificado Digital e-CNPJ A1 (12 meses)</span>
-                              </li>
-                              <li className="flex items-center gap-1.5">
-                                <Check className="w-3.5 h-3.5 text-green-400 shrink-0" />
-                                <span>Inscrição Estadual</span>
-                              </li>
-                              <li className="flex items-center gap-1.5">
-                                <Check className="w-3.5 h-3.5 text-green-400 shrink-0" />
-                                <span>Migração MEI p/ ME & Contrato Social</span>
-                              </li>
-                            </ul>
+
+                            {frenteCaixa && (
+                              <div className="p-4 bg-emerald-500/10 border border-emerald-500/25 rounded-2xl space-y-2 text-left">
+                                <div className="flex items-center justify-between border-b border-emerald-500/20 pb-1.5">
+                                  <span className="text-[9px] text-emerald-400 font-black uppercase tracking-widest block font-mono">Serviço de Implementação</span>
+                                  <span className="text-[9px] text-emerald-400/80 font-bold">A PAGAR</span>
+                                </div>
+                                <div className="flex items-center justify-between text-[11px] text-gray-300">
+                                  <span className="font-medium">Implementação Frente de Caixa</span>
+                                  <span className="font-mono text-emerald-400 font-bold text-xs">{formatPremiumCurrency(297)}</span>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         ) : (
                           contabilidadeSemBonus ? (
                             <div className="p-4 bg-red-500/10 border border-red-500/25 rounded-2xl space-y-2 text-left relative">
                               <div className="flex items-center justify-between border-b border-red-500/20 pb-1.5">
                                 <span className="text-[9px] text-red-400 font-black uppercase tracking-widest block font-mono flex items-center gap-1.5">
-                                  Serviços de Transição
+                                  Serviços de Transição & Implementação
                                   <button
                                     type="button"
                                     onClick={() => setCondicaoEspecial(!condicaoEspecial)}
@@ -1183,6 +1273,14 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
                                 <span className="text-[9px] text-red-400/80 font-bold">A PAGAR</span>
                               </div>
                               <ul className="space-y-2 text-[11px] text-gray-300">
+                                {frenteCaixa && (
+                                  <li className="flex items-start justify-between py-1 border-b border-red-500/5">
+                                    <span className="text-gray-300 font-medium max-w-[160px] leading-tight">Implementação Frente de Caixa</span>
+                                    <div className="flex flex-col items-end justify-center">
+                                      <span className="font-mono text-emerald-400 font-bold text-xs leading-none">{formatPremiumCurrency(297)}</span>
+                                    </div>
+                                  </li>
+                                )}
                                 <li className="flex items-start justify-between py-1 border-b border-red-500/5">
                                   <span className="text-gray-300 font-medium max-w-[160px] leading-tight">Certificado Digital e-CNPJ A1</span>
                                   <div className="flex flex-col items-end justify-center">
@@ -1192,7 +1290,7 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
                                           {formatPremiumCurrency(287)}
                                         </span>
                                         <span className="text-white font-bold text-xs font-mono leading-none">
-                                          {formatPremiumCurrency(75)} + Taxa
+                                          {formatPremiumCurrency(187)}
                                         </span>
                                       </>
                                     ) : (
@@ -1243,7 +1341,7 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
                                           {formatPremiumCurrency(custoOriginalTotal)}
                                         </span>
                                         <span className="text-emerald-400 font-extrabold text-sm font-mono leading-none">
-                                          {formatPremiumCurrency(custoEspecialTotal)} + Taxa
+                                          {formatPremiumCurrency(custoEspecialTotal)}
                                         </span>
                                       </>
                                     ) : (
@@ -1262,28 +1360,22 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
                                 <p className="text-[10px] text-gray-300 font-medium leading-relaxed">
                                   {condicaoEspecial ? (
                                     <>
-                                      💵 <strong>Até 3x no Dinheiro/Pix</strong> + valor da taxa da certificadora na 1ª parcela.
+                                      💵 <strong>Valor total pode ser pago em até 4x no Dinheiro/Pix</strong> (se incluso Frente de caixa) ou em até 3x no Dinheiro/Pix.
                                     </>
                                   ) : (
                                     <>
-                                      💳 <strong>Até 10x s/ juros no cartão</strong> ou até 4x no Dinheiro/Pix.
+                                      💳 <strong>Até 10x s/ juros no cartão</strong> ou até 5x no Dinheiro/Pix (se incluso Frente de Caixa) ou em até 4x no Dinheiro/Pix. Os serviços podem ser adquiridos separadamente, consultar parcelamento*.
                                     </>
                                   )}
                                 </p>
                               </div>
-
-                              {condicaoEspecial && (
-                                <p className="text-[9px] text-gray-500 italic mt-1 leading-tight border-t border-red-500/10 pt-1.5">
-                                  * A Taxa é o valor cobrado diretamente pela Certificadora.
-                                </p>
-                              )}
                             </div>
                           ) : (
                             (!temContabilidade && custoTransicaoUnico > 0) && (
                               <div className="p-4 bg-red-500/10 border border-red-500/25 rounded-2xl space-y-2 text-left relative">
                                 <div className="flex items-center justify-between border-b border-red-500/20 pb-1.5">
                                   <span className="text-[9px] text-red-400 font-black uppercase tracking-widest block font-mono flex items-center gap-1.5">
-                                    Serviços de Transição
+                                    Serviços de Transição & Implementação
                                     <button
                                       type="button"
                                       onClick={() => setCondicaoEspecial(!condicaoEspecial)}
@@ -1296,6 +1388,14 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
                                   <span className="text-[9px] text-red-400/80 font-bold">A PAGAR</span>
                                 </div>
                                 <ul className="space-y-2 text-[11px] text-gray-300">
+                                  {frenteCaixa && (
+                                    <li className="flex items-start justify-between py-1 border-b border-red-500/5">
+                                      <span className="text-gray-300 font-medium max-w-[160px] leading-tight">Implementação Frente de Caixa</span>
+                                      <div className="flex flex-col items-end justify-center">
+                                        <span className="font-mono text-emerald-400 font-bold text-xs leading-none">{formatPremiumCurrency(297)}</span>
+                                      </div>
+                                    </li>
+                                  )}
                                   {certificadoDigital && (
                                     <li className="flex items-start justify-between py-1 border-b border-red-500/5">
                                       <span className="text-gray-300 font-medium max-w-[160px] leading-tight">Certificado Digital e-CNPJ A1</span>
@@ -1306,7 +1406,7 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
                                               {formatPremiumCurrency(287)}
                                             </span>
                                             <span className="text-white font-bold text-xs font-mono leading-none">
-                                              {formatPremiumCurrency(75)} + Taxa
+                                              {formatPremiumCurrency(187)}
                                             </span>
                                           </>
                                         ) : (
@@ -1348,7 +1448,7 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
                                             </span>
                                           </>
                                         ) : (
-                                          <span className="font-mono text-red-400 font-bold text-xs leading-none">{formatPremiumCurrency(500)}</span>
+                                          <span className="font-mono text-red-400 font-bold text-xs leading-none">{formatPremiumCurrency(600)}</span>
                                         )}
                                       </div>
                                     </li>
@@ -1362,7 +1462,7 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
                                             {formatPremiumCurrency(custoOriginalTotal)}
                                           </span>
                                           <span className="text-emerald-400 font-extrabold text-sm font-mono leading-none">
-                                            {formatPremiumCurrency(custoEspecialTotal)} {certificadoDigital ? '+ Taxa' : ''}
+                                            {formatPremiumCurrency(custoEspecialTotal)}
                                           </span>
                                         </>
                                       ) : (
@@ -1381,21 +1481,15 @@ export const PricingBusinessPage: React.FC<PricingBusinessPageProps> = ({ naviga
                                   <p className="text-[10px] text-gray-300 font-medium leading-relaxed">
                                     {condicaoEspecial ? (
                                       <>
-                                        💵 <strong>Até 3x no Dinheiro/Pix</strong> {certificadoDigital ? '+ valor da taxa da certificadora na 1ª parcela.' : ''}
+                                        💵 <strong>Valor total pode ser pago em até 4x no Dinheiro/Pix</strong> (se incluso Frente de caixa) ou em até 3x no Dinheiro/Pix.
                                       </>
                                     ) : (
                                       <>
-                                        💳 <strong>Até 10x s/ juros no cartão</strong> {certificadoDigital ? 'ou até 4x no Dinheiro/Pix.' : ''}
+                                        💳 <strong>Até 10x s/ juros no cartão</strong> ou até 5x no Dinheiro/Pix (se incluso Frente de Caixa) ou em até 4x no Dinheiro/Pix. Os serviços podem ser adquiridos separadamente, consultar parcelamento.*
                                       </>
                                     )}
                                   </p>
                                 </div>
-
-                                {condicaoEspecial && certificadoDigital && (
-                                  <p className="text-[9px] text-gray-500 italic mt-1 leading-tight border-t border-red-500/10 pt-1.5">
-                                    * A Taxa é o valor cobrado diretamente pela Certificadora.
-                                  </p>
-                                )}
                               </div>
                             )
                           )
